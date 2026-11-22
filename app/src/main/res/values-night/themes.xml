@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MbtKeyboard" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand_night</item>
+        <item name="colorOnPrimary">@color/brand_on_night</item>
+        <item name="colorPrimaryContainer">@color/brand_container_night</item>
+        <item name="colorOnPrimaryContainer">@color/brand_on_container_night</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
