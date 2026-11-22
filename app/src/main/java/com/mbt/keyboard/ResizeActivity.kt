@@ -101,12 +101,17 @@ class ResizeActivity : AppCompatActivity() {
     @SuppressLint("ClickableViewAccessibility")
     private fun bind(id: Int, change: () -> Unit) {
         val button = findViewById<MaterialButton>(id)
+        var ticks = 0
         val repeat = object : Runnable {
             override fun run() {
                 // 끝에 닿아 버튼이 비활성이 되면 반복을 멈춘다 (값이 계속 쌓이지 않게)
                 if (!button.isEnabled) return
-                change(); refresh()
-                handler.postDelayed(this, 90L)
+                // 1% 단위라 오래 누르면 점점 빨라진다 (1초쯤 지나면 틱당 2칸, 이후 최대 5칸)
+                val steps = (1 + ticks / 12).coerceAtMost(5)
+                repeat(steps) { change() }
+                refresh()
+                ticks++
+                handler.postDelayed(this, 70L)
             }
         }
         button.setOnTouchListener { v, e ->
@@ -114,6 +119,7 @@ class ResizeActivity : AppCompatActivity() {
                 MotionEvent.ACTION_DOWN -> {
                     if (!v.isEnabled) return@setOnTouchListener false
                     v.isPressed = true
+                    ticks = 0
                     change(); refresh()
                     handler.postDelayed(repeat, 400L)
                 }
@@ -152,7 +158,7 @@ class ResizeActivity : AppCompatActivity() {
         findViewById<View>(R.id.moveDown).isEnabled = geometry.canLower
 
         findViewById<TextView>(R.id.moveHint).text =
-            if (geometry.freePx(containerWidthPx) > 0) getString(R.string.resize_move_hint_x, geometry.raiseDp)
+            if (geometry.freePx(containerWidthPx) > 0) getString(R.string.resize_move_hint_x, geometry.raiseDp, KeyboardGeometry.X_STEP_DP)
             else getString(R.string.resize_move_hint_full, geometry.raiseDp)
     }
 

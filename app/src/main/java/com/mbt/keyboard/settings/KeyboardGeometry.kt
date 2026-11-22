@@ -56,7 +56,7 @@ data class KeyboardGeometry(
 
     /**
      * 왼쪽(◀)·오른쪽(▶) 이동 가능 여부. 가로가 100%라 남는 공간이 없을 때는
-     * 누르면 가로를 한 단계 줄여서 움직일 공간을 만들기 때문에 눌러볼 수 있다.
+     * 누르면 가로를 [AUTO_SHRINK_PCT]% 줄여서 움직일 공간을 만들기 때문에 눌러볼 수 있다.
      */
     fun canMoveLeft(containerWidthPx: Int, density: Float) =
         freePx(containerWidthPx) == 0 || leftMarginPx(containerWidthPx, density) > 0
@@ -65,11 +65,11 @@ data class KeyboardGeometry(
         freePx(containerWidthPx) == 0 || leftMarginPx(containerWidthPx, density) < freePx(containerWidthPx)
 
     /**
-     * 좌우로 [steps]칸([X_STEP_DP]dp씩) 옮긴다. 남는 공간이 없으면(가로 100%) 먼저 가로를 한 단계 줄인다.
+     * 좌우로 [steps]칸([X_STEP_DP]dp씩) 옮긴다. 남는 공간이 없으면(가로 100%) 먼저 가로를 [AUTO_SHRINK_PCT]% 줄인다.
      * 저장되는 값은 항상 실제 위치와 같게 맞춰서, 끝에서 계속 눌러도 값이 쌓이지 않는다.
      */
     fun movedX(steps: Int, containerWidthPx: Int, density: Float): KeyboardGeometry {
-        val g = if (freePx(containerWidthPx) == 0) copy(widthPct = WIDTH_MAX - WIDTH_STEP) else this
+        val g = if (freePx(containerWidthPx) == 0) copy(widthPct = WIDTH_MAX - AUTO_SHRINK_PCT) else this
         val free = g.freePx(containerWidthPx)
         val current = g.leftMarginPx(containerWidthPx, density)
         val next = (current + steps * X_STEP_DP * density).roundToInt().coerceIn(0, free)
@@ -86,17 +86,20 @@ data class KeyboardGeometry(
     companion object {
         const val WIDTH_MIN = 50
         const val WIDTH_MAX = 100
-        const val WIDTH_STEP = 5
+        const val WIDTH_STEP = 1
+
+        /** 가로가 100%라 남는 공간이 없을 때 ◀ ▶를 누르면 이만큼(%) 줄여서 움직일 공간을 만든다 */
+        const val AUTO_SHRINK_PCT = 5
         const val WIDTH_DEFAULT = 100
 
         const val HEIGHT_MIN = 70
         const val HEIGHT_MAX = 150
-        const val HEIGHT_STEP = 5
+        const val HEIGHT_STEP = 1
         const val HEIGHT_DEFAULT = 100
 
         const val X_MIN = -600
         const val X_MAX = 600
-        const val X_STEP_DP = 16
+        const val X_STEP_DP = 4
         const val X_DEFAULT = 0
 
         const val RAISE_MIN = 0
@@ -106,7 +109,7 @@ data class KeyboardGeometry(
 
         const val GAP_MIN = 6
         const val GAP_MAX = 40
-        const val GAP_STEP = 2
+        const val GAP_STEP = 1
         const val GAP_DEFAULT = 18
 
         /** 폴드 안쪽 화면·태블릿처럼 넓은 화면의 기준 (가장 짧은 변, dp) */

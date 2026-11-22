@@ -38,9 +38,9 @@ class ResizeActivityTest {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
                 tap(a, R.id.widthMinus); tap(a, R.id.heightPlus); tap(a, R.id.moveUp)
-                tap(a, R.id.moveLeft)      // 가로 95%: 남는 공간 안에서 왼쪽으로
+                tap(a, R.id.moveLeft)      // 가로 99%: 남는 공간 안에서 왼쪽으로
                 val g = Prefs.geometry(a, large = false)
-                assertEquals(95, g.widthPct); assertEquals(105, g.heightPct)
+                assertEquals(99, g.widthPct); assertEquals(101, g.heightPct)
                 assertEquals(10, g.raiseDp); assertTrue(g.xDp < 0)
                 // 폰(접힘)에서는 갈라진 정도 행이 숨겨진다
                 assertEquals(View.GONE, a.findViewById<View>(R.id.gapRow).visibility)
@@ -54,7 +54,7 @@ class ResizeActivityTest {
             sc.onActivity { a ->
                 assertEquals(View.VISIBLE, a.findViewById<View>(R.id.gapRow).visibility)
                 tap(a, R.id.gapPlus); tap(a, R.id.gapPlus)
-                assertEquals(22, Prefs.geometry(a, large = true).gapPct)
+                assertEquals(20, Prefs.geometry(a, large = true).gapPct)
                 // 접힘(폰) 설정은 그대로
                 assertEquals(KeyboardGeometry.GAP_DEFAULT, Prefs.geometry(a, large = false).gapPct)
                 a.findViewById<View>(R.id.resetButton).performClick()
@@ -98,7 +98,7 @@ class ResizeActivityTest {
     @Test fun afterShrinkingWidthLeftAndRightMoveThePreview() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                repeat(4) { tap(a, R.id.widthMinus) }              // 가로 80%
+                repeat(20) { tap(a, R.id.widthMinus) }             // 가로 80% (1%씩)
                 val start = previewLp(a).leftMargin
                 tap(a, R.id.moveLeft)
                 val left = previewLp(a).leftMargin
@@ -116,9 +116,23 @@ class ResizeActivityTest {
                 // 가로 100%에서 ◀를 눌러도 반응한다 (가로가 한 단계 줄며 왼쪽으로)
                 tap(a, R.id.moveLeft)
                 val g = Prefs.geometry(a, large = false)
-                assertEquals(95, g.widthPct)
+                assertEquals(100 - KeyboardGeometry.AUTO_SHRINK_PCT, g.widthPct)
                 assertTrue(g.xDp < 0)
-                assertEquals(0, previewLp(a).leftMargin)
+                val free = (a.resources.displayMetrics.widthPixels * 0.05f).toInt()
+                assertTrue(previewLp(a).leftMargin < free / 2 + 1)         // 가운데보다 왼쪽
+            }
+        }
+    }
+
+    @Test fun widthAndHeightChangeByExactlyOnePercentPerTap() {
+        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                tap(a, R.id.widthMinus); tap(a, R.id.widthMinus); tap(a, R.id.widthMinus)
+                tap(a, R.id.heightMinus); tap(a, R.id.heightMinus)
+                tap(a, R.id.heightPlus)
+                val g = Prefs.geometry(a, large = false)
+                assertEquals(97, g.widthPct)
+                assertEquals(99, g.heightPct)
             }
         }
     }
