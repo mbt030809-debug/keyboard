@@ -104,40 +104,36 @@ class PhrasePanel(context: Context, private val listener: Listener) : LinearLayo
             return
         }
         phrases.chunked(COLUMNS).forEach { rowItems ->
-            val row = LinearLayout(context).apply { orientation = HORIZONTAL }
+            val row = LinearLayout(context).apply {
+                orientation = HORIZONTAL
+                isBaselineAligned = false
+            }
             repeat(COLUMNS) { i ->
                 val text = rowItems.getOrNull(i)
                 val cell: android.view.View = if (text != null) cell(text) else android.view.View(context)
-                row.addView(cell, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(dp(3), dp(3), dp(3), dp(3)) })
+                // 가로는 3등분(열 정렬), 세로는 MATCH_PARENT: 같은 줄 칸들은 가장 큰 칸 높이로 통일(행 정렬)
+                row.addView(cell, LayoutParams(0, LayoutParams.MATCH_PARENT, 1f).apply { setMargins(dp(3), dp(3), dp(3), dp(3)) })
             }
             container.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         }
     }
 
-    /** 네모난 칸 하나 */
-    private fun cell(text: String) = SquareTextView(context).apply {
+    /** 네모난 칸 하나: 최소 높이 [CELL_MIN_HEIGHT_DP], 글이 길면 최대 3줄까지 늘어난다 */
+    private fun cell(text: String) = TextView(context).apply {
         this.text = text
         textSize = 14f
         setTextColor(theme.text)
         gravity = Gravity.CENTER
-        maxLines = 4
+        minHeight = dp(CELL_MIN_HEIGHT_DP)
+        maxLines = 3
         ellipsize = TextUtils.TruncateAt.END
-        setPadding(dp(8), dp(8), dp(8), dp(8))
+        setPadding(dp(6), dp(6), dp(6), dp(6))
         background = GradientDrawable().apply {
-            cornerRadius = 12 * density
+            cornerRadius = 10 * density
             setColor(theme.key)
             setStroke(dp(1), theme.keyPressed)
         }
         setOnClickListener { listener.onInsert(text) }
-    }
-
-    /** 가로 길이에 맞춰 높이가 최소 비슷한 네모 칸이 되는 텍스트 뷰 (글이 길면 더 커진다) */
-    private class SquareTextView(context: Context) : TextView(context) {
-        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-            val square = (measuredWidth * 0.8f).toInt()
-            if (measuredHeight < square) setMeasuredDimension(measuredWidth, square)
-        }
     }
 
     private fun barButton(label: String) = TextView(context).apply {
@@ -173,5 +169,6 @@ class PhrasePanel(context: Context, private val listener: Listener) : LinearLayo
 
     private companion object {
         const val COLUMNS = 3
+        const val CELL_MIN_HEIGHT_DP = 52
     }
 }
