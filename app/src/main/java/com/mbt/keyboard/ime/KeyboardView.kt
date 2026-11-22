@@ -539,7 +539,10 @@ class KeyboardView(context: Context) : View(context) {
             KeyType.CHAR -> {
                 if (key.hints.isEmpty()) return null
                 val n = key.hints.size
-                var cellW = max(cell.rect.width(), 44 * density)
+                // 칸 너비: 키 너비·최소 44dp, 그리고 가장 긴 후보(예: ".com")가 들어갈 만큼
+                paint.textSize = keyHeightPx * 0.42f * theme.textScale
+                val widest = key.hints.maxOf { paint.measureText(it) } + 16 * density
+                var cellW = max(max(cell.rect.width(), 44 * density), widest)
                 cellW = min(cellW, (width - 2 * padPx) / n)
                 val total = cellW * n
                 val left = cell.rect.left.coerceAtMost(width - padPx - total).coerceAtLeast(padPx)

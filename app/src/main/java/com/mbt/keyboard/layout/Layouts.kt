@@ -91,7 +91,7 @@ object Layouts {
                 Key("😊", KeyType.EMOJI, weight = 1.2f),
                 Key(",", hints = listOf("'", "\"")),
                 Key("", KeyType.SPACE, output = " ", weight = 4.1f),
-                Key(".", hints = listOf("…", "·")),
+                Key(".", hints = listOf("…", ".com")),
                 enter,
             )
         } else {
@@ -99,7 +99,7 @@ object Layouts {
                 emoji,
                 Key(",", hints = listOf("'", "\"")),
                 space,
-                Key(".", hints = listOf("…", "·")),
+                Key(".", hints = listOf("…", ".com")),
                 enter,
             )
         }

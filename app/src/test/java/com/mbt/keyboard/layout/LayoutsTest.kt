@@ -146,4 +146,11 @@ class LayoutsTest {
         // 쉬프트가 없는 키는 그대로
         assertEquals("ㅁ", keys["ㅁ"]!!.outputFor(true))
     }
+
+    @Test fun periodKeyLongPressGivesEllipsisAndDotCom() {
+        Layouts.all.forEach { l ->
+            val period = l.rows.last().first { it.label == "." }
+            assertEquals(listOf("…", ".com"), period.hints)
+        }
+    }
 }
