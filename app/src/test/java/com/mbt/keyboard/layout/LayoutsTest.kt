@@ -112,9 +112,34 @@ class LayoutsTest {
     @Test fun bottomRowHasVoiceKeyAndNoLangKey() {
         Layouts.all.forEach { l ->
             val bottom = l.rows.last()
-            assertEquals(KeyType.VOICE, bottom.first().type)
+            assertTrue(KeyType.VOICE in bottom.take(2).map { it.type })
             assertEquals(1, l.rows.flatten().count { it.type == KeyType.VOICE })
             assertTrue(KeyType.SPACE in bottom.map { it.type })
         }
+    }
+
+    @Test fun singleLayoutHasBottomLeftShift() {
+        val bottom = Layouts.koreanSingle.rows.last()
+        assertEquals(KeyType.SHIFT, bottom.first().type)
+        assertEquals(10.0, bottom.sumOf { it.weight.toDouble() }, 0.001)
+        // 단모음 자판은 글자 줄에 쉬프트가 없다
+        val letterRows = Layouts.koreanSingle.rows.subList(Layouts.LETTER_ROW_START, Layouts.LETTER_ROW_START + 3)
+        assertTrue(letterRows.flatten().none { it.type == KeyType.SHIFT })
+        // 다른 자판의 하단 줄 폭도 10
+        Layouts.all.forEach { l -> assertEquals(10.0, l.rows.last().sumOf { it.weight.toDouble() }, 0.001) }
+    }
+
+    @Test fun shiftGivesTenseConsonantsAndDoubleVowelsOnSingleLayout() {
+        val keys = Layouts.koreanSingle.rows.subList(Layouts.LETTER_ROW_START, Layouts.LETTER_ROW_START + 3)
+            .flatten().filter { it.type == KeyType.CHAR }.associateBy { it.output }
+        val expected = mapOf(
+            "ㅂ" to "ㅃ", "ㅈ" to "ㅉ", "ㄷ" to "ㄸ", "ㄱ" to "ㄲ", "ㅅ" to "ㅆ",
+            "ㅏ" to "ㅑ", "ㅓ" to "ㅕ", "ㅗ" to "ㅛ", "ㅜ" to "ㅠ", "ㅐ" to "ㅒ", "ㅔ" to "ㅖ",
+        )
+        expected.forEach { (base, shifted) -> assertEquals(base, shifted, keys[base]!!.outputFor(true)) }
+        // 연타 변환 표와 일치해야 한다
+        expected.forEach { (base, shifted) -> assertEquals(com.mbt.keyboard.hangul.Jamo.DOUBLE[base[0]], shifted[0]) }
+        // 쉬프트가 없는 키는 그대로
+        assertEquals("ㅁ", keys["ㅁ"]!!.outputFor(true))
     }
 }

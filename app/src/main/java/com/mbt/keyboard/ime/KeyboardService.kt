@@ -181,7 +181,22 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         abortVoice()
         flushComposing()
         val code = if (steps < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
-        repeat(kotlin.math.abs(steps)) { sendDownUpKeyEvents(code) }
+        // 쉬프트가 켜져 있으면 이동하면서 글자 선택 (쉬프트 + 방향키)
+        val select = view.shiftState != ShiftState.OFF
+        repeat(kotlin.math.abs(steps)) { if (select) sendDpadWithShift(code) else sendDownUpKeyEvents(code) }
+    }
+
+    private fun sendDpadWithShift(code: Int) {
+        val ic = currentInputConnection ?: return
+        val now = SystemClock.uptimeMillis()
+        val meta = KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
+        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, code, 0, meta))
+        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, code, 0, meta))
+    }
+
+    /** 선택 제스처가 끝나면 한 번용 쉬프트(ON)는 해제. 고정(LOCK)은 유지 */
+    override fun onCursorMoveEnd() {
+        if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
     }
 
     /** 전체선택·복사·붙여넣기 */

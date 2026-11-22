@@ -81,13 +81,28 @@ object Layouts {
     /** 상단 두 줄은 낮게 */
     private val rowHeights = listOf(0.7f, 0.75f, 1f, 1f, 1f, 1f)
 
-    private fun bottom() = listOf(
-        voice,
-        Key(",", hints = listOf("'", "\"")),
-        space,
-        Key(".", hints = listOf("…", "·")),
-        enter,
-    )
+    /** 좌측하단 쉬프트 (단모음 자판용: 쉬프트로 쌍자음·ㅑㅕㅛㅠ·ㅒㅖ) */
+    private val bottomShift = Key("⇧", KeyType.SHIFT, weight = 1.2f)
+
+    private fun bottom(withShift: Boolean = false) =
+        if (withShift) {
+            listOf(
+                bottomShift,
+                Key("🎤", KeyType.VOICE, weight = 1.2f),
+                Key(",", hints = listOf("'", "\"")),
+                Key("", KeyType.SPACE, output = " ", weight = 4.1f),
+                Key(".", hints = listOf("…", "·")),
+                enter,
+            )
+        } else {
+            listOf(
+                voice,
+                Key(",", hints = listOf("'", "\"")),
+                space,
+                Key(".", hints = listOf("…", "·")),
+                enter,
+            )
+        }
 
     /**
      * 글자 줄 생성. 기호 묶음은 [symbolStart]번부터 키 순서대로 배정된다.
@@ -129,19 +144,32 @@ object Layouts {
 
     /**
      * 한글 단모음. 자음 + 단모음(ㅏㅓㅗㅜㅡㅣㅐㅔ) 8개만 배치하고
-     * 같은 키를 연달아 두 번 치면 ㄱ→ㄲ, ㅏ→ㅑ 처럼 변환된다.
-     * 꾹 누르기는 기호 (쌍자음은 연타로 입력).
+     * 같은 키를 연달아 두 번 치거나 쉬프트를 누르면 ㄱ→ㄲ, ㅏ→ㅑ 처럼 바뀐다.
+     * 꾹 누르기는 기호.
      */
     val koreanSingle = KeyboardLayout(
         KOS, "한글 단모음",
         listOf(
             toolbarRow,
             numberRow,
-            letters(listOf("ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅗ", "ㅐ", "ㅔ"), List(8) { null }, 0),
-            letters(listOf("ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "ㅓ", "ㅏ", "ㅣ"), List(8) { null }, 8),
+            // 쉬프트: 쌍자음(ㅃㅉㄸㄲㅆ), 쌍모음(ㅛ ㅒ ㅖ ㅕ ㅑ ㅠ)
+            letters(
+                listOf("ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅗ", "ㅐ", "ㅔ"),
+                listOf("ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅆ", "ㅛ", "ㅒ", "ㅖ"),
+                0,
+            ),
+            letters(
+                listOf("ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "ㅓ", "ㅏ", "ㅣ"),
+                listOf(null, null, null, null, null, "ㅕ", "ㅑ", null),
+                8,
+            ),
             listOf(spacer(0.5f)) +
-                letters(listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅜ", "ㅡ"), List(6) { null }, 16) + backspace,
-            bottom(),
+                letters(
+                    listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅜ", "ㅡ"),
+                    listOf(null, null, null, null, "ㅠ", null),
+                    16,
+                ) + backspace,
+            bottom(withShift = true),
         ),
         rowHeights,
         hangul = true,

@@ -41,6 +41,8 @@ class KeyboardView(context: Context) : View(context) {
         fun onSwipeSpace()
         /** 글자 키 위 좌우 스와이프: 커서 이동 (음수=왼쪽, 양수=오른쪽, 절댓값=글자 수) */
         fun onCursorMove(steps: Int)
+        /** 커서 이동 제스처(스와이프, ◁▷ 키)가 끝남 */
+        fun onCursorMoveEnd()
     }
 
     var listener: Listener? = null
@@ -275,7 +277,11 @@ class KeyboardView(context: Context) : View(context) {
             }
             MotionEvent.ACTION_MOVE -> onMove(e)
             MotionEvent.ACTION_UP -> onUp()
-            MotionEvent.ACTION_CANCEL -> resetGesture()
+            MotionEvent.ACTION_CANCEL -> {
+                val cursorGesture = isCursorGesture(pressed)
+                resetGesture()
+                if (cursorGesture) listener?.onCursorMoveEnd()
+            }
         }
         return true
     }
@@ -354,6 +360,7 @@ class KeyboardView(context: Context) : View(context) {
         val p = pressed
         val pop = popup
         val repeating = p?.key?.type in REPEAT_TYPES
+        val cursorGesture = isCursorGesture(p)
         resetGesture()
         when {
             pop != null -> if (pop.selected >= 0) listener?.onText(pop.items[pop.selected])
@@ -362,7 +369,12 @@ class KeyboardView(context: Context) : View(context) {
                 listener?.onKey(p.key)
             }
         }
+        if (cursorGesture) listener?.onCursorMoveEnd()
     }
+
+    /** 커서를 움직인 제스처인가 (스와이프 이동 중이거나 ◁▷ 키) */
+    private fun isCursorGesture(p: Cell?) =
+        cursorDrag || p?.key?.type == KeyType.LEFT || p?.key?.type == KeyType.RIGHT
 
     override fun performClick(): Boolean { super.performClick(); return true }
 
