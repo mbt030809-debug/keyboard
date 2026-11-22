@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.inputmethodservice.InputMethodService
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.mbt.keyboard.PermissionActivity
@@ -18,11 +20,15 @@ import com.mbt.keyboard.layout.Key
 import com.mbt.keyboard.layout.KeyType
 import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.phrase.Phrases
+import com.mbt.keyboard.R
 import com.mbt.keyboard.settings.Prefs
+import com.mbt.keyboard.spell.SpellChecker
 
 class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
+    private lateinit var root: FrameLayout
     private lateinit var view: KeyboardView
+    private lateinit var panel: EmojiPanel
     private lateinit var haptics: Haptics
     private lateinit var voice: VoiceInput
     private val composer = HangulComposer()
@@ -73,12 +79,44 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             it.haptics = haptics
             it.keyboardLayout = Layouts.byId(layoutId)
         }
-        return view
+        panel = EmojiPanel(this, emojiListener).also { it.visibility = View.GONE }
+        // 키보드와 이모지 패널을 같은 자리에 겹쳐 두고 번갈아 보여준다 (패널 높이 = 키보드 높이)
+        root = FrameLayout(this).apply {
+            addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        }
+        return root
+    }
+
+    private val emojiListener = object : EmojiPanel.Listener {
+        override fun onInsert(text: String) {
+            haptics.key()
+            currentInputConnection?.commitText(text, 1)
+        }
+
+        override fun onBackspace() {
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+        }
+
+        override fun onClose() = hideEmojiPanel()
+    }
+
+    private fun showEmojiPanel() {
+        flushComposing()
+        panel.setBottomInset(view.bottomInsetPx)
+        view.visibility = View.INVISIBLE   // 높이는 유지해야 패널이 같은 크기로 뜬다
+        panel.visibility = View.VISIBLE
+    }
+
+    private fun hideEmojiPanel() {
+        panel.visibility = View.GONE
+        view.visibility = View.VISIBLE
     }
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         composer.reset()
+        hideEmojiPanel()
         view.shiftState = ShiftState.OFF
         view.phrases = Phrases.load(this)
         haptics.refresh()   // 설정 화면에서 바꾼 진동 설정 반영
@@ -124,8 +162,8 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             KeyType.ENTER -> onEnter()
             KeyType.SHIFT -> onShift()
             KeyType.VOICE -> onVoice()
-            KeyType.LEFT -> moveCursor(-1)
-            KeyType.RIGHT -> moveCursor(1)
+            KeyType.EMOJI -> showEmojiPanel()
+            KeyType.SPELL -> onSpellCheck()
             KeyType.SELECT_ALL -> editAction(android.R.id.selectAll)
             KeyType.COPY -> editAction(android.R.id.copy)
             KeyType.PASTE -> editAction(android.R.id.paste)
@@ -198,6 +236,35 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     override fun onCursorMoveEnd() {
         if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
     }
+
+    /**
+     * 맞춤법 검사 (온디바이스 규칙). 선택한 글자가 있으면 그 부분, 없으면 커서 앞 글자(최대 [SPELL_MAX_CHARS]자)를 고친다.
+     */
+    private fun onSpellCheck() {
+        val ic = currentInputConnection ?: return
+        flushComposing()
+        val selected = ic.getSelectedText(0)?.toString()
+        val hasSelection = !selected.isNullOrEmpty()
+        val source = if (hasSelection) selected!! else ic.getTextBeforeCursor(SPELL_MAX_CHARS, 0)?.toString().orEmpty()
+        if (source.isBlank()) {
+            toast(getString(R.string.spell_nothing))
+            return
+        }
+        val result = SpellChecker.check(source)
+        if (result.changes.isEmpty()) {
+            toast(getString(R.string.spell_clean))
+            return
+        }
+        ic.beginBatchEdit()
+        if (!hasSelection) ic.deleteSurroundingText(source.length, 0)
+        ic.commitText(result.text, 1)
+        ic.endBatchEdit()
+        val shown = result.changes.take(3).joinToString(", ") { "${it.from}→${it.to}" }
+        val more = if (result.changes.size > 3) " …" else ""
+        toast(getString(R.string.spell_done, result.changes.size, shown + more))
+    }
+
+    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     /** 전체선택·복사·붙여넣기 */
     private fun editAction(id: Int) {
@@ -312,6 +379,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private companion object {
         const val DOUBLE_TAP_MS = 350L
+        const val SPELL_MAX_CHARS = 1000
         val LATIN_VARIATIONS = setOf(
             InputType.TYPE_TEXT_VARIATION_PASSWORD,
             InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,

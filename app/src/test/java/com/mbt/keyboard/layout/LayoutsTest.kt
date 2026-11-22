@@ -50,11 +50,14 @@ class LayoutsTest {
         }
     }
 
-    @Test fun toolbarRowHasEditAndSymbolKeys() {
+    @Test fun toolbarRowHasVoiceEditSpellAndSymbolKeys() {
         Layouts.all.forEach { l ->
             val types = l.rows[0].map { it.type }
-            assertTrue(KeyType.LEFT in types && KeyType.RIGHT in types)
+            assertEquals(KeyType.VOICE, types.first())
             assertTrue(KeyType.SELECT_ALL in types && KeyType.COPY in types && KeyType.PASTE in types)
+            assertTrue(KeyType.SPELL in types)
+            // 좌우 화살표 키는 없다
+            assertEquals(10, l.rows[0].size)
             assertEquals(listOf("-", "❤\uFE0F", "@", "?", "!"), l.rows[0].filter { it.type == KeyType.CHAR }.map { it.output })
         }
     }
@@ -109,11 +112,12 @@ class LayoutsTest {
         assertTrue(Layouts.SYMBOL_GROUPS.all { it.isNotEmpty() })
     }
 
-    @Test fun bottomRowHasVoiceKeyAndNoLangKey() {
+    @Test fun voiceKeyIsOnTopAndEmojiKeyIsAtBottom() {
         Layouts.all.forEach { l ->
-            val bottom = l.rows.last()
-            assertTrue(KeyType.VOICE in bottom.take(2).map { it.type })
             assertEquals(1, l.rows.flatten().count { it.type == KeyType.VOICE })
+            assertEquals(1, l.rows.flatten().count { it.type == KeyType.EMOJI })
+            val bottom = l.rows.last()
+            assertTrue(KeyType.EMOJI in bottom.take(2).map { it.type })
             assertTrue(KeyType.SPACE in bottom.map { it.type })
         }
     }

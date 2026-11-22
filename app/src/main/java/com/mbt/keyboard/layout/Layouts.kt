@@ -56,23 +56,23 @@ object Layouts {
 
     private val shift = Key("⇧", KeyType.SHIFT, weight = 1.5f)
     private val backspace = Key("⌫", KeyType.BACKSPACE, weight = 1.5f)
-    /** 음성인식 (한/영 전환은 스페이스바 스와이프) */
-    private val voice = Key("🎤", KeyType.VOICE, weight = 1.5f)
+    /** 이모티콘·이모지 패널 (한/영 전환은 스페이스바 스와이프) */
+    private val emoji = Key("😊", KeyType.EMOJI, weight = 1.5f)
     private val space = Key("", KeyType.SPACE, output = " ", weight = 5f)
     private val enter = Key("⏎", KeyType.ENTER, weight = 1.5f)
 
-    /** 상단 편집·기호 줄 (참고 키보드와 같은 구성) */
+    /** 상단 줄: 음성인식, 편집(전체·복사·붙임), 맞춤법 검사, 자주 쓰는 기호 */
     private val toolbarRow = listOf(
-        Key("◁", KeyType.LEFT),
+        Key("🎤", KeyType.VOICE),
         Key("전체", KeyType.SELECT_ALL),
         Key("복사", KeyType.COPY),
         Key("붙임", KeyType.PASTE),
+        Key("맞춤법", KeyType.SPELL),
         Key("-"),
-        Key("❤", output = "❤️"),
+        Key("❤", output = "❤\uFE0F"),
         Key("@"),
         Key("?"),
         Key("!"),
-        Key("▷", KeyType.RIGHT),
     )
 
     /** 숫자 줄 */
@@ -88,7 +88,7 @@ object Layouts {
         if (withShift) {
             listOf(
                 bottomShift,
-                Key("🎤", KeyType.VOICE, weight = 1.2f),
+                Key("😊", KeyType.EMOJI, weight = 1.2f),
                 Key(",", hints = listOf("'", "\"")),
                 Key("", KeyType.SPACE, output = " ", weight = 4.1f),
                 Key(".", hints = listOf("…", "·")),
@@ -96,7 +96,7 @@ object Layouts {
             )
         } else {
             listOf(
-                voice,
+                emoji,
                 Key(",", hints = listOf("'", "\"")),
                 space,
                 Key(".", hints = listOf("…", "·")),

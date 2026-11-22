@@ -89,6 +89,9 @@ class KeyboardView(context: Context) : View(context) {
     private var ignoreUntilUp = false
     private var bottomInset = 0
 
+    /** 하단 내비게이션 바 여백 (이모지 패널이 같은 여백을 쓰도록 공개) */
+    val bottomInsetPx: Int get() = bottomInset
+
     private val density = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
     private val handler = Handler(Looper.getMainLooper())
@@ -373,8 +376,7 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     /** 커서를 움직인 제스처인가 (스와이프 이동 중이거나 ◁▷ 키) */
-    private fun isCursorGesture(p: Cell?) =
-        cursorDrag || p?.key?.type == KeyType.LEFT || p?.key?.type == KeyType.RIGHT
+    private fun isCursorGesture(@Suppress("UNUSED_PARAMETER") p: Cell?) = cursorDrag
 
     override fun performClick(): Boolean { super.performClick(); return true }
 
@@ -461,9 +463,10 @@ class KeyboardView(context: Context) : View(context) {
         const val DRAG_STEP_DP = 14f
 
         /** 누르고 있으면 반복되는 키 */
-        val REPEAT_TYPES = setOf(KeyType.BACKSPACE, KeyType.LEFT, KeyType.RIGHT)
+        val REPEAT_TYPES = setOf(KeyType.BACKSPACE)
         /** 상단 편집 줄: 일반 키 색, 작은 글씨 */
-        val TOOLBAR_ACTION_TYPES = setOf(KeyType.LEFT, KeyType.RIGHT, KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE)
+        val TOOLBAR_ACTION_TYPES =
+            setOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE, KeyType.SPELL, KeyType.VOICE)
         /** 일반 키 배경색을 쓰는 키 */
         val NORMAL_STYLE_TYPES = TOOLBAR_ACTION_TYPES + setOf(KeyType.CHAR, KeyType.SPACE)
     }
