@@ -52,6 +52,8 @@ class KeyboardView(context: Context) : View(context) {
         fun onCursorMoveEnd()
         /** 쉬프트 키를 누름(true)/뗌(false). 누른 채로 다른 키를 치면 그 동안만 쉬프트 */
         fun onShiftPress(down: Boolean)
+        /** 엔터 꾹 누르기: 상용구 패널 열기 */
+        fun onEnterLongPress()
     }
 
     var listener: Listener? = null
@@ -82,9 +84,6 @@ class KeyboardView(context: Context) : View(context) {
     var voiceListening: Boolean = false
         set(v) { field = v; invalidate() }
 
-    /** 엔터 꾹 누르기로 보여줄 상용문구 */
-    var phrases: List<String> = emptyList()
-
     private var message: String? = null
     private val clearMessage = Runnable { message = null; invalidate() }
 
@@ -102,11 +101,10 @@ class KeyboardView(context: Context) : View(context) {
     /** [rect]는 터치 판정 영역, [inner]는 그려지는 영역(키 사이 틈 제외, 미리 계산해 그릴 때 객체를 만들지 않음) */
     private class Cell(val key: Key, val rect: RectF, val inner: RectF)
 
-    /** 꾹 누르기 팝업. [rects]는 항목별 영역(후보 가로 나열 / 문구 세로 목록) */
+    /** 꾹 누르기 팝업(후보 가로 나열). [rects]는 항목별 영역 */
     private class Popup(
         val items: List<String>,
         val rects: List<RectF>,
-        val vertical: Boolean,
         var selected: Int,
     )
 
@@ -124,6 +122,14 @@ class KeyboardView(context: Context) : View(context) {
 
         val longPress = Runnable {
             val c = cell ?: return@Runnable
+            if (c.key.type == KeyType.ENTER) {
+                // 엔터 꾹: 상용구 패널을 연다. 손가락을 뗄 때 엔터가 입력되지 않도록 이 제스처는 무시
+                ignore = true
+                haptics?.longPress()
+                invalidateCell(c)
+                listener?.onEnterLongPress()
+                return@Runnable
+            }
             val pop = buildPopup(c) ?: return@Runnable
             popup = pop
             haptics?.longPress()
@@ -340,19 +346,8 @@ class KeyboardView(context: Context) : View(context) {
                 canvas.drawRoundRect(r, radius, radius, paint)
             }
             paint.color = if (sel) theme.onAccent else theme.text
-            if (p.vertical) {
-                paint.textSize = keyHeightPx * 0.30f * theme.textScale
-                paint.textAlign = Paint.Align.LEFT
-                val text = TextUtils.ellipsize(
-                    p.items[i], TextPaint(paint), r.width() - 16 * density, TextUtils.TruncateAt.END,
-                ).toString()
-                val y = r.centerY() - (paint.fontMetrics.ascent + paint.fontMetrics.descent) / 2
-                canvas.drawText(text, r.left + 8 * density, y, paint)
-                paint.textAlign = Paint.Align.CENTER
-            } else {
-                paint.textSize = keyHeightPx * 0.42f * theme.textScale
-                drawCentered(canvas, p.items[i], r)
-            }
+            paint.textSize = keyHeightPx * 0.42f * theme.textScale
+            drawCentered(canvas, p.items[i], r)
         }
     }
 
@@ -531,7 +526,7 @@ class KeyboardView(context: Context) : View(context) {
 
         private fun hasLongPress(key: Key) = when (key.type) {
         KeyType.CHAR -> key.hints.isNotEmpty()
-        KeyType.ENTER -> phrases.isNotEmpty()
+        KeyType.ENTER -> true
         else -> false
     }
 
@@ -550,27 +545,14 @@ class KeyboardView(context: Context) : View(context) {
                 val left = cell.rect.left.coerceAtMost(width - padPx - total).coerceAtLeast(padPx)
                 val top = (cell.rect.top - keyH).coerceAtLeast(0f)
                 val rects = List(n) { RectF(left + it * cellW, top, left + (it + 1) * cellW, top + keyH) }
-                Popup(key.hints, rects, vertical = false, selected = 0)
-            }
-            KeyType.ENTER -> {
-                if (phrases.isEmpty()) return null
-                val n = min(phrases.size, 4)
-                val itemH = keyHeightPx * 0.75f
-                val w = min(width - 2 * padPx, 240 * density)
-                val left = (cell.rect.right - w).coerceAtLeast(padPx)
-                // 마지막 줄 바로 위부터 위로 쌓는다 (0번이 가장 아래, 손가락에 가까움)
-                val bottom = rowTops.last()
-                val rects = List(n) { RectF(left, bottom - (it + 1) * itemH, left + w, bottom - it * itemH) }
-                Popup(phrases.take(n), rects, vertical = true, selected = -1)
+                Popup(key.hints, rects, selected = 0)
             }
             else -> null
         }
     }
 
     private fun updateSelection(ptr: Pointer, p: Popup, x: Float, y: Float) {
-        if (p.vertical) {
-            p.selected = p.rects.indexOfFirst { x >= it.left && x <= it.right && y >= it.top && y < it.bottom }
-        } else if (abs(x - ptr.downX) > SLOP_DP * density) {
+        if (abs(x - ptr.downX) > SLOP_DP * density) {
             val first = p.rects.first().left
             val w = p.rects.first().width()
             p.selected = ((x - first) / w).toInt().coerceIn(0, p.rects.size - 1)

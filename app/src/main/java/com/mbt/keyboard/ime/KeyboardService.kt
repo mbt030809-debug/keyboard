@@ -33,6 +33,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private lateinit var root: FrameLayout
     private lateinit var view: KeyboardView
     private lateinit var panel: EmojiPanel
+    private lateinit var phrasePanel: PhrasePanel
     private lateinit var haptics: Haptics
     private lateinit var voice: VoiceInput
     private val composer = HangulComposer()
@@ -85,10 +86,12 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         }
         updateSplit(resources.configuration)
         panel = EmojiPanel(this, emojiListener).also { it.visibility = View.GONE }
+        phrasePanel = PhrasePanel(this, phraseListener).also { it.visibility = View.GONE }
         // 키보드와 이모지 패널을 같은 자리에 겹쳐 두고 번갈아 보여준다 (패널 높이 = 키보드 높이)
         root = FrameLayout(this).apply {
             addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(phrasePanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
         return root
     }
@@ -126,7 +129,32 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private fun hideEmojiPanel() {
         panel.visibility = View.GONE
+        phrasePanel.visibility = View.GONE
         view.visibility = View.VISIBLE
+    }
+
+    private val phraseListener = object : PhrasePanel.Listener {
+        override fun onInsert(text: String) {
+            haptics.key()
+            currentInputConnection?.commitText(text, 1)
+            hideEmojiPanel()      // 입력하면 키보드로 돌아간다
+        }
+
+        override fun onBackspace() {
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+        }
+
+        override fun onClose() = hideEmojiPanel()
+    }
+
+    /** 엔터 꾹 누르기: 상용구 패널 (3열 격자, 행은 개수만큼 늘어남) */
+    override fun onEnterLongPress() {
+        abortVoice()
+        flushComposing()
+        phrasePanel.setPhrases(Phrases.load(this))
+        phrasePanel.setBottomInset(view.bottomInsetPx)
+        view.visibility = View.INVISIBLE
+        phrasePanel.visibility = View.VISIBLE
     }
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
@@ -135,7 +163,6 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         hideEmojiPanel()
         updateSplit(resources.configuration)   // 설정에서 나눠쓰기를 바꿨을 수 있다
         shift.reset(); syncShift()
-        view.phrases = Phrases.load(this)
         haptics.refresh()   // 설정 화면에서 바꾼 진동 설정 반영
         // 비밀번호·이메일·URL 입력칸은 영문 자판으로 시작
         val cls = info.inputType and InputType.TYPE_MASK_CLASS

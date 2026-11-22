@@ -4,13 +4,18 @@ import android.content.Context
 
 /** 상용문구: 엔터 길게 누르기로 입력. 설정 화면에서 한 줄에 하나씩 편집. */
 object Phrases {
-    const val MAX = 4
+    const val MAX = 100
 
     val DEFAULT = listOf(
         "안녕하세요",
         "감사합니다",
         "네, 알겠습니다",
         "지금 통화 가능하세요?",
+        "잠시만요",
+        "죄송합니다",
+        "확인했습니다",
+        "나중에 연락드릴게요",
+        "좋은 하루 되세요",
     )
 
     private const val PREFS = "mbt_keyboard"

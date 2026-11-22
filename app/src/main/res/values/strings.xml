@@ -33,7 +33,7 @@
     <string name="layout_single">단모음 (기본)</string>
     <string name="layout_dubeolsik">두벌식</string>
     <string name="phrase_title">상용문구</string>
-    <string name="phrase_desc">엔터를 꾹 누르면 나와요. 한 줄에 하나, 앞의 4개까지 표시돼요</string>
+    <string name="phrase_desc">엔터를 꾹 누르면 네모난 칸(3열)으로 나와요. 한 줄에 하나씩, 최대 100개까지 추가할 수 있어요</string>
     <string name="phrase_hint">예: 지금 통화 가능하세요?</string>
     <string name="test_title">입력 테스트</string>
     <string name="test_hint">여기를 눌러 입력해 보세요</string>

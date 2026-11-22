@@ -9,10 +9,18 @@ class PhrasesTest {
     }
 
     @Test fun parseLimitsToMax() {
-        assertEquals(Phrases.MAX, Phrases.parse("1\n2\n3\n4\n5\n6").size)
+        val many = (1..Phrases.MAX + 50).joinToString("\n") { "문구$it" }
+        assertEquals(Phrases.MAX, Phrases.parse(many).size)
     }
 
     @Test fun emptyRawMeansNoPhrases() {
         assertEquals(emptyList<String>(), Phrases.parse(""))
+    }
+
+    @Test fun noLongerStopsAtFourPhrases() {
+        // 예전에는 4개까지만 보였다. 이제는 3열 격자로 행이 계속 늘어난다
+        assertEquals(10, Phrases.parse((1..10).joinToString("\n") { "문구$it" }).size)
+        assertEquals(true, Phrases.DEFAULT.size > 4)
+        assertEquals(true, Phrases.MAX >= 30)
     }
 }
