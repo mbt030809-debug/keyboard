@@ -373,10 +373,19 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         val shifted = shift.state != ShiftState.OFF
         val text = key.outputFor(shifted)
         if (layout.hangul && text.length == 1 && Jamo.isJamo(text[0])) {
-            if (layout.doubleTap && tryDoubleTap(text)) {
-                // 연타 변환 완료
+            val jamo = text[0]
+            if (layout.doubleTap) {
+                val now = SystemClock.uptimeMillis()
+                val paused = now - lastJamoTime >= PAUSE_SPLIT_MS      // 직전 입력 뒤 잠시 멈췄는가
+                when {
+                    tryDoubleTap(text, now) -> Unit                    // 연타 변환 완료
+                    // 모음으로 끝난 글자 뒤에서 잠시 멈췄다 친 자음은 받침이 아니라 다음 글자 초성 (어 … ㄷ → 어 + ㄷ)
+                    paused && Jamo.isConsonant(jamo) && composer.isOpenSyllable() ->
+                        applyOutput(composer.startNewSyllable(jamo))
+                    else -> commitJamo(jamo)
+                }
             } else {
-                commitJamo(text[0])
+                commitJamo(jamo)
             }
         } else {
             lastJamoKey = null
@@ -391,14 +400,12 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
      * 변환 후 같은 키를 또 치면 새 글자로 취급 (3연타는 변환 연쇄 없음).
      * @return 변환했으면 true
      */
-    private fun tryDoubleTap(text: String): Boolean {
-        val now = SystemClock.uptimeMillis()
+    private fun tryDoubleTap(text: String, now: Long): Boolean {
         val isDouble = text == lastJamoKey && now - lastJamoTime <= DOUBLE_TAP_MS
         if (isDouble) {
             val out = composer.doubleTap(text[0])
             if (out != null) {
-                val ic = currentInputConnection ?: return true
-                ic.setComposingText(out.composing, 1)
+                applyOutput(out)
                 lastJamoKey = null
                 return true
             }
@@ -409,9 +416,11 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     /** 자모를 조합 엔진에 넣고 확정/조합 텍스트를 입력창에 반영 */
-    private fun commitJamo(jamo: Char) {
+    private fun commitJamo(jamo: Char) = applyOutput(composer.input(jamo))
+
+    /** 조합 엔진의 결과(확정할 글자 + 조합 중인 글자)를 입력창에 반영 */
+    private fun applyOutput(out: HangulComposer.Output) {
         val ic = currentInputConnection ?: return
-        val out = composer.input(jamo)
         ic.beginBatchEdit()
         if (out.committed.isNotEmpty()) ic.commitText(out.committed, 1)
         ic.setComposingText(out.composing, 1)
@@ -479,6 +488,9 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private companion object {
         const val DOUBLE_TAP_MS = 350L
+
+        /** 단모음 자판: 모음으로 끝난 글자 뒤에서 이만큼 멈췄다 친 자음은 다음 글자 초성이 된다 */
+        const val PAUSE_SPLIT_MS = 700L
         const val SPELL_MAX_CHARS = 1000
         const val LARGE_SCREEN_DP = 600
         val LATIN_VARIATIONS = setOf(

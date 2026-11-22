@@ -41,16 +41,44 @@ class HangulComposer {
 
     /**
      * 같은 키를 연달아 쳤을 때: 마지막 자모를 변환한다. (ㄱ→ㄲ, ㅏ→ㅑ …)
-     * 변환 결과로 글자가 조합되지 않으면(예: 받침 ㄸ) null → 호출자가 일반 입력 처리.
+     *
+     * - 변환한 자모가 그 자리에서 조합되면 그대로 바꾼다. (가+ㄱㄱ → 갂)
+     * - 받침으로는 쌍자음이 될 수 없는 경우(ㄸ ㅃ ㅉ): 받침이던 자음을 다음 글자의 쌍자음 초성으로
+     *   넘긴다. (어+ㄷㄷ → 어 + ㄸ, 이어서 ㅓ를 치면 "어떠")
+     * - 그 외에는 null → 호출자가 일반 입력 처리.
      */
     fun doubleTap(jamo: Char): Output? {
         if (buffer.isEmpty() || buffer.last() != jamo) return null
         val doubled = Jamo.DOUBLE[jamo] ?: return null
-        val candidate = buffer.substring(0, buffer.length - 1) + doubled
-        if (parse(candidate) == null) return null
-        buffer.setLength(buffer.length - 1)
-        buffer.append(doubled)
-        return Output("", render(buffer.toString()))
+        val head = buffer.substring(0, buffer.length - 1)
+        if (parse(head + doubled) != null) {
+            buffer.setLength(buffer.length - 1)
+            buffer.append(doubled)
+            return Output("", render(buffer.toString()))
+        }
+        val before = parse(head)
+        if (Jamo.isConsonant(doubled) && before?.cho != null && before.jung != null) {
+            buffer.clear()
+            buffer.append(doubled)
+            return Output(render(head), render(buffer.toString()))
+        }
+        return null
+    }
+
+    /** 지금 조합 중인 글자가 받침 없이 모음으로 끝나는 완성 글자인가 (예: 어, 가, 와) */
+    fun isOpenSyllable(): Boolean {
+        val syl = parse(buffer.toString()) ?: return false
+        return syl.cho != null && syl.jung != null && syl.jong.isEmpty()
+    }
+
+    /**
+     * 조합 중인 글자를 확정하고 [jamo]로 새 글자를 시작한다. (받침으로 붙이지 않고 다음 글자 초성으로)
+     */
+    fun startNewSyllable(jamo: Char): Output {
+        val committed = render(buffer.toString())
+        buffer.clear()
+        buffer.append(jamo)
+        return Output(committed, render(buffer.toString()))
     }
 
     /** 자모 하나 지우기. 조합 중이 아니면 null (호출자가 일반 삭제 처리). */

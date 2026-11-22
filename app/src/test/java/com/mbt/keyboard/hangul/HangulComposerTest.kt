@@ -136,11 +136,56 @@ class HangulComposerTest {
     @Test fun doubleTapNotApplicableReturnsNull() {
         val c = HangulComposer()
         tap(c, 'ㄱ', 'ㅏ', 'ㄷ')
-        assertNull(c.doubleTap('ㄷ'))       // 받침 ㄸ 불가
         assertNull(c.doubleTap('ㅏ'))       // 마지막 자모가 다름
         tap(c, 'ㅇ', 'ㅗ', 'ㅏ')
         assertNull(c.doubleTap('ㅏ'))       // ㅗㅑ 는 조합 불가
         assertNull(HangulComposer().doubleTap('ㄱ'))
         val d = HangulComposer(); tap(d, 'ㅇ', 'ㅣ'); assertNull(d.doubleTap('ㅣ'))  // ㅣ 는 변환 없음
+    }
+
+    // ---- 어떠 문제: 받침으로 ㄸ 이 안 될 때 다음 글자 초성으로
+
+    @Test fun doubleTapOnFinalThatCannotBeTenseMovesToNextSyllable() {
+        val c = HangulComposer()
+        tap(c, 'ㅇ', 'ㅓ', 'ㄷ')                 // 얻
+        assertEquals("얻", c.composing)
+        val out = c.doubleTap('ㄷ')!!
+        assertEquals("어", out.committed)       // 받침이 되지 않고
+        assertEquals("ㄸ", out.composing)       // 다음 글자의 쌍자음 초성
+        assertEquals("떠", c.input('ㅓ').composing)   // 어 + 떠 = 어떠
+    }
+
+    @Test fun sameForBieupAndJieut() {
+        val b = HangulComposer(); tap(b, 'ㅇ', 'ㅏ', 'ㅂ')
+        assertEquals("ㅃ", b.doubleTap('ㅂ')!!.composing)
+        val j = HangulComposer(); tap(j, 'ㅇ', 'ㅏ', 'ㅈ')
+        assertEquals("ㅉ", j.doubleTap('ㅈ')!!.composing)
+    }
+
+    @Test fun finalThatCanBeTenseStaysAsFinal() {
+        val c = HangulComposer()
+        tap(c, 'ㅇ', 'ㅏ', 'ㄱ')
+        val out = c.doubleTap('ㄱ')!!
+        assertEquals("", out.committed)
+        assertEquals("앆", out.composing)        // 받침 ㄲ (기존 동작 유지)
+    }
+
+    @Test fun openSyllableDetection() {
+        val c = HangulComposer()
+        assertEquals(false, c.isOpenSyllable())
+        tap(c, 'ㅇ'); assertEquals(false, c.isOpenSyllable())
+        tap(c, 'ㅓ'); assertEquals(true, c.isOpenSyllable())
+        tap(c, 'ㄷ'); assertEquals(false, c.isOpenSyllable())
+        val v = HangulComposer(); tap(v, 'ㅏ'); assertEquals(false, v.isOpenSyllable())   // 초성 없는 모음
+        val w = HangulComposer(); tap(w, 'ㄱ', 'ㅗ', 'ㅏ'); assertEquals(true, w.isOpenSyllable())  // 과
+    }
+
+    @Test fun startNewSyllableCommitsCurrentAndStartsWithConsonant() {
+        val c = HangulComposer()
+        tap(c, 'ㅇ', 'ㅓ')
+        val out = c.startNewSyllable('ㄷ')
+        assertEquals("어", out.committed)
+        assertEquals("ㄷ", out.composing)
+        assertEquals("더", c.input('ㅓ').composing)
     }
 }
