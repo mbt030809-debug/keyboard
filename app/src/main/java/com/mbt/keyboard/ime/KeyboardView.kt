@@ -194,7 +194,7 @@ class KeyboardView(context: Context) : View(context) {
             paint.alpha = 255
 
             // 꾹 누르기 후보가 있는 글자 키: 오른쪽 위에 작은 힌트
-            if (key.type == KeyType.CHAR && key.hints.isNotEmpty() && key.hints[0].length == 1) {
+            if (key.type == KeyType.CHAR && key.hints.isNotEmpty() && key.hints[0].length <= 2) {
                 paint.color = theme.text
                 paint.alpha = 110
                 paint.textSize = cell.rect.height() * 0.22f

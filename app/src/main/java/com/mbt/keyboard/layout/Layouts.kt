@@ -8,8 +8,49 @@ object Layouts {
     const val KOS = "kos"
     const val EN = "en"
 
-    private fun ch(label: String, shifted: String? = null, hint: String? = null) =
-        Key(label = label, shifted = shifted, hints = listOfNotNull(hint))
+    /** 글자 줄이 시작되는 행 번호 (위 2줄은 편집·숫자 줄) */
+    const val LETTER_ROW_START = 2
+
+    /**
+     * 쌍으로 입력되는 기호. 입력 후 커서가 두 글자 사이에 놓인다. (예: "()" → (|))
+     */
+    val PAIRS = setOf("()", "[]", "{}", "<>", "\"\"", "''")
+
+    /**
+     * 꾹 누르기 기호 묶음. 글자 키에 읽는 순서(왼쪽 위 → 오른쪽 아래)대로 배정한다.
+     * 각 묶음의 첫 항목이 기본값(꾹 누르고 그대로 떼면 입력), 나머지는 밀어서 선택.
+     * 자주 쓰는 것을 앞쪽 키에 두었고, 괄호·따옴표는 쌍이 기본이다.
+     * 숫자·`- @ ? ! ❤`는 상단 줄에 이미 있으므로 제외.
+     */
+    val SYMBOL_GROUPS: List<List<String>> = listOf(
+        listOf("()", "(", ")"),
+        listOf("[]", "[", "]"),
+        listOf("{}", "{", "}"),
+        listOf("<>", "<", ">"),
+        listOf("\"\"", "\"", "''", "'"),
+        listOf("^"),
+        listOf("~", "…"),
+        listOf("※", "·"),
+        listOf("#"),
+        listOf("&"),
+        listOf("%"),
+        listOf("+", "="),
+        listOf("*", "×"),
+        listOf(":", ";"),
+        listOf("/"),
+        listOf("|", "\\"),
+        listOf("$", "₩"),
+        listOf("`"),
+        listOf("★", "☆", "♡"),
+        listOf("○", "●"),
+        listOf("_", "—"),
+        listOf("→", "←", "↑", "↓"),
+        // 이하 4개는 두벌식·영어(글자 키 26개)에서만 사용
+        listOf("€", "£", "¥"),
+        listOf("°", "±"),
+        listOf("©", "®", "™"),
+        listOf("¿", "¡"),
+    )
 
     private fun spacer(w: Float) = Key(label = "", type = KeyType.SPACER, weight = w)
 
@@ -27,7 +68,7 @@ object Layouts {
         Key("복사", KeyType.COPY),
         Key("붙임", KeyType.PASTE),
         Key("-"),
-        Key("❤", output = "❤\uFE0F"),
+        Key("❤", output = "❤️"),
         Key("@"),
         Key("?"),
         Key("!"),
@@ -40,27 +81,22 @@ object Layouts {
     /** 상단 두 줄은 낮게 */
     private val rowHeights = listOf(0.7f, 0.75f, 1f, 1f, 1f, 1f)
 
-    /** 글자 줄이 시작되는 행 번호 (위 2줄은 편집·숫자 줄) */
-    const val LETTER_ROW_START = 2
-
-    /** 꾹 누르기 후보 (숫자는 숫자 줄이 있으므로 기호만). 한글·영문 자판 위치가 같아 공용. */
-    private val row1Hints = listOf("(", ")", "[", "]", "{", "}", "<", ">", "\"", "'")
-    private val row2Hints = listOf("#", "$", "%", "&", "*", "+", "=", "/", "\\")
-    private val row3Hints = listOf("~", "`", "^", "_", "|", ";", ":")
-
     private fun bottom() = listOf(
         voice,
-        Key(",", hints = listOf("\"", "'", ";", ":")),
+        Key(",", hints = listOf("'", "\"")),
         space,
-        Key(".", hints = listOf("…", "·", "`")),
+        Key(".", hints = listOf("…", "·")),
         enter,
     )
 
-    /** 단모음 키: 꾹 누르기 후보를 직접 지정 */
-    private fun sk(label: String, vararg hints: String) = Key(label = label, hints = hints.toList())
-
-    private fun row(chars: List<String>, shifted: List<String?>, hints: List<String>) =
-        chars.mapIndexed { i, c -> ch(c, shifted[i], hints[i]) }
+    /**
+     * 글자 줄 생성. 기호 묶음은 [symbolStart]번부터 키 순서대로 배정된다.
+     * @param shifted 쉬프트 상태 글자 (없으면 null)
+     */
+    private fun letters(chars: List<String>, shifted: List<String?>, symbolStart: Int) =
+        chars.mapIndexed { i, c ->
+            Key(label = c, shifted = shifted[i], hints = SYMBOL_GROUPS[symbolStart + i])
+        }
 
     /** 한글 두벌식. 쉬프트: ㅃㅉㄸㄲㅆ ㅒ ㅖ */
     val korean = KeyboardLayout(
@@ -68,22 +104,22 @@ object Layouts {
         listOf(
             toolbarRow,
             numberRow,
-            row(
+            letters(
                 listOf("ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅛ", "ㅕ", "ㅑ", "ㅐ", "ㅔ"),
                 listOf("ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅆ", null, null, null, "ㅒ", "ㅖ"),
-                row1Hints,
+                0,
             ),
             listOf(spacer(0.5f)) +
-                row(
+                letters(
                     listOf("ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "ㅗ", "ㅓ", "ㅏ", "ㅣ"),
                     List(9) { null },
-                    row2Hints,
+                    10,
                 ) + spacer(0.5f),
             listOf(shift) +
-                row(
+                letters(
                     listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅠ", "ㅜ", "ㅡ"),
                     List(7) { null },
-                    row3Hints,
+                    19,
                 ) + backspace,
             bottom(),
         ),
@@ -94,25 +130,17 @@ object Layouts {
     /**
      * 한글 단모음. 자음 + 단모음(ㅏㅓㅗㅜㅡㅣㅐㅔ) 8개만 배치하고
      * 같은 키를 연달아 두 번 치면 ㄱ→ㄲ, ㅏ→ㅑ 처럼 변환된다.
-     * 쌍자음은 꾹 누르기로도 입력 가능 (키 오른쪽 위 작은 글자).
+     * 꾹 누르기는 기호 (쌍자음은 연타로 입력).
      */
     val koreanSingle = KeyboardLayout(
         KOS, "한글 단모음",
         listOf(
             toolbarRow,
             numberRow,
-            listOf(
-                sk("ㅂ", "ㅃ", "("), sk("ㅈ", "ㅉ", ")"), sk("ㄷ", "ㄸ", "["), sk("ㄱ", "ㄲ", "]"), sk("ㅅ", "ㅆ", "{"),
-                sk("ㅗ", "%"), sk("ㅐ", "~"), sk("ㅔ", "*"),
-            ),
-            listOf(
-                sk("ㅁ", "$"), sk("ㄴ", "&"), sk("ㅇ", "+"), sk("ㄹ", "="), sk("ㅎ", "}"),
-                sk("ㅓ", "#"), sk("ㅏ", "!"), sk("ㅣ", "^"),
-            ),
+            letters(listOf("ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅗ", "ㅐ", "ㅔ"), List(8) { null }, 0),
+            letters(listOf("ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "ㅓ", "ㅏ", "ㅣ"), List(8) { null }, 8),
             listOf(spacer(0.5f)) +
-                listOf(
-                    sk("ㅋ", "<"), sk("ㅌ", ">"), sk("ㅊ", "/"), sk("ㅍ", "\\"), sk("ㅜ", "|"), sk("ㅡ", "_"),
-                ) + backspace,
+                letters(listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅜ", "ㅡ"), List(6) { null }, 16) + backspace,
             bottom(),
         ),
         rowHeights,
@@ -125,23 +153,12 @@ object Layouts {
         listOf(
             toolbarRow,
             numberRow,
-            row(
-                "qwertyuiop".map { it.toString() },
-                "qwertyuiop".map { it.uppercase() },
-                row1Hints,
-            ),
+            letters("qwertyuiop".map { it.toString() }, "qwertyuiop".map { it.uppercase() }, 0),
             listOf(spacer(0.5f)) +
-                row(
-                    "asdfghjkl".map { it.toString() },
-                    "asdfghjkl".map { it.uppercase() },
-                    row2Hints,
-                ) + spacer(0.5f),
+                letters("asdfghjkl".map { it.toString() }, "asdfghjkl".map { it.uppercase() }, 10) +
+                spacer(0.5f),
             listOf(shift) +
-                row(
-                    "zxcvbnm".map { it.toString() },
-                    "zxcvbnm".map { it.uppercase() },
-                    row3Hints,
-                ) + backspace,
+                letters("zxcvbnm".map { it.toString() }, "zxcvbnm".map { it.uppercase() }, 19) + backspace,
             bottom(),
         ),
         rowHeights,

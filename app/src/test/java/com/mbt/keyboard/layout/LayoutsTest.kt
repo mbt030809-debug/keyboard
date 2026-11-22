@@ -78,9 +78,35 @@ class LayoutsTest {
         }
     }
 
-    @Test fun tenseConsonantHintsComeFirstOnSingleLayout() {
-        val m = Layouts.koreanSingle.rows.flatten().filter { it.type == KeyType.CHAR }.associate { it.output to it.hints }
-        assertEquals("ㄲ", m["ㄱ"]!![0]); assertEquals("ㅃ", m["ㅂ"]!![0]); assertEquals("ㅆ", m["ㅅ"]!![0])
+    @Test fun singleLayoutLongPressGivesSymbolsNotTenseConsonants() {
+        val m = Layouts.koreanSingle.rows.flatten().filter { it.type == KeyType.CHAR }
+        m.forEach { k -> k.hints.forEach { assertTrue("${k.label}:$it", !com.mbt.keyboard.hangul.Jamo.isJamo(it[0])) } }
+    }
+
+    @Test fun bracketsAndQuotesComeAsPairsByDefault() {
+        val byKey = Layouts.koreanSingle.rows.flatten().filter { it.type == KeyType.CHAR }.associate { it.label to it.hints }
+        assertEquals("()", byKey["ㅂ"]!![0]); assertEquals("[]", byKey["ㅈ"]!![0])
+        assertEquals("{}", byKey["ㄷ"]!![0]); assertEquals("<>", byKey["ㄱ"]!![0])
+        assertEquals("\"\"", byKey["ㅅ"]!![0])
+        // 한 짝씩도 고를 수 있어야 한다
+        assertTrue(byKey["ㅂ"]!!.containsAll(listOf("(", ")")))
+    }
+
+    @Test fun everyTwoCharHintIsADeclaredPair() {
+        Layouts.all.forEach { l ->
+            l.rows.flatten().flatMap { it.hints }.filter { it.length == 2 }
+                .forEach { assertTrue("${l.id}:$it", it in Layouts.PAIRS) }
+        }
+        // 선언된 쌍은 모두 어딘가에 배치돼 있어야 한다
+        val all = Layouts.english.rows.flatten().flatMap { it.hints }.toSet()
+        assertTrue(all.containsAll(Layouts.PAIRS))
+    }
+
+    @Test fun symbolGroupsAreUniqueAndEnough() {
+        val flat = Layouts.SYMBOL_GROUPS.flatten()
+        assertEquals(flat.size, flat.toSet().size)
+        assertTrue(Layouts.SYMBOL_GROUPS.size >= 26)
+        assertTrue(Layouts.SYMBOL_GROUPS.all { it.isNotEmpty() })
     }
 
     @Test fun bottomRowHasVoiceKeyAndNoLangKey() {

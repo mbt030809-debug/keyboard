@@ -144,6 +144,8 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         } else {
             flushComposing()
             ic.commitText(text, 1)
+            // 괄호·따옴표 쌍: 커서를 두 글자 사이로
+            if (text in Layouts.PAIRS) sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT)
         }
         if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
     }
