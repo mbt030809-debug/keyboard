@@ -16,6 +16,8 @@ import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedTextRequest
+import android.view.inputmethod.InputConnection
 import com.mbt.keyboard.hangul.HangulComposer
 import com.mbt.keyboard.hangul.Jamo
 import com.mbt.keyboard.layout.Key
@@ -71,7 +73,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
         override fun onError(message: String) {
             currentInputConnection?.finishComposingText()
-            Toast.makeText(this@KeyboardService, message, Toast.LENGTH_SHORT).show()
+            say(message)
         }
     }
 
@@ -266,29 +268,60 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /**
      * 맞춤법 검사 (온디바이스 규칙). 선택한 글자가 있으면 그 부분, 없으면 커서 앞 글자(최대 [SPELL_MAX_CHARS]자)를 고친다.
+     * 결과는 키보드 위쪽 배너로 알려준다.
      */
     private fun onSpellCheck() {
-        val ic = currentInputConnection ?: return
-        flushComposing()
-        val selected = ic.getSelectedText(0)?.toString()
-        val hasSelection = !selected.isNullOrEmpty()
-        val source = if (hasSelection) selected!! else ic.getTextBeforeCursor(SPELL_MAX_CHARS, 0)?.toString().orEmpty()
-        if (source.isBlank()) {
-            toast(getString(R.string.spell_nothing))
+        val ic = currentInputConnection
+        if (ic == null) {
+            say(getString(R.string.spell_no_input))
             return
         }
-        val result = SpellChecker.check(source)
+        flushComposing()
+        val target = readSpellTarget(ic)
+        if (target == null) {
+            say(getString(R.string.spell_unreadable))
+            return
+        }
+        if (target.text.isBlank()) {
+            say(getString(R.string.spell_nothing))
+            return
+        }
+        val result = SpellChecker.check(target.text)
         if (result.changes.isEmpty()) {
-            toast(getString(R.string.spell_clean))
+            say(getString(R.string.spell_clean, target.text.length))
             return
         }
         ic.beginBatchEdit()
-        if (!hasSelection) ic.deleteSurroundingText(source.length, 0)
+        if (!target.isSelection) ic.deleteSurroundingText(target.text.length, 0)
         ic.commitText(result.text, 1)
         ic.endBatchEdit()
         val shown = result.changes.take(3).joinToString(", ") { "${it.from}→${it.to}" }
         val more = if (result.changes.size > 3) " …" else ""
-        toast(getString(R.string.spell_done, result.changes.size, shown + more))
+        say(getString(R.string.spell_done, result.changes.size, shown + more))
+    }
+
+    private class SpellTarget(val text: String, val isSelection: Boolean)
+
+    /** 검사할 글자를 읽는다. 선택 → 커서 앞 글자 → (막혀 있으면) 입력창 전체 텍스트 순서 */
+    private fun readSpellTarget(ic: InputConnection): SpellTarget? {
+        ic.getSelectedText(0)?.toString()?.takeIf { it.isNotEmpty() }?.let { return SpellTarget(it, true) }
+        ic.getTextBeforeCursor(SPELL_MAX_CHARS, 0)?.toString()?.takeIf { it.isNotEmpty() }
+            ?.let { return SpellTarget(it, false) }
+        // 일부 입력창은 위 방법이 비어 있어도 추출 텍스트로는 읽을 수 있다
+        val ex = ic.getExtractedText(ExtractedTextRequest(), 0) ?: return null
+        val full = ex.text?.toString() ?: return null
+        val start = ex.selectionStart.coerceIn(0, full.length)
+        val end = ex.selectionEnd.coerceIn(0, full.length)
+        return if (start != end) {
+            SpellTarget(full.substring(minOf(start, end), maxOf(start, end)), true)
+        } else {
+            SpellTarget(full.substring(0, start).takeLast(SPELL_MAX_CHARS), false)
+        }
+    }
+
+    /** 사용자에게 결과를 알린다: 키보드 안 배너 (키보드가 아직 없으면 토스트) */
+    private fun say(msg: String) {
+        if (::view.isInitialized) view.showMessage(msg) else toast(msg)
     }
 
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()

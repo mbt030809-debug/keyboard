@@ -85,6 +85,20 @@ class KeyboardView(context: Context) : View(context) {
     /** 엔터 꾹 누르기로 보여줄 상용문구 */
     var phrases: List<String> = emptyList()
 
+    private var message: String? = null
+    private val clearMessage = Runnable { message = null; invalidate() }
+
+    /**
+     * 키보드 위쪽에 잠깐 결과 문구를 띄운다 (맞춤법 결과, 음성인식 오류 등).
+     * 토스트는 키보드에 가리거나 꺼져 있으면 안 보이므로 키보드 안에서 확실히 보여준다.
+     */
+    fun showMessage(text: String, durationMs: Long = 3500L) {
+        message = text
+        handler.removeCallbacks(clearMessage)
+        handler.postDelayed(clearMessage, durationMs)
+        invalidate()
+    }
+
     /** [rect]는 터치 판정 영역, [inner]는 그려지는 영역(키 사이 틈 제외, 미리 계산해 그릴 때 객체를 만들지 않음) */
     private class Cell(val key: Key, val rect: RectF, val inner: RectF)
 
@@ -278,6 +292,18 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
         for (i in 0 until pointers.size()) pointers.valueAt(i).popup?.let { drawPopup(canvas, it) }
+        message?.let { drawMessage(canvas, it) }
+    }
+
+    private fun drawMessage(canvas: Canvas, text: String) {
+        val h = max(rowHeightPx(0), 40 * density)
+        val r = RectF(padPx + 3 * density, padPx + 3 * density, width - padPx - 3 * density, padPx + h)
+        paint.color = theme.accent
+        canvas.drawRoundRect(r, 8 * density, 8 * density, paint)
+        paint.color = theme.onAccent
+        paint.textSize = 14 * density * theme.textScale
+        val shown = TextUtils.ellipsize(text, TextPaint(paint), r.width() - 20 * density, TextUtils.TruncateAt.END)
+        drawCentered(canvas, shown.toString(), r)
     }
 
     private fun isPressed(cell: Cell): Boolean {
@@ -566,6 +592,7 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     override fun onDetachedFromWindow() {
+        handler.removeCallbacks(clearMessage)
         for (i in 0 until pointers.size()) pointers.valueAt(i).cancelTimers()
         super.onDetachedFromWindow()
     }

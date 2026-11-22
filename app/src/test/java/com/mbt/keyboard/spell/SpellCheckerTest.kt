@@ -57,4 +57,10 @@ class SpellCheckerTest {
         assertEquals("며칠 뒤에 갈게", r.text)
         assertEquals(listOf(SpellChecker.Change("몇일", "며칠"), SpellChecker.Change("갈께", "갈게")), r.changes)
     }
+
+    @Test fun moreCommonTypos() {
+        assertEquals("그러니까 웬만하면 개수 확인", fix("그러니깐 왠만하면 갯수 확인"))
+        assertEquals("시험을 치렀다 김치를 담갔다 문을 잠갔다", fix("시험을 치뤘다 김치를 담궜다 문을 잠궜다"))
+        assertEquals("머릿속이 복잡해 문득 생각났어", fix("머리속이 복잡해 문뜩 생각났어"))
+    }
 }
