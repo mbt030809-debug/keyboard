@@ -67,6 +67,11 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             KeyType.ENTER -> onEnter()
             KeyType.SHIFT -> onShift()
             KeyType.LANG -> onSwipeSpace()
+            KeyType.LEFT -> moveCursor(-1)
+            KeyType.RIGHT -> moveCursor(1)
+            KeyType.SELECT_ALL -> editAction(android.R.id.selectAll)
+            KeyType.COPY -> editAction(android.R.id.copy)
+            KeyType.PASTE -> editAction(android.R.id.paste)
             KeyType.SPACER -> Unit
         }
     }
@@ -76,6 +81,22 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         flushComposing()
         commit(text)
         if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
+    }
+
+    /** 글자 키 위 좌우 스와이프 → 커서 이동 */
+    override fun onCursorMove(steps: Int) = moveCursor(steps)
+
+    /** 조합 중인 글자를 확정한 뒤 커서를 [steps]칸 이동 (음수=왼쪽) */
+    private fun moveCursor(steps: Int) {
+        flushComposing()
+        val code = if (steps < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
+        repeat(kotlin.math.abs(steps)) { sendDownUpKeyEvents(code) }
+    }
+
+    /** 전체선택·복사·붙여넣기 */
+    private fun editAction(id: Int) {
+        flushComposing()
+        currentInputConnection?.performContextMenuAction(id)
     }
 
     /** 스페이스바 스와이프 → 한/영 전환 */

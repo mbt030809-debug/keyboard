@@ -1,6 +1,10 @@
 package com.mbt.keyboard.layout
 
-enum class KeyType { CHAR, SHIFT, BACKSPACE, ENTER, SPACE, LANG, SPACER }
+enum class KeyType {
+    CHAR, SHIFT, BACKSPACE, ENTER, SPACE, LANG, SPACER,
+    /** 상단 편집 줄: 커서 이동, 전체선택, 복사, 붙여넣기 */
+    LEFT, RIGHT, SELECT_ALL, COPY, PASTE,
+}
 
 /**
  * @param label 키캡에 표시되는 글자 (기본 상태)
@@ -20,4 +24,10 @@ data class Key(
     fun labelFor(shift: Boolean) = if (shift && shifted != null) shifted else label
 }
 
-data class KeyboardLayout(val id: String, val name: String, val rows: List<List<Key>>)
+/** @param rowHeights 행별 높이 배율 (기본 1.0). 상단 줄은 낮게. */
+data class KeyboardLayout(
+    val id: String,
+    val name: String,
+    val rows: List<List<Key>>,
+    val rowHeights: List<Float> = List(rows.size) { 1f },
+)

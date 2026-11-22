@@ -7,8 +7,8 @@ import org.junit.Test
 
 class LayoutsTest {
     @Test fun koreanLettersAreJamo() {
-        Layouts.korean.rows.flatten()
-            .filter { it.type == KeyType.CHAR && it.label !in listOf(",", ".") }
+        Layouts.korean.rows.subList(Layouts.LETTER_ROW_START, Layouts.LETTER_ROW_START + 3).flatten()
+            .filter { it.type == KeyType.CHAR }
             .forEach {
                 assertTrue("${it.label}", Jamo.isJamo(it.output[0]))
                 it.shifted?.let { s -> assertTrue(s, Jamo.isJamo(s[0])) }
@@ -16,7 +16,8 @@ class LayoutsTest {
     }
 
     @Test fun koreanHas21VowelAndConsonantKeysCovered() {
-        val outs = Layouts.korean.rows.flatten().filter { it.type == KeyType.CHAR }
+        val outs = Layouts.korean.rows.subList(Layouts.LETTER_ROW_START, Layouts.LETTER_ROW_START + 3)
+            .flatten().filter { it.type == KeyType.CHAR }
             .flatMap { listOfNotNull(it.output, it.shifted) }.toSet()
         // 두벌식은 쉬프트 포함 모든 기본 자음(19)·단모음 중 겹모음 제외 전부 입력 가능
         "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎㅏㅐㅑㅒㅓㅔㅕㅖㅗㅛㅜㅠㅡㅣ".forEach {
@@ -25,7 +26,7 @@ class LayoutsTest {
     }
 
     @Test fun englishShiftIsUppercase() {
-        val q = Layouts.english.rows[0][0]
+        val q = Layouts.english.rows[Layouts.LETTER_ROW_START][0]
         assertEquals("q", q.outputFor(false))
         assertEquals("Q", q.outputFor(true))
     }
@@ -36,14 +37,29 @@ class LayoutsTest {
 
     @Test fun everyLetterKeyHasLongPressHint() {
         Layouts.all.forEach { l ->
-            l.rows.flatten().filter { it.type == KeyType.CHAR }.forEach {
-                assertTrue("${l.id}:${it.label}", it.hints.isNotEmpty())
-            }
+            l.rows.subList(Layouts.LETTER_ROW_START, Layouts.LETTER_ROW_START + 3).flatten()
+                .filter { it.type == KeyType.CHAR }.forEach {
+                    assertTrue("${l.id}:${it.label}", it.hints.isNotEmpty())
+                }
         }
     }
 
-    @Test fun topRowHintsAreDigits() {
-        assertEquals((1..9).map { it.toString() } + "0", Layouts.korean.rows[0].flatMap { it.hints })
-        assertEquals((1..9).map { it.toString() } + "0", Layouts.english.rows[0].flatMap { it.hints })
+    @Test fun numberRowIsDigits() {
+        Layouts.all.forEach { l ->
+            assertEquals((1..9).map { it.toString() } + "0", l.rows[1].map { it.output })
+        }
+    }
+
+    @Test fun toolbarRowHasEditAndSymbolKeys() {
+        Layouts.all.forEach { l ->
+            val types = l.rows[0].map { it.type }
+            assertTrue(KeyType.LEFT in types && KeyType.RIGHT in types)
+            assertTrue(KeyType.SELECT_ALL in types && KeyType.COPY in types && KeyType.PASTE in types)
+            assertEquals(listOf("-", "❤\uFE0F", "@", "?", "!"), l.rows[0].filter { it.type == KeyType.CHAR }.map { it.output })
+        }
+    }
+
+    @Test fun rowHeightsMatchRows() {
+        Layouts.all.forEach { assertEquals(it.rows.size, it.rowHeights.size) }
     }
 }

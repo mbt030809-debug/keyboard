@@ -16,16 +16,39 @@ object Layouts {
     private val space = Key("", KeyType.SPACE, output = " ", weight = 5f)
     private val enter = Key("⏎", KeyType.ENTER, weight = 1.5f)
 
-    /** 꾹 누르기 후보: 윗줄=숫자, 가운데줄/아랫줄=기호. 한글·영문 자판 위치가 같아 공용. */
-    private val row1Hints = "1234567890".map { it.toString() }
-    private val row2Hints = listOf("@", "#", "$", "%", "&", "*", "-", "+", "=")
-    private val row3Hints = listOf("~", "\\", "\"", "'", "_", "|", "/")
+    /** 상단 편집·기호 줄 (참고 키보드와 같은 구성) */
+    private val toolbarRow = listOf(
+        Key("◁", KeyType.LEFT),
+        Key("전체", KeyType.SELECT_ALL),
+        Key("복사", KeyType.COPY),
+        Key("붙임", KeyType.PASTE),
+        Key("-"),
+        Key("❤", output = "❤\uFE0F"),
+        Key("@"),
+        Key("?"),
+        Key("!"),
+        Key("▷", KeyType.RIGHT),
+    )
+
+    /** 숫자 줄 */
+    private val numberRow = "1234567890".map { Key(it.toString()) }
+
+    /** 상단 두 줄은 낮게 */
+    private val rowHeights = listOf(0.7f, 0.75f, 1f, 1f, 1f, 1f)
+
+    /** 글자 줄이 시작되는 행 번호 (위 2줄은 편집·숫자 줄) */
+    const val LETTER_ROW_START = 2
+
+    /** 꾹 누르기 후보 (숫자는 숫자 줄이 있으므로 기호만). 한글·영문 자판 위치가 같아 공용. */
+    private val row1Hints = listOf("(", ")", "[", "]", "{", "}", "<", ">", "\"", "'")
+    private val row2Hints = listOf("#", "$", "%", "&", "*", "+", "=", "/", "\\")
+    private val row3Hints = listOf("~", "`", "^", "_", "|", ";", ":")
 
     private fun bottom() = listOf(
         lang,
-        Key(",", hints = listOf("(", ")", "[", "]", "{", "}")),
+        Key(",", hints = listOf("…", "¿", "¡")),
         space,
-        Key(".", hints = listOf("?", "!", ":", ";", "…")),
+        Key(".", hints = listOf("·", "※", "~")),
         enter,
     )
 
@@ -36,6 +59,8 @@ object Layouts {
     val korean = KeyboardLayout(
         KO, "한글",
         listOf(
+            toolbarRow,
+            numberRow,
             row(
                 listOf("ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅛ", "ㅕ", "ㅑ", "ㅐ", "ㅔ"),
                 listOf("ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅆ", null, null, null, "ㅒ", "ㅖ"),
@@ -55,11 +80,14 @@ object Layouts {
                 ) + backspace,
             bottom(),
         ),
+        rowHeights,
     )
 
     val english = KeyboardLayout(
         EN, "English",
         listOf(
+            toolbarRow,
+            numberRow,
             row(
                 "qwertyuiop".map { it.toString() },
                 "qwertyuiop".map { it.uppercase() },
@@ -79,6 +107,7 @@ object Layouts {
                 ) + backspace,
             bottom(),
         ),
+        rowHeights,
     )
 
     val all = listOf(korean, english)

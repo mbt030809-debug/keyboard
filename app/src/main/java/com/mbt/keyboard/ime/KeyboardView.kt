@@ -40,6 +40,8 @@ class KeyboardView(context: Context) : View(context) {
         fun onText(text: String)
         /** 스페이스바 스와이프 */
         fun onSwipeSpace()
+        /** 글자 키 위 좌우 스와이프: 커서 이동 (음수=왼쪽, 양수=오른쪽, 절댓값=글자 수) */
+        fun onCursorMove(steps: Int)
     }
 
     var listener: Listener? = null
@@ -70,6 +72,11 @@ class KeyboardView(context: Context) : View(context) {
     private var pressed: Cell? = null
     private var popup: Popup? = null
     private var downX = 0f
+    private var downY = 0f
+    private var rowTops = FloatArray(0)
+    /** 글자 키 위 스와이프로 커서 이동 중 */
+    private var cursorDrag = false
+    private var dragAnchorX = 0f
     /** 스와이프로 자판이 바뀐 뒤, 손가락을 뗄 때까지 나머지 터치 무시 */
     private var ignoreUntilUp = false
     private var bottomInset = 0
@@ -106,9 +113,13 @@ class KeyboardView(context: Context) : View(context) {
     private val keyHeightPx get() = theme.keyHeightDp * density
     private val padPx get() = 4 * density
 
+    private fun rowHeightPx(r: Int) = keyHeightPx * (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
+
+    private fun contentHeight() = (0 until rowCount).sumOf { rowHeightPx(it).toDouble() }.toFloat()
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
-        val h = (rowCount * keyHeightPx + 2 * padPx).toInt() + bottomInset
+        val h = (contentHeight() + 2 * padPx).toInt() + bottomInset
         setMeasuredDimension(w, h)
     }
 
@@ -121,17 +132,20 @@ class KeyboardView(context: Context) : View(context) {
         val layout = keyboardLayout ?: run { cells = emptyList(); return }
         if (width == 0) return
         val out = ArrayList<Cell>()
-        val rowH = keyHeightPx
         val usableW = width - 2 * padPx
+        rowTops = FloatArray(layout.rows.size)
+        var top = padPx
         layout.rows.forEachIndexed { r, row ->
+            val rowH = rowHeightPx(r)
+            rowTops[r] = top
             val total = row.sumOf { it.weight.toDouble() }.toFloat()
             var x = padPx
-            val top = padPx + r * rowH
             for (key in row) {
                 val w = usableW * key.weight / total
                 if (key.type != KeyType.SPACER) out += Cell(key, RectF(x, top, x + w, top + rowH))
                 x += w
             }
+            top += rowH
         }
         cells = out
     }
@@ -144,7 +158,7 @@ class KeyboardView(context: Context) : View(context) {
         val radius = 7 * density
         for (cell in cells) {
             val key = cell.key
-            val isSpecial = key.type != KeyType.CHAR && key.type != KeyType.SPACE
+            val isSpecial = key.type !in NORMAL_STYLE_TYPES
             paint.color = when {
                 cell === pressed -> theme.keyPressed
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
@@ -163,10 +177,11 @@ class KeyboardView(context: Context) : View(context) {
             paint.color = theme.text
             val size = when {
                 key.type == KeyType.SPACE -> 0.26f
+                key.type in TOOLBAR_ACTION_TYPES -> 0.34f
                 isSpecial -> 0.30f
                 else -> 0.40f
             }
-            paint.textSize = keyHeightPx * size * theme.textScale
+            paint.textSize = cell.rect.height() * size * theme.textScale
             if (key.type == KeyType.SPACE) paint.alpha = 140
             drawCentered(canvas, label, r)
             paint.alpha = 255
@@ -175,7 +190,7 @@ class KeyboardView(context: Context) : View(context) {
             if (key.type == KeyType.CHAR && key.hints.isNotEmpty() && key.hints[0].length == 1) {
                 paint.color = theme.text
                 paint.alpha = 110
-                paint.textSize = keyHeightPx * 0.22f
+                paint.textSize = cell.rect.height() * 0.22f
                 paint.textAlign = Paint.Align.RIGHT
                 canvas.drawText(key.hints[0], r.right - 4 * density, r.top + paint.textSize + 2 * density, paint)
                 paint.textAlign = Paint.Align.CENTER
@@ -245,6 +260,7 @@ class KeyboardView(context: Context) : View(context) {
             MotionEvent.ACTION_DOWN -> {
                 ignoreUntilUp = false
                 downX = e.x
+                downY = e.y
                 pressed = hit(e.x, e.y)
                 invalidate()
                 onPressedChanged()
@@ -260,7 +276,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun onPressedChanged() {
         val p = pressed ?: return
         when {
-            p.key.type == KeyType.BACKSPACE -> {
+            p.key.type in REPEAT_TYPES -> {
                 listener?.onKey(p.key)
                 handler.postDelayed(repeatRunnable, REPEAT_DELAY_MS)
             }
@@ -286,6 +302,11 @@ class KeyboardView(context: Context) : View(context) {
             }
             return
         }
+        // 글자 키 위에서 좌우로 밀면 커서 이동
+        if (cursorDrag || startsCursorDrag(e)) {
+            handleCursorDrag(e)
+            return
+        }
         val h = hit(e.x, e.y)
         if (h !== pressed) {
             stopTimers()
@@ -295,10 +316,36 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
+    private fun startsCursorDrag(e: MotionEvent): Boolean {
+        val key = pressed?.key ?: return false
+        if (key.type != KeyType.CHAR) return false
+        val dx = e.x - downX
+        val dy = e.y - downY
+        return abs(dx) > DRAG_START_DP * density && abs(dx) > abs(dy) * 1.2f
+    }
+
+    private fun handleCursorDrag(e: MotionEvent) {
+        if (!cursorDrag) {
+            cursorDrag = true
+            dragAnchorX = e.x
+            stopTimers()
+            pressed = null          // 뗄 때 글자가 입력되지 않도록
+            invalidate()
+            return
+        }
+        val stepPx = DRAG_STEP_DP * density
+        val steps = ((e.x - dragAnchorX) / stepPx).toInt()
+        if (steps != 0) {
+            dragAnchorX += steps * stepPx
+            performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            listener?.onCursorMove(steps)
+        }
+    }
+
     private fun onUp() {
         val p = pressed
         val pop = popup
-        val repeating = p?.key?.type == KeyType.BACKSPACE
+        val repeating = p?.key?.type in REPEAT_TYPES
         resetGesture()
         when {
             pop != null -> if (pop.selected >= 0) listener?.onText(pop.items[pop.selected])
@@ -315,6 +362,7 @@ class KeyboardView(context: Context) : View(context) {
         stopTimers()
         pressed = null
         popup = null
+        cursorDrag = false
         invalidate()
     }
 
@@ -333,7 +381,7 @@ class KeyboardView(context: Context) : View(context) {
 
     private fun buildPopup(cell: Cell): Popup? {
         val key = cell.key
-        val keyH = keyHeightPx
+        val keyH = cell.rect.height()
         return when (key.type) {
             KeyType.CHAR -> {
                 if (key.hints.isEmpty()) return null
@@ -349,11 +397,11 @@ class KeyboardView(context: Context) : View(context) {
             KeyType.ENTER -> {
                 if (phrases.isEmpty()) return null
                 val n = min(phrases.size, 4)
-                val itemH = keyH * 0.75f
+                val itemH = keyHeightPx * 0.75f
                 val w = min(width - 2 * padPx, 240 * density)
                 val left = (cell.rect.right - w).coerceAtLeast(padPx)
                 // 마지막 줄 바로 위부터 위로 쌓는다 (0번이 가장 아래, 손가락에 가까움)
-                val bottom = padPx + (rowCount - 1) * keyH
+                val bottom = rowTops.last()
                 val rects = List(n) { RectF(left, bottom - (it + 1) * itemH, left + w, bottom - it * itemH) }
                 Popup(phrases.take(n), rects, vertical = true, selected = -1)
             }
@@ -374,9 +422,8 @@ class KeyboardView(context: Context) : View(context) {
     /** 정확히 맞는 키가 없으면 같은 행에서 가장 가까운 키 (키 사이 틈 터치 보정) */
     private fun hit(x: Float, y: Float): Cell? {
         if (cells.isEmpty()) return null
-        val rowH = keyHeightPx
-        val row = ((y - padPx) / rowH).toInt().coerceIn(0, rowCount - 1)
-        val top = padPx + row * rowH
+        val row = rowTops.indexOfLast { it <= y }.coerceAtLeast(0)
+        val top = rowTops[row]
         return cells.filter { it.rect.top == top }.minByOrNull {
             abs(x - x.coerceIn(it.rect.left, it.rect.right))
         }
@@ -390,5 +437,14 @@ class KeyboardView(context: Context) : View(context) {
         const val LONG_PRESS_MS = 350L
         const val SWIPE_THRESHOLD_DP = 40f
         const val SLOP_DP = 8f
+        const val DRAG_START_DP = 24f
+        const val DRAG_STEP_DP = 14f
+
+        /** 누르고 있으면 반복되는 키 */
+        val REPEAT_TYPES = setOf(KeyType.BACKSPACE, KeyType.LEFT, KeyType.RIGHT)
+        /** 상단 편집 줄: 일반 키 색, 작은 글씨 */
+        val TOOLBAR_ACTION_TYPES = setOf(KeyType.LEFT, KeyType.RIGHT, KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE)
+        /** 일반 키 배경색을 쓰는 키 */
+        val NORMAL_STYLE_TYPES = TOOLBAR_ACTION_TYPES + setOf(KeyType.CHAR, KeyType.SPACE)
     }
 }
