@@ -33,7 +33,7 @@ object Layouts {
         listOf("※", "·"),
         listOf("#"),
         listOf("&"),
-        listOf("%"),
+        listOf("%", "°"),
         listOf("+", "="),
         listOf("*", "×"),
         listOf(":", ";"),
@@ -47,7 +47,7 @@ object Layouts {
         listOf("→", "←", "↑", "↓"),
         // 이하 4개는 두벌식·영어(글자 키 26개)에서만 사용
         listOf("€", "£", "¥"),
-        listOf("°", "±"),
+        listOf("±"),
         listOf("©", "®", "™"),
         listOf("¿", "¡"),
     )

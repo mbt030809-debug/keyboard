@@ -153,4 +153,11 @@ class LayoutsTest {
             assertEquals(listOf("…", ".com"), period.hints)
         }
     }
+
+    @Test fun percentKeyAlsoGivesDegreeSign() {
+        Layouts.all.forEach { l ->
+            val key = l.rows.flatten().first { it.hints.firstOrNull() == "%" }
+            assertEquals(listOf("%", "°"), key.hints)
+        }
+    }
 }
