@@ -4,10 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.os.Handler
-import android.os.Looper
 import android.view.Gravity
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -21,20 +18,18 @@ import com.mbt.keyboard.emoji.EmojiData
  *
  * - 이모티콘 탭: 감정·동물 등 카테고리 알약 → 누르면 목록 → 탭하면 입력
  * - 이모지 탭: 카테고리 아이콘 + 이모지 격자
- * - 하단: ABC(키보드로 돌아가기), ⌫(지우기, 길게 누르면 반복)
+ * - 오른쪽 위 ✕: 닫고 키보드로 돌아가기
  */
 @SuppressLint("ViewConstructor")
 class EmojiPanel(context: Context, private val listener: Listener) : LinearLayout(context) {
 
     interface Listener {
         fun onInsert(text: String)
-        fun onBackspace()
         fun onClose()
     }
 
     private val theme = KeyboardTheme.system(context)
     private val density = resources.displayMetrics.density
-    private val handler = Handler(Looper.getMainLooper())
 
     private val emoticons: List<Category> by lazy { EmojiData.emoticons(context) }
     private val emojis: List<Category> by lazy { EmojiData.emoji(context) }
@@ -50,14 +45,6 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
         isFillViewport = false
         addView(container, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     }
-    private val bottomBar = LinearLayout(context).apply { orientation = HORIZONTAL }
-
-    private val repeatRunnable = object : Runnable {
-        override fun run() {
-            listener.onBackspace()
-            handler.postDelayed(this, 45L)
-        }
-    }
 
     init {
         orientation = VERTICAL
@@ -70,10 +57,6 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
         addView(tabs, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
-
-        bottomBar.addView(barButton("ABC") { listener.onClose() }, LayoutParams(0, dp(44), 1f))
-        bottomBar.addView(backspaceButton(), LayoutParams(0, dp(44), 1f))
-        addView(bottomBar, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
         render()
     }
@@ -209,42 +192,7 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
         setOnClickListener { listener.onClose() }
     }
 
-    private fun barButton(label: String, onClick: () -> Unit) = TextView(context).apply {
-        text = label
-        textSize = 15f
-        gravity = Gravity.CENTER
-        setTextColor(theme.text)
-        setTypeface(typeface, Typeface.BOLD)
-        setBackgroundColor(theme.specialKey)
-        setOnClickListener { onClick() }
-    }
-
-    /** ⌫: 누르는 즉시 한 번, 길게 누르면 반복 */
-    @SuppressLint("ClickableViewAccessibility")
-    private fun backspaceButton() = barButton("⌫") {}.apply {
-        setOnClickListener(null)
-        setOnTouchListener { v, e ->
-            when (e.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    v.isPressed = true
-                    listener.onBackspace()
-                    handler.postDelayed(repeatRunnable, 400L)
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    v.isPressed = false
-                    handler.removeCallbacks(repeatRunnable)
-                }
-            }
-            true
-        }
-    }
-
     private fun dp(v: Int) = (v * density).toInt()
-
-    override fun onDetachedFromWindow() {
-        handler.removeCallbacks(repeatRunnable)
-        super.onDetachedFromWindow()
-    }
 
     private companion object {
         const val TAB_EMOTICON = 0

@@ -4,11 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.os.Handler
-import android.os.Looper
 import android.text.TextUtils
 import android.view.Gravity
-import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -17,20 +14,18 @@ import android.widget.TextView
 /**
  * 상용구 패널. 엔터를 꾹 누르면 키보드 자리에 뜬다.
  * 네모난 칸이 3열로 배치되고, 상용구가 늘어나면 행이 계속 늘어난다(위아래 스크롤).
- * 칸을 탭하면 입력하고 키보드로 돌아간다.
+ * 칸을 탭하면 입력하고 키보드로 돌아간다. 오른쪽 위 ✕로도 닫을 수 있다.
  */
 @SuppressLint("ViewConstructor")
 class PhrasePanel(context: Context, private val listener: Listener) : LinearLayout(context) {
 
     interface Listener {
         fun onInsert(text: String)
-        fun onBackspace()
         fun onClose()
     }
 
     private val theme = KeyboardTheme.system(context)
     private val density = resources.displayMetrics.density
-    private val handler = Handler(Looper.getMainLooper())
 
     private val container = LinearLayout(context).apply {
         orientation = VERTICAL
@@ -38,13 +33,6 @@ class PhrasePanel(context: Context, private val listener: Listener) : LinearLayo
     }
     private val scroll = ScrollView(context).apply {
         addView(container, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-    }
-
-    private val repeatRunnable = object : Runnable {
-        override fun run() {
-            listener.onBackspace()
-            handler.postDelayed(this, 45L)
-        }
     }
 
     init {
@@ -76,11 +64,6 @@ class PhrasePanel(context: Context, private val listener: Listener) : LinearLayo
         )
         addView(header, LayoutParams(LayoutParams.MATCH_PARENT, dp(40)))
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
-
-        val bar = LinearLayout(context).apply { orientation = HORIZONTAL }
-        bar.addView(barButton("ABC").apply { setOnClickListener { listener.onClose() } }, LayoutParams(0, dp(44), 1f))
-        bar.addView(backspaceButton(), LayoutParams(0, dp(44), 1f))
-        addView(bar, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
     }
 
     /** 하단 내비게이션 바 영역만큼 아래 여백 */
@@ -136,36 +119,7 @@ class PhrasePanel(context: Context, private val listener: Listener) : LinearLayo
         setOnClickListener { listener.onInsert(text) }
     }
 
-    private fun barButton(label: String) = TextView(context).apply {
-        text = label
-        textSize = 15f
-        gravity = Gravity.CENTER
-        setTextColor(theme.text)
-        setTypeface(typeface, Typeface.BOLD)
-        setBackgroundColor(theme.specialKey)
-    }
-
-    /** ⌫: 누르는 즉시 한 번, 길게 누르면 반복 */
-    @SuppressLint("ClickableViewAccessibility")
-    private fun backspaceButton() = barButton("⌫").apply {
-        setOnTouchListener { _, e ->
-            when (e.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    listener.onBackspace()
-                    handler.postDelayed(repeatRunnable, 400L)
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> handler.removeCallbacks(repeatRunnable)
-            }
-            true
-        }
-    }
-
     private fun dp(v: Int) = (v * density).toInt()
-
-    override fun onDetachedFromWindow() {
-        handler.removeCallbacks(repeatRunnable)
-        super.onDetachedFromWindow()
-    }
 
     private companion object {
         const val COLUMNS = 3

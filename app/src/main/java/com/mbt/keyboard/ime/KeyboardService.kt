@@ -113,10 +113,6 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             currentInputConnection?.commitText(text, 1)
         }
 
-        override fun onBackspace() {
-            sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
-        }
-
         override fun onClose() = hideEmojiPanel()
     }
 
@@ -149,10 +145,6 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             haptics.key()
             currentInputConnection?.commitText(text, 1)
             hideEmojiPanel()      // 입력하면 키보드로 돌아간다
-        }
-
-        override fun onBackspace() {
-            sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
         }
 
         override fun onClose() = hideEmojiPanel()
