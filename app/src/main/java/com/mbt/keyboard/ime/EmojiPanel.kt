@@ -66,6 +66,7 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
         val tabs = LinearLayout(context).apply { orientation = HORIZONTAL }
         tabs.addView(tabEmoticon, LayoutParams(0, dp(40), 1f))
         tabs.addView(tabEmoji, LayoutParams(0, dp(40), 1f))
+        tabs.addView(closeButton(), LayoutParams(dp(48), dp(40)))
         addView(tabs, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
@@ -175,7 +176,7 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
         textSize = sizeSp
         setTextColor(theme.text)
         setPadding(dp(14), dp(9), dp(14), dp(9))
-        background = rounded(0, color, 20f)
+        background = rounded(theme.key, color, 20f)      // 불투명 배경
         isSingleLine = true
         setOnClickListener { onClick() }
     }
@@ -197,6 +198,15 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
         v.setTextColor(if (selected) theme.accent else theme.text)
         v.alpha = if (selected) 1f else 0.6f
         v.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+    }
+
+    /** 패널 닫기 (키보드로 돌아가기) */
+    private fun closeButton() = TextView(context).apply {
+        text = "✕"
+        textSize = 17f
+        gravity = Gravity.CENTER
+        setTextColor(theme.text)
+        setOnClickListener { listener.onClose() }
     }
 
     private fun barButton(label: String, onClick: () -> Unit) = TextView(context).apply {

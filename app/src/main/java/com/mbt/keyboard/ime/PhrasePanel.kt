@@ -51,7 +51,10 @@ class PhrasePanel(context: Context, private val listener: Listener) : LinearLayo
         orientation = VERTICAL
         setBackgroundColor(theme.background)
 
-        addView(
+        // 제목 + 닫기(✕)
+        val header = LinearLayout(context).apply { orientation = HORIZONTAL }
+        header.addView(android.view.View(context), LayoutParams(dp(48), dp(40)))     // 제목을 가운데 두기 위한 빈칸
+        header.addView(
             TextView(context).apply {
                 text = "상용구"
                 textSize = 15f
@@ -59,8 +62,19 @@ class PhrasePanel(context: Context, private val listener: Listener) : LinearLayo
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(theme.accent)
             },
-            LayoutParams(LayoutParams.MATCH_PARENT, dp(40)),
+            LayoutParams(0, dp(40), 1f),
         )
+        header.addView(
+            TextView(context).apply {
+                text = "✕"
+                textSize = 17f
+                gravity = Gravity.CENTER
+                setTextColor(theme.text)
+                setOnClickListener { listener.onClose() }
+            },
+            LayoutParams(dp(48), dp(40)),
+        )
+        addView(header, LayoutParams(LayoutParams.MATCH_PARENT, dp(40)))
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
 
         val bar = LinearLayout(context).apply { orientation = HORIZONTAL }

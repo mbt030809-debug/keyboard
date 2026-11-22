@@ -120,8 +120,19 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         override fun onClose() = hideEmojiPanel()
     }
 
+    /**
+     * 패널 높이를 키보드 높이와 똑같이 고정한다.
+     * (고정하지 않으면 내용만큼 늘어나 화면을 덮고, 아래쪽 닫기 막대가 화면 밖으로 밀려난다)
+     */
+    private fun fitToKeyboard(p: View) {
+        val lp = p.layoutParams
+        lp.height = view.height.coerceAtLeast(1)
+        p.layoutParams = lp
+    }
+
     private fun showEmojiPanel() {
         flushComposing()
+        fitToKeyboard(panel)
         panel.setBottomInset(view.bottomInsetPx)
         view.visibility = View.INVISIBLE   // 높이는 유지해야 패널이 같은 크기로 뜬다
         panel.visibility = View.VISIBLE
@@ -152,6 +163,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         abortVoice()
         flushComposing()
         phrasePanel.setPhrases(Phrases.load(this))
+        fitToKeyboard(phrasePanel)
         phrasePanel.setBottomInset(view.bottomInsetPx)
         view.visibility = View.INVISIBLE
         phrasePanel.visibility = View.VISIBLE
