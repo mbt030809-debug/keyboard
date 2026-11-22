@@ -57,6 +57,10 @@ class KeyboardView(context: Context) : View(context) {
     var shiftState: ShiftState = ShiftState.OFF
         set(v) { field = v; invalidate() }
 
+    /** 음성인식 듣는 중: 마이크 키를 강조색으로 표시 */
+    var voiceListening: Boolean = false
+        set(v) { field = v; invalidate() }
+
     /** 엔터 꾹 누르기로 보여줄 상용문구 */
     var phrases: List<String> = emptyList()
 
@@ -163,6 +167,7 @@ class KeyboardView(context: Context) : View(context) {
             val isSpecial = key.type !in NORMAL_STYLE_TYPES
             paint.color = when {
                 cell === pressed -> theme.keyPressed
+                key.type == KeyType.VOICE && voiceListening -> theme.accent
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
                 isSpecial -> theme.specialKey
                 else -> theme.key
@@ -176,7 +181,7 @@ class KeyboardView(context: Context) : View(context) {
                 else -> key.labelFor(shiftState != ShiftState.OFF)
             }
             if (label.isEmpty()) continue
-            paint.color = theme.text
+            paint.color = if (key.type == KeyType.VOICE && voiceListening) theme.onAccent else theme.text
             val size = when {
                 key.type == KeyType.SPACE -> 0.26f
                 key.type in TOOLBAR_ACTION_TYPES -> 0.34f

@@ -82,4 +82,13 @@ class LayoutsTest {
         val m = Layouts.koreanSingle.rows.flatten().filter { it.type == KeyType.CHAR }.associate { it.output to it.hints }
         assertEquals("ㄲ", m["ㄱ"]!![0]); assertEquals("ㅃ", m["ㅂ"]!![0]); assertEquals("ㅆ", m["ㅅ"]!![0])
     }
+
+    @Test fun bottomRowHasVoiceKeyAndNoLangKey() {
+        Layouts.all.forEach { l ->
+            val bottom = l.rows.last()
+            assertEquals(KeyType.VOICE, bottom.first().type)
+            assertEquals(1, l.rows.flatten().count { it.type == KeyType.VOICE })
+            assertTrue(KeyType.SPACE in bottom.map { it.type })
+        }
+    }
 }

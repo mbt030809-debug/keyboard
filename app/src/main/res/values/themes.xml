@@ -7,4 +7,12 @@
         <item name="colorOnPrimaryContainer">@color/brand_on_container</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
+
+    <!-- 권한 요청용 투명 화면 -->
+    <style name="Theme.MbtKeyboard.Transparent" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
 </resources>

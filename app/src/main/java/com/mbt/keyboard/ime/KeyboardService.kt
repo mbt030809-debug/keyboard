@@ -1,6 +1,12 @@
 package com.mbt.keyboard.ime
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.inputmethodservice.InputMethodService
+import android.widget.Toast
+import androidx.core.content.ContextCompat
+import com.mbt.keyboard.PermissionActivity
 import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
@@ -18,6 +24,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private lateinit var view: KeyboardView
     private lateinit var haptics: Haptics
+    private lateinit var voice: VoiceInput
     private val composer = HangulComposer()
     private var layoutId = Layouts.KOS
     private var lastShiftTap = 0L
@@ -32,6 +39,32 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         super.onCreate()
         layoutId = Prefs.koreanLayout(this)
         haptics = Haptics(this)
+        voice = VoiceInput(this, voiceCallback)
+    }
+
+    override fun onDestroy() {
+        voice.destroy()
+        super.onDestroy()
+    }
+
+    private val voiceCallback = object : VoiceInput.Callback {
+        override fun onListening(on: Boolean) {
+            if (::view.isInitialized) view.voiceListening = on
+        }
+
+        /** 말하는 중 인식된 글자는 조합 중 텍스트로 보여준다 */
+        override fun onPartial(text: String) {
+            currentInputConnection?.setComposingText(text, 1)
+        }
+
+        override fun onResult(text: String) {
+            currentInputConnection?.commitText(text, 1)
+        }
+
+        override fun onError(message: String) {
+            currentInputConnection?.finishComposingText()
+            Toast.makeText(this@KeyboardService, message, Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onCreateInputView(): View {
@@ -63,6 +96,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     override fun onFinishInput() {
         composer.reset()
         lastJamoKey = null
+        voice.cancel()
         super.onFinishInput()
     }
 
@@ -81,6 +115,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onKey(key: Key) {
+        if (key.type != KeyType.VOICE) abortVoice()
         if (key.type != KeyType.CHAR) lastJamoKey = null
         when (key.type) {
             KeyType.CHAR -> onChar(key)
@@ -88,7 +123,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             KeyType.BACKSPACE -> onBackspace()
             KeyType.ENTER -> onEnter()
             KeyType.SHIFT -> onShift()
-            KeyType.LANG -> onSwipeSpace()
+            KeyType.VOICE -> onVoice()
             KeyType.LEFT -> moveCursor(-1)
             KeyType.RIGHT -> moveCursor(1)
             KeyType.SELECT_ALL -> editAction(android.R.id.selectAll)
@@ -100,6 +135,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /** 꾹 누르기 팝업에서 고른 기호·상용문구: 조합 중인 글자를 확정하고 그대로 입력 */
     override fun onText(text: String) {
+        abortVoice()
         lastJamoKey = null
         val ic = currentInputConnection ?: return
         if (layout.hangul && text.length == 1 && Jamo.isJamo(text[0])) {
@@ -112,11 +148,35 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
     }
 
+    /** 마이크 키: 듣는 중이면 마무리, 아니면 시작 (권한 없으면 요청 화면) */
+    private fun onVoice() {
+        if (voice.listening) {
+            voice.stop()
+            return
+        }
+        flushComposing()
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            startActivity(Intent(this, PermissionActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            return
+        }
+        voice.start(if (layout.hangul) "ko-KR" else "en-US")
+    }
+
+    /** 듣는 중에 다른 키를 누르면 인식을 취소하고, 이미 보인 중간 결과는 그대로 확정 */
+    private fun abortVoice() {
+        if (!voice.listening) return
+        voice.cancel()
+        currentInputConnection?.finishComposingText()
+    }
+
     /** 글자 키 위 좌우 스와이프 → 커서 이동 */
     override fun onCursorMove(steps: Int) = moveCursor(steps)
 
     /** 조합 중인 글자를 확정한 뒤 커서를 [steps]칸 이동 (음수=왼쪽) */
     private fun moveCursor(steps: Int) {
+        abortVoice()
         flushComposing()
         val code = if (steps < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
         repeat(kotlin.math.abs(steps)) { sendDownUpKeyEvents(code) }
@@ -130,6 +190,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /** 스페이스바 스와이프 → 한/영 전환 */
     override fun onSwipeSpace() {
+        abortVoice()
         setLayout(if (layout.hangul) Layouts.EN else Prefs.koreanLayout(this))
     }
 

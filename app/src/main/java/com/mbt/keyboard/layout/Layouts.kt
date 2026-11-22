@@ -15,7 +15,8 @@ object Layouts {
 
     private val shift = Key("⇧", KeyType.SHIFT, weight = 1.5f)
     private val backspace = Key("⌫", KeyType.BACKSPACE, weight = 1.5f)
-    private val lang = Key("한/영", KeyType.LANG, weight = 1.5f)
+    /** 음성인식 (한/영 전환은 스페이스바 스와이프) */
+    private val voice = Key("🎤", KeyType.VOICE, weight = 1.5f)
     private val space = Key("", KeyType.SPACE, output = " ", weight = 5f)
     private val enter = Key("⏎", KeyType.ENTER, weight = 1.5f)
 
@@ -48,7 +49,7 @@ object Layouts {
     private val row3Hints = listOf("~", "`", "^", "_", "|", ";", ":")
 
     private fun bottom() = listOf(
-        lang,
+        voice,
         Key(",", hints = listOf("\"", "'", ";", ":")),
         space,
         Key(".", hints = listOf("…", "·", "`")),
