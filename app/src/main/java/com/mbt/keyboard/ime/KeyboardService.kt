@@ -3,6 +3,7 @@ package com.mbt.keyboard.ime
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -34,6 +35,11 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private val composer = HangulComposer()
     private var layoutId = Layouts.KOS
     private var lastShiftTap = 0L
+
+    /** 쉬프트 키를 누르고 있는 동안: 그 사이 다른 키를 쳤는지, 누르기 전 상태 */
+    private var shiftHeld = false
+    private var shiftUsedWhileHeld = false
+    private var shiftBeforeHold = ShiftState.OFF
 
     /** 연타 변환 판정용: 직전에 친 자모 키와 시각 */
     private var lastJamoKey: String? = null
@@ -79,6 +85,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             it.haptics = haptics
             it.keyboardLayout = Layouts.byId(layoutId)
         }
+        updateSplit(resources.configuration)
         panel = EmojiPanel(this, emojiListener).also { it.visibility = View.GONE }
         // 키보드와 이모지 패널을 같은 자리에 겹쳐 두고 번갈아 보여준다 (패널 높이 = 키보드 높이)
         root = FrameLayout(this).apply {
@@ -86,6 +93,17 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
         return root
+    }
+
+    /** 폴드를 펼치거나 접으면 화면 크기가 바뀐다 → 나눠쓰기 전환 */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (::view.isInitialized) updateSplit(newConfig)
+    }
+
+    /** 가장 짧은 변이 [LARGE_SCREEN_DP] 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
+    private fun updateSplit(config: Configuration) {
+        view.split = Prefs.splitOnLargeScreen(this) && config.smallestScreenWidthDp >= LARGE_SCREEN_DP
     }
 
     private val emojiListener = object : EmojiPanel.Listener {
@@ -117,6 +135,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         super.onStartInputView(info, restarting)
         composer.reset()
         hideEmojiPanel()
+        updateSplit(resources.configuration)   // 설정에서 나눠쓰기를 바꿨을 수 있다
         view.shiftState = ShiftState.OFF
         view.phrases = Phrases.load(this)
         haptics.refresh()   // 설정 화면에서 바꾼 진동 설정 반영
@@ -160,7 +179,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             KeyType.SPACE -> { flushComposing(); commit(" ") }
             KeyType.BACKSPACE -> onBackspace()
             KeyType.ENTER -> onEnter()
-            KeyType.SHIFT -> onShift()
+            KeyType.SHIFT -> Unit   // 쉬프트는 onShiftPress로 처리
             KeyType.VOICE -> onVoice()
             KeyType.EMOJI -> showEmojiPanel()
             KeyType.SPELL -> onSpellCheck()
@@ -185,7 +204,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             // 괄호·따옴표 쌍: 커서를 두 글자 사이로
             if (text in Layouts.PAIRS) sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT)
         }
-        if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
+        consumeShift()
     }
 
     /** 마이크 키: 듣는 중이면 마무리, 아니면 시작 (권한 없으면 요청 화면) */
@@ -233,9 +252,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     /** 선택 제스처가 끝나면 한 번용 쉬프트(ON)는 해제. 고정(LOCK)은 유지 */
-    override fun onCursorMoveEnd() {
-        if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
-    }
+    override fun onCursorMoveEnd() = consumeShift()
 
     /**
      * 맞춤법 검사 (온디바이스 규칙). 선택한 글자가 있으면 그 부분, 없으면 커서 앞 글자(최대 [SPELL_MAX_CHARS]자)를 고친다.
@@ -292,7 +309,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             flushComposing()
             currentInputConnection?.commitText(text, 1)
         }
-        if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
+        consumeShift()
     }
 
     /**
@@ -349,6 +366,34 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         }
     }
 
+    /**
+     * 쉬프트 키 누름/뗌.
+     * - 누른 채로 다른 키를 치면 그 동안만 쉬프트 (뗄 때 해제)
+     * - 키를 치지 않고 바로 떼면 탭: 한 번은 다음 글자만, 빠르게 두 번은 고정
+     */
+    override fun onShiftPress(down: Boolean) {
+        if (down) {
+            shiftHeld = true
+            shiftUsedWhileHeld = false
+            shiftBeforeHold = view.shiftState
+            if (view.shiftState == ShiftState.OFF) view.shiftState = ShiftState.ON   // 누르는 즉시 적용
+        } else {
+            shiftHeld = false
+            if (shiftUsedWhileHeld) {
+                view.shiftState = if (shiftBeforeHold == ShiftState.LOCK) ShiftState.LOCK else ShiftState.OFF
+            } else {
+                view.shiftState = shiftBeforeHold
+                onShift()
+            }
+        }
+    }
+
+    /** 글자를 입력한 뒤: 누르고 있는 쉬프트는 유지, 한 번용(ON) 쉬프트는 해제 */
+    private fun consumeShift() {
+        if (shiftHeld) shiftUsedWhileHeld = true
+        else if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
+    }
+
     /** 한 번: 다음 글자만 쉬프트, 빠르게 두 번: 고정 */
     private fun onShift() {
         val now = SystemClock.uptimeMillis()
@@ -380,6 +425,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private companion object {
         const val DOUBLE_TAP_MS = 350L
         const val SPELL_MAX_CHARS = 1000
+        const val LARGE_SCREEN_DP = 600
         val LATIN_VARIATIONS = setOf(
             InputType.TYPE_TEXT_VARIATION_PASSWORD,
             InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,

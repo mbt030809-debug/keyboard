@@ -36,4 +36,6 @@ data class KeyboardLayout(
     val hangul: Boolean = false,
     /** 같은 키 연타로 변환 (ㄱ→ㄲ, ㅏ→ㅑ). 단모음 자판용 */
     val doubleTap: Boolean = false,
+    /** 나눠쓰기 때 줄별 왼쪽 묶음 키 개수. null이면 자동(가운데 기준). 비어 있으면 모두 자동 */
+    val splitAt: List<Int?> = emptyList(),
 )

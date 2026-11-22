@@ -10,6 +10,15 @@ object Prefs {
     private const val KEY_HAPTIC_ON = "haptic_enabled"
     private const val KEY_HAPTIC_STRENGTH = "haptic_strength"
 
+    private const val KEY_SPLIT = "split_on_large_screen"
+
+    /** 폴드를 펼친 것처럼 큰 화면에서 자판 나눠쓰기 (기본: 켬) */
+    fun splitOnLargeScreen(context: Context) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_SPLIT, true)
+
+    fun setSplitOnLargeScreen(context: Context, on: Boolean) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_SPLIT, on).apply()
+
     const val HAPTIC_MIN = 1
     const val HAPTIC_MAX = 10
     const val HAPTIC_DEFAULT = 5

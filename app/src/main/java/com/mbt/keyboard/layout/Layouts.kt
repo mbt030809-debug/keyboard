@@ -140,6 +140,8 @@ object Layouts {
         ),
         rowHeights,
         hangul = true,
+        // 마지막 글자 줄: ⇧ㅋㅌㅊㅍㅠ | ㅜㅡ⌫  (ㅠ는 왼손 키)
+        splitAt = listOf(null, null, null, null, 6, null),
     )
 
     /**
@@ -190,6 +192,8 @@ object Layouts {
             bottom(),
         ),
         rowHeights,
+        // 마지막 글자 줄: ⇧zxcvb | nm⌫  (b는 왼손 키)
+        splitAt = listOf(null, null, null, null, 6, null),
     )
 
     val all = listOf(koreanSingle, korean, english)

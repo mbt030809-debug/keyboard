@@ -203,6 +203,42 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- 갈라진 자판 -->
+        <com.google.android.material.card.MaterialCardView
+            style="?attr/materialCardViewFilledStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/split_title"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/split_desc"
+                    android:alpha="0.7" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchSplit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/split_switch" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- 한글 자판 선택 -->
         <com.google.android.material.card.MaterialCardView
             style="?attr/materialCardViewFilledStyle"
