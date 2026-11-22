@@ -28,7 +28,7 @@ class KeyboardGeometryTest {
         assertEquals(98, KeyboardGeometry().widerBy(-2).widthPct)
         assertEquals(101, KeyboardGeometry().tallerBy(1).heightPct)
         assertEquals(99, KeyboardGeometry().tallerBy(-1).heightPct)
-        assertEquals(4, KeyboardGeometry().raisedBy(1).raiseDp)
+        assertEquals(2, KeyboardGeometry().raisedBy(1).raiseDp)
     }
 
     @Test fun narrowKeyboardStartsCenteredAndOffsetMovesIt() {
@@ -47,15 +47,16 @@ class KeyboardGeometryTest {
     }
 
     @Test fun movingStepsAreFixedRegardlessOfFreeSpace() {
-        // 예전에는 "남는 공간의 10%"씩이라 가로 95%에서는 몇 px밖에 안 움직였다. 이제는 항상 4dp씩.
-        assertEquals(4, KeyboardGeometry.X_STEP_DP)
+        // 예전에는 "남는 공간의 10%"씩이라 가로 95%에서는 몇 px밖에 안 움직였다. 이제는 항상 2dp씩.
+        assertEquals(2, KeyboardGeometry.X_STEP_DP)
+        assertEquals(2, KeyboardGeometry.RAISE_STEP)
         val g = KeyboardGeometry(widthPct = 90)                      // 남는 공간 100px(=50dp)
         val moved = g.movedX(-1, screen, density)
         assertEquals(50, g.leftMarginPx(screen, density))
-        assertEquals(42, moved.leftMarginPx(screen, density))        // 50 - 8px(4dp)
+        assertEquals(46, moved.leftMarginPx(screen, density))        // 50 - 4px(2dp)
         assertEquals(50, moved.movedX(1, screen, density).leftMarginPx(screen, density))   // 되돌리면 정확히 제자리
         val wide = KeyboardGeometry(widthPct = 60)                   // 남는 공간 400px
-        assertEquals(8, wide.leftMarginPx(screen, density) - wide.movedX(-1, screen, density).leftMarginPx(screen, density))
+        assertEquals(4, wide.leftMarginPx(screen, density) - wide.movedX(-1, screen, density).leftMarginPx(screen, density))
     }
 
     @Test fun pressingMoveAtFullWidthShrinksOneStepAndMoves() {
@@ -63,12 +64,12 @@ class KeyboardGeometryTest {
         assertTrue(g.canMoveLeft(screen, density) && g.canMoveRight(screen, density))   // 눌러볼 수 있다
         val moved = g.movedX(-1, screen, density)
         assertEquals(100 - KeyboardGeometry.AUTO_SHRINK_PCT, moved.widthPct)
-        assertEquals(25 - 8, moved.leftMarginPx(screen, density))                         // 남는 50px의 가운데(25)에서 4dp(8px) 왼쪽
+        assertEquals(25 - 4, moved.leftMarginPx(screen, density))                         // 남는 50px의 가운데(25)에서 2dp(4px) 왼쪽
     }
 
     @Test fun movingStopsAtEdgesAndStoredValueDoesNotPileUp() {
         var g = KeyboardGeometry(widthPct = 90)
-        repeat(30) { g = g.movedX(-1, screen, density) }            // 끝에서 계속 눌러도 (30 × 8px > 50px)
+        repeat(30) { g = g.movedX(-1, screen, density) }            // 끝에서 계속 눌러도 (30 × 4px > 50px)
         assertEquals(0, g.leftMarginPx(screen, density))
         assertFalse(g.canMoveLeft(screen, density))
         val back = g.movedX(1, screen, density)                      // 한 번 반대로 누르면 바로 움직인다

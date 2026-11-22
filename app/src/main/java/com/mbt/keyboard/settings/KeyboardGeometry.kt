@@ -99,12 +99,12 @@ data class KeyboardGeometry(
 
         const val X_MIN = -600
         const val X_MAX = 600
-        const val X_STEP_DP = 4
+        const val X_STEP_DP = 2
         const val X_DEFAULT = 0
 
         const val RAISE_MIN = 0
         const val RAISE_MAX = 200
-        const val RAISE_STEP = 4
+        const val RAISE_STEP = 2
         const val RAISE_DEFAULT = 0
 
         const val GAP_MIN = 6
