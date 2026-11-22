@@ -29,6 +29,9 @@ class ResizeActivity : AppCompatActivity() {
     private lateinit var geometry: KeyboardGeometry
     private lateinit var host: FrameLayout
     private lateinit var keyboard: KeyboardView
+
+    /** 갈라진 자판이 적용 중인가 (펼침 화면 + 설정 켬). 아닐 때는 "갈라진 정도" 행을 숨긴다 */
+    private var splitActive = false
     private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,9 +48,10 @@ class ResizeActivity : AppCompatActivity() {
         }
 
         // 미리보기: 실제 키보드와 같은 뷰, 같은 틀(KeyboardHost)
+        splitActive = Prefs.splitOnLargeScreen(this) && large
         keyboard = KeyboardView(this).also {
             it.keyboardLayout = Layouts.byId(Prefs.koreanLayout(this))
-            it.split = Prefs.splitOnLargeScreen(this) && large
+            it.split = splitActive
         }
         host = FrameLayout(this).apply {
             addView(keyboard, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
@@ -61,6 +65,8 @@ class ResizeActivity : AppCompatActivity() {
         bind(R.id.widthPlus) { geometry = geometry.widerBy(1) }
         bind(R.id.heightMinus) { geometry = geometry.tallerBy(-1) }
         bind(R.id.heightPlus) { geometry = geometry.tallerBy(1) }
+        bind(R.id.gapMinus) { geometry = geometry.gapWiderBy(-1) }
+        bind(R.id.gapPlus) { geometry = geometry.gapWiderBy(1) }
         bind(R.id.moveLeft) { geometry = geometry.movedX(-1) }
         bind(R.id.moveRight) { geometry = geometry.movedX(1) }
         bind(R.id.moveUp) { geometry = geometry.raisedBy(1) }
@@ -108,6 +114,7 @@ class ResizeActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         KeyboardHost.apply(host, resources.displayMetrics.widthPixels, geometry, density)
         keyboard.heightScale = geometry.heightScale
+        keyboard.splitGapFraction = geometry.gapFraction
 
         findViewById<TextView>(R.id.profileInfo).text =
             getString(if (large) R.string.resize_profile_large else R.string.resize_profile_normal)
@@ -118,6 +125,10 @@ class ResizeActivity : AppCompatActivity() {
         findViewById<View>(R.id.widthPlus).isEnabled = geometry.widthPct < KeyboardGeometry.WIDTH_MAX
         findViewById<View>(R.id.heightMinus).isEnabled = geometry.heightPct > KeyboardGeometry.HEIGHT_MIN
         findViewById<View>(R.id.heightPlus).isEnabled = geometry.heightPct < KeyboardGeometry.HEIGHT_MAX
+        findViewById<View>(R.id.gapRow).visibility = if (splitActive) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.gapValue).text = "${geometry.gapPct}%"
+        findViewById<View>(R.id.gapMinus).isEnabled = geometry.gapPct > KeyboardGeometry.GAP_MIN
+        findViewById<View>(R.id.gapPlus).isEnabled = geometry.gapPct < KeyboardGeometry.GAP_MAX
         findViewById<View>(R.id.moveLeft).isEnabled = geometry.canMoveX && geometry.xPct > KeyboardGeometry.X_MIN
         findViewById<View>(R.id.moveRight).isEnabled = geometry.canMoveX && geometry.xPct < KeyboardGeometry.X_MAX
         findViewById<View>(R.id.moveUp).isEnabled = geometry.canRaise

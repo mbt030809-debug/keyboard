@@ -62,6 +62,15 @@ class KeyboardView(context: Context) : View(context) {
     /** 진동 피드백 (키 누를 때, 꾹 누르기, 스와이프) */
     var haptics: Haptics? = null
 
+    /** 나눠쓰기 틈: 키보드 가로폭 대비 비율 (크기 조정 설정의 "갈라진 정도") */
+    var splitGapFraction: Float = 0.18f
+        set(v) {
+            if (field == v) return
+            field = v
+            computeCells()
+            invalidate()
+        }
+
     /** 키보드 세로 길이 배율 (크기 조정 설정). 1.0 = 기본 */
     var heightScale: Float = 1f
         set(v) {
@@ -221,7 +230,7 @@ class KeyboardView(context: Context) : View(context) {
             // 나눠쓰기 아닐 때는 틈 0인 한 묶음, 나눠쓰기일 때는 두 묶음 + 가운데 틈. 키 크기 비율은 항상 원래 레이아웃 그대로
             val halves = if (split) Split.halves(row, layout.splitAt.getOrNull(r))
             else Split.Halves(row.map { Split.Part(it, it.weight) }, emptyList())
-            val gapW = if (split) usableW * SPLIT_GAP_FRACTION else 0f
+            val gapW = if (split) usableW * splitGapFraction else 0f
             for (pl in Split.place(halves, padPx, usableW, gapW)) {
                 if (pl.part.key.type == KeyType.SPACER) continue
                 val rect = RectF(pl.left, top, pl.right, top + rowH)
@@ -589,9 +598,6 @@ class KeyboardView(context: Context) : View(context) {
         const val SLOP_DP = 8f
         const val DRAG_START_DP = 24f
         const val DRAG_STEP_DP = 14f
-
-        /** 나눠쓰기 때 가운데 빈 공간: 키보드 가로폭의 18% */
-        const val SPLIT_GAP_FRACTION = 0.18f
 
         /** 누르고 있으면 반복되는 키 */
         val REPEAT_TYPES = setOf(KeyType.BACKSPACE)

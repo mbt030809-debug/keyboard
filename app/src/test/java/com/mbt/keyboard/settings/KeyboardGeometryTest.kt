@@ -64,4 +64,14 @@ class KeyboardGeometryTest {
         assertTrue(KeyboardGeometry.isLargeScreen(673))
         assertFalse(KeyboardGeometry.isLargeScreen(411))
     }
+
+    @Test fun gapDefaultsStepsAndLimits() {
+        assertEquals(18, KeyboardGeometry().gapPct)
+        assertEquals(0.18f, KeyboardGeometry().gapFraction, 0.0001f)
+        assertEquals(20, KeyboardGeometry().gapWiderBy(1).gapPct)
+        assertEquals(16, KeyboardGeometry().gapWiderBy(-1).gapPct)
+        assertEquals(6, KeyboardGeometry().gapWiderBy(-99).gapPct)
+        assertEquals(40, KeyboardGeometry().gapWiderBy(99).gapPct)
+        assertEquals(KeyboardGeometry(50, 150, 0, 200, 40), KeyboardGeometry(1, 999, -1, 999, 999).clamped())
+    }
 }

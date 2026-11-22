@@ -22,6 +22,7 @@ object Prefs {
             p.getInt(geoKey(large, "h"), KeyboardGeometry.HEIGHT_DEFAULT),
             p.getInt(geoKey(large, "x"), KeyboardGeometry.X_DEFAULT),
             p.getInt(geoKey(large, "r"), KeyboardGeometry.RAISE_DEFAULT),
+            p.getInt(geoKey(large, "g"), KeyboardGeometry.GAP_DEFAULT),
         ).clamped()
     }
 
@@ -32,6 +33,7 @@ object Prefs {
             .putInt(geoKey(large, "h"), c.heightPct)
             .putInt(geoKey(large, "x"), c.xPct)
             .putInt(geoKey(large, "r"), c.raiseDp)
+            .putInt(geoKey(large, "g"), c.gapPct)
             .apply()
     }
     private const val KEY_PAUSE_MS = "pause_split_ms"

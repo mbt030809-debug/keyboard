@@ -134,6 +134,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         else resources.displayMetrics.widthPixels
         KeyboardHost.apply(host, screenW, g, density)
         view.heightScale = g.heightScale
+        view.splitGapFraction = g.gapFraction
     }
 
     /** 가장 짧은 변이 600dp 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
