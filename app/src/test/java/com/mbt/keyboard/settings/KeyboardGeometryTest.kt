@@ -22,7 +22,7 @@ class KeyboardGeometryTest {
         assertEquals(70, KeyboardGeometry().tallerBy(-99).heightPct)
         assertEquals(150, KeyboardGeometry().tallerBy(99).heightPct)
         assertEquals(0, KeyboardGeometry().raisedBy(-5).raiseDp)
-        assertEquals(200, KeyboardGeometry().raisedBy(99).raiseDp)
+        assertEquals(200, KeyboardGeometry().raisedBy(999).raiseDp)
         // 1%씩 조절
         assertEquals(99, KeyboardGeometry().widerBy(-1).widthPct)
         assertEquals(98, KeyboardGeometry().widerBy(-2).widthPct)
