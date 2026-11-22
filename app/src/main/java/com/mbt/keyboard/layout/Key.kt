@@ -30,4 +30,8 @@ data class KeyboardLayout(
     val name: String,
     val rows: List<List<Key>>,
     val rowHeights: List<Float> = List(rows.size) { 1f },
+    /** 한글 자판 (자모를 조합 엔진으로 보냄) */
+    val hangul: Boolean = false,
+    /** 같은 키 연타로 변환 (ㄱ→ㄲ, ㅏ→ㅑ). 단모음 자판용 */
+    val doubleTap: Boolean = false,
 )

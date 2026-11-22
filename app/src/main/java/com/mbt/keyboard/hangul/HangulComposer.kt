@@ -39,6 +39,20 @@ class HangulComposer {
         return Output(committed, render(buffer.toString()))
     }
 
+    /**
+     * 같은 키를 연달아 쳤을 때: 마지막 자모를 변환한다. (ㄱ→ㄲ, ㅏ→ㅑ …)
+     * 변환 결과로 글자가 조합되지 않으면(예: 받침 ㄸ) null → 호출자가 일반 입력 처리.
+     */
+    fun doubleTap(jamo: Char): Output? {
+        if (buffer.isEmpty() || buffer.last() != jamo) return null
+        val doubled = Jamo.DOUBLE[jamo] ?: return null
+        val candidate = buffer.substring(0, buffer.length - 1) + doubled
+        if (parse(candidate) == null) return null
+        buffer.setLength(buffer.length - 1)
+        buffer.append(doubled)
+        return Output("", render(buffer.toString()))
+    }
+
     /** 자모 하나 지우기. 조합 중이 아니면 null (호출자가 일반 삭제 처리). */
     fun backspace(): Output? {
         if (buffer.isEmpty()) return null

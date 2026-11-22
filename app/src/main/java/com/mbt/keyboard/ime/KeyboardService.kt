@@ -12,13 +12,25 @@ import com.mbt.keyboard.layout.Key
 import com.mbt.keyboard.layout.KeyType
 import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.phrase.Phrases
+import com.mbt.keyboard.settings.Prefs
 
 class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private lateinit var view: KeyboardView
     private val composer = HangulComposer()
-    private var layoutId = Layouts.KO
+    private var layoutId = Layouts.KOS
     private var lastShiftTap = 0L
+
+    /** 연타 변환 판정용: 직전에 친 자모 키와 시각 */
+    private var lastJamoKey: String? = null
+    private var lastJamoTime = 0L
+
+    private val layout get() = Layouts.byId(layoutId)
+
+    override fun onCreate() {
+        super.onCreate()
+        layoutId = Prefs.koreanLayout(this)
+    }
 
     override fun onCreateInputView(): View {
         view = KeyboardView(this).also {
@@ -37,11 +49,16 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         val cls = info.inputType and InputType.TYPE_MASK_CLASS
         val variation = info.inputType and InputType.TYPE_MASK_VARIATION
         val wantsLatin = cls == InputType.TYPE_CLASS_TEXT && variation in LATIN_VARIATIONS
-        if (wantsLatin) setLayout(Layouts.EN)
+        val korean = Prefs.koreanLayout(this)
+        when {
+            wantsLatin -> setLayout(Layouts.EN)
+            layout.hangul && layoutId != korean -> setLayout(korean)   // 설정에서 자판을 바꾼 경우
+        }
     }
 
     override fun onFinishInput() {
         composer.reset()
+        lastJamoKey = null
         super.onFinishInput()
     }
 
@@ -60,6 +77,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onKey(key: Key) {
+        if (key.type != KeyType.CHAR) lastJamoKey = null
         when (key.type) {
             KeyType.CHAR -> onChar(key)
             KeyType.SPACE -> { flushComposing(); commit(" ") }
@@ -78,8 +96,15 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /** 꾹 누르기 팝업에서 고른 기호·상용문구: 조합 중인 글자를 확정하고 그대로 입력 */
     override fun onText(text: String) {
-        flushComposing()
-        commit(text)
+        lastJamoKey = null
+        val ic = currentInputConnection ?: return
+        if (layout.hangul && text.length == 1 && Jamo.isJamo(text[0])) {
+            // 꾹 누르기로 고른 쌍자음 등은 한글 조합에 참여
+            commitJamo(text[0])
+        } else {
+            flushComposing()
+            ic.commitText(text, 1)
+        }
         if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
     }
 
@@ -101,24 +126,56 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /** 스페이스바 스와이프 → 한/영 전환 */
     override fun onSwipeSpace() {
-        setLayout(if (layoutId == Layouts.KO) Layouts.EN else Layouts.KO)
+        setLayout(if (layout.hangul) Layouts.EN else Prefs.koreanLayout(this))
     }
 
     private fun onChar(key: Key) {
         val shifted = view.shiftState != ShiftState.OFF
         val text = key.outputFor(shifted)
-        val ic = currentInputConnection ?: return
-        if (layoutId == Layouts.KO && text.length == 1 && Jamo.isJamo(text[0])) {
-            val out = composer.input(text[0])
-            ic.beginBatchEdit()
-            if (out.committed.isNotEmpty()) ic.commitText(out.committed, 1)
-            ic.setComposingText(out.composing, 1)
-            ic.endBatchEdit()
+        if (layout.hangul && text.length == 1 && Jamo.isJamo(text[0])) {
+            if (layout.doubleTap && tryDoubleTap(text)) {
+                // 연타 변환 완료
+            } else {
+                commitJamo(text[0])
+            }
         } else {
+            lastJamoKey = null
             flushComposing()
-            ic.commitText(text, 1)
+            currentInputConnection?.commitText(text, 1)
         }
         if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
+    }
+
+    /**
+     * 단모음 자판: 같은 키를 [DOUBLE_TAP_MS] 안에 다시 치면 마지막 자모를 변환 (ㄱ→ㄲ, ㅏ→ㅑ).
+     * 변환 후 같은 키를 또 치면 새 글자로 취급 (3연타는 변환 연쇄 없음).
+     * @return 변환했으면 true
+     */
+    private fun tryDoubleTap(text: String): Boolean {
+        val now = SystemClock.uptimeMillis()
+        val isDouble = text == lastJamoKey && now - lastJamoTime <= DOUBLE_TAP_MS
+        if (isDouble) {
+            val out = composer.doubleTap(text[0])
+            if (out != null) {
+                val ic = currentInputConnection ?: return true
+                ic.setComposingText(out.composing, 1)
+                lastJamoKey = null
+                return true
+            }
+        }
+        lastJamoKey = text
+        lastJamoTime = now
+        return false
+    }
+
+    /** 자모를 조합 엔진에 넣고 확정/조합 텍스트를 입력창에 반영 */
+    private fun commitJamo(jamo: Char) {
+        val ic = currentInputConnection ?: return
+        val out = composer.input(jamo)
+        ic.beginBatchEdit()
+        if (out.committed.isNotEmpty()) ic.commitText(out.committed, 1)
+        ic.setComposingText(out.composing, 1)
+        ic.endBatchEdit()
     }
 
     private fun onBackspace() {
@@ -156,6 +213,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private fun setLayout(id: String) {
         flushComposing()
+        lastJamoKey = null
         layoutId = id
         view.keyboardLayout = Layouts.byId(id)
         view.shiftState = ShiftState.OFF

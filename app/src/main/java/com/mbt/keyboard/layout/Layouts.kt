@@ -2,7 +2,10 @@ package com.mbt.keyboard.layout
 
 /** 자판 정의 (데이터 기반). 새 자판은 여기에 행 목록만 추가하면 된다. */
 object Layouts {
+    /** 한글 두벌식 */
     const val KO = "ko"
+    /** 한글 단모음 (자음 + 단모음 8개, 연타로 쌍자음·ㅑㅕㅛㅠ) */
+    const val KOS = "kos"
     const val EN = "en"
 
     private fun ch(label: String, shifted: String? = null, hint: String? = null) =
@@ -46,11 +49,14 @@ object Layouts {
 
     private fun bottom() = listOf(
         lang,
-        Key(",", hints = listOf("…", "¿", "¡")),
+        Key(",", hints = listOf("\"", "'", ";", ":")),
         space,
-        Key(".", hints = listOf("·", "※", "~")),
+        Key(".", hints = listOf("…", "·", "`")),
         enter,
     )
+
+    /** 단모음 키: 꾹 누르기 후보를 직접 지정 */
+    private fun sk(label: String, vararg hints: String) = Key(label = label, hints = hints.toList())
 
     private fun row(chars: List<String>, shifted: List<String?>, hints: List<String>) =
         chars.mapIndexed { i, c -> ch(c, shifted[i], hints[i]) }
@@ -81,6 +87,36 @@ object Layouts {
             bottom(),
         ),
         rowHeights,
+        hangul = true,
+    )
+
+    /**
+     * 한글 단모음. 자음 + 단모음(ㅏㅓㅗㅜㅡㅣㅐㅔ) 8개만 배치하고
+     * 같은 키를 연달아 두 번 치면 ㄱ→ㄲ, ㅏ→ㅑ 처럼 변환된다.
+     * 쌍자음은 꾹 누르기로도 입력 가능 (키 오른쪽 위 작은 글자).
+     */
+    val koreanSingle = KeyboardLayout(
+        KOS, "한글 단모음",
+        listOf(
+            toolbarRow,
+            numberRow,
+            listOf(
+                sk("ㅂ", "ㅃ", "("), sk("ㅈ", "ㅉ", ")"), sk("ㄷ", "ㄸ", "["), sk("ㄱ", "ㄲ", "]"), sk("ㅅ", "ㅆ", "{"),
+                sk("ㅗ", "%"), sk("ㅐ", "~"), sk("ㅔ", "*"),
+            ),
+            listOf(
+                sk("ㅁ", "$"), sk("ㄴ", "&"), sk("ㅇ", "+"), sk("ㄹ", "="), sk("ㅎ", "}"),
+                sk("ㅓ", "#"), sk("ㅏ", "!"), sk("ㅣ", "^"),
+            ),
+            listOf(spacer(0.5f)) +
+                listOf(
+                    sk("ㅋ", "<"), sk("ㅌ", ">"), sk("ㅊ", "/"), sk("ㅍ", "\\"), sk("ㅜ", "|"), sk("ㅡ", "_"),
+                ) + backspace,
+            bottom(),
+        ),
+        rowHeights,
+        hangul = true,
+        doubleTap = true,
     )
 
     val english = KeyboardLayout(
@@ -110,6 +146,6 @@ object Layouts {
         rowHeights,
     )
 
-    val all = listOf(korean, english)
+    val all = listOf(koreanSingle, korean, english)
     fun byId(id: String) = all.first { it.id == id }
 }

@@ -100,4 +100,47 @@ class HangulComposerTest {
         assertEquals("낙", out3.committed)   // ㄱㄱ은 겹받침 불가 → 낙 확정
         assertEquals("ㄱ", out3.composing)
     }
+
+    // ---- 단모음 자판: 연타 변환
+
+    private fun tap(c: HangulComposer, vararg keys: Char) = keys.forEach { c.input(it) }
+
+    @Test fun doubleTapConsonantMakesTense() {
+        val c = HangulComposer()
+        tap(c, 'ㄱ')
+        assertEquals("ㄲ", c.doubleTap('ㄱ')!!.composing)
+        tap(c, 'ㅏ')
+        assertEquals("까", c.composing)
+    }
+
+    @Test fun doubleTapVowelMakesYVowel() {
+        val c = HangulComposer()
+        tap(c, 'ㅇ', 'ㅏ')
+        assertEquals("야", c.doubleTap('ㅏ')!!.composing)
+        val d = HangulComposer(); tap(d, 'ㅅ', 'ㅓ'); assertEquals("셔", d.doubleTap('ㅓ')!!.composing)
+        val e = HangulComposer(); tap(e, 'ㅇ', 'ㅗ'); assertEquals("요", e.doubleTap('ㅗ')!!.composing)
+        val f = HangulComposer(); tap(f, 'ㅇ', 'ㅜ'); assertEquals("유", f.doubleTap('ㅜ')!!.composing)
+        val g = HangulComposer(); tap(g, 'ㅇ', 'ㅐ'); assertEquals("얘", g.doubleTap('ㅐ')!!.composing)
+        val h = HangulComposer(); tap(h, 'ㅇ', 'ㅔ'); assertEquals("예", h.doubleTap('ㅔ')!!.composing)
+    }
+
+    @Test fun doubleTapFinalConsonant() {
+        val c = HangulComposer()
+        tap(c, 'ㅇ', 'ㅏ', 'ㄱ')
+        assertEquals("앆", c.doubleTap('ㄱ')!!.composing)   // 받침 ㄲ
+        val out = c.input('ㅏ')              // 받침 ㄲ 이 다음 글자 초성으로 이동
+        assertEquals("아", out.committed)
+        assertEquals("까", out.composing)
+    }
+
+    @Test fun doubleTapNotApplicableReturnsNull() {
+        val c = HangulComposer()
+        tap(c, 'ㄱ', 'ㅏ', 'ㄷ')
+        assertNull(c.doubleTap('ㄷ'))       // 받침 ㄸ 불가
+        assertNull(c.doubleTap('ㅏ'))       // 마지막 자모가 다름
+        tap(c, 'ㅇ', 'ㅗ', 'ㅏ')
+        assertNull(c.doubleTap('ㅏ'))       // ㅗㅑ 는 조합 불가
+        assertNull(HangulComposer().doubleTap('ㄱ'))
+        val d = HangulComposer(); tap(d, 'ㅇ', 'ㅣ'); assertNull(d.doubleTap('ㅣ'))  // ㅣ 는 변환 없음
+    }
 }

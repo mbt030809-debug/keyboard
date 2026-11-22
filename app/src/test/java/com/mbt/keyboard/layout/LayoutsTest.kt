@@ -62,4 +62,24 @@ class LayoutsTest {
     @Test fun rowHeightsMatchRows() {
         Layouts.all.forEach { assertEquals(it.rows.size, it.rowHeights.size) }
     }
+
+    @Test fun singleVowelLayoutHasOnlyBasicJamo() {
+        val keys = Layouts.koreanSingle.rows.subList(Layouts.LETTER_ROW_START, Layouts.LETTER_ROW_START + 3)
+            .flatten().filter { it.type == KeyType.CHAR }.map { it.output }
+        assertEquals("ㅂㅈㄷㄱㅅㅗㅐㅔㅁㄴㅇㄹㅎㅓㅏㅣㅋㅌㅊㅍㅜㅡ".map { it.toString() }, keys)
+        assertTrue(Layouts.koreanSingle.doubleTap && Layouts.koreanSingle.hangul)
+        assertTrue(!Layouts.korean.doubleTap && Layouts.korean.hangul)
+        assertTrue(!Layouts.english.hangul)
+    }
+
+    @Test fun singleVowelRowsFillWidth() {
+        Layouts.koreanSingle.rows.subList(Layouts.LETTER_ROW_START, Layouts.LETTER_ROW_START + 3).forEach { r ->
+            assertEquals(8.0, r.sumOf { it.weight.toDouble() }, 0.001)
+        }
+    }
+
+    @Test fun tenseConsonantHintsComeFirstOnSingleLayout() {
+        val m = Layouts.koreanSingle.rows.flatten().filter { it.type == KeyType.CHAR }.associate { it.output to it.hints }
+        assertEquals("ㄲ", m["ㄱ"]!![0]); assertEquals("ㅃ", m["ㅂ"]!![0]); assertEquals("ㅆ", m["ㅅ"]!![0])
+    }
 }

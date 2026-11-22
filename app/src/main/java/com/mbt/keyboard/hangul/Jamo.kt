@@ -23,6 +23,12 @@ object Jamo {
         "ㄹㅌ" to 'ㄾ', "ㄹㅍ" to 'ㄿ', "ㄹㅎ" to 'ㅀ', "ㅂㅅ" to 'ㅄ',
     )
 
+    /** 단모음 자판의 연타 변환 */
+    val DOUBLE = mapOf(
+        'ㄱ' to 'ㄲ', 'ㄷ' to 'ㄸ', 'ㅂ' to 'ㅃ', 'ㅅ' to 'ㅆ', 'ㅈ' to 'ㅉ',
+        'ㅏ' to 'ㅑ', 'ㅓ' to 'ㅕ', 'ㅗ' to 'ㅛ', 'ㅜ' to 'ㅠ', 'ㅐ' to 'ㅒ', 'ㅔ' to 'ㅖ',
+    )
+
     fun isVowel(c: Char) = JUNG.indexOf(c) >= 0
     fun isConsonant(c: Char) = CHO.indexOf(c) >= 0
     fun isJamo(c: Char) = isVowel(c) || isConsonant(c)
