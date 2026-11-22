@@ -104,7 +104,7 @@ data class KeyboardGeometry(
 
         const val RAISE_MIN = 0
         const val RAISE_MAX = 200
-        const val RAISE_STEP = 10
+        const val RAISE_STEP = 4
         const val RAISE_DEFAULT = 0
 
         const val GAP_MIN = 6

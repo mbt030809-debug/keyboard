@@ -41,7 +41,7 @@ class ResizeActivityTest {
                 tap(a, R.id.moveLeft)      // 가로 99%: 남는 공간 안에서 왼쪽으로
                 val g = Prefs.geometry(a, large = false)
                 assertEquals(99, g.widthPct); assertEquals(101, g.heightPct)
-                assertEquals(10, g.raiseDp); assertTrue(g.xDp < 0)
+                assertEquals(4, g.raiseDp); assertTrue(g.xDp < 0)
                 // 폰(접힘)에서는 갈라진 정도 행이 숨겨진다
                 assertEquals(View.GONE, a.findViewById<View>(R.id.gapRow).visibility)
             }
@@ -87,10 +87,10 @@ class ResizeActivityTest {
                 val density = a.resources.displayMetrics.density
                 repeat(5) { i ->
                     tap(a, R.id.moveUp)
-                    assertEquals("after ${i + 1} taps", (10 * (i + 1) * density).toInt(), previewLp(a).bottomMargin)
+                    assertEquals("after ${i + 1} taps", (4 * (i + 1) * density).toInt(), previewLp(a).bottomMargin)
                 }
                 tap(a, R.id.moveDown)
-                assertEquals((40 * density).toInt(), previewLp(a).bottomMargin)
+                assertEquals((16 * density).toInt(), previewLp(a).bottomMargin)
             }
         }
     }

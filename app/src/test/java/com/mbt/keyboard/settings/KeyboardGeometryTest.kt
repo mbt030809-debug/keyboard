@@ -28,7 +28,7 @@ class KeyboardGeometryTest {
         assertEquals(98, KeyboardGeometry().widerBy(-2).widthPct)
         assertEquals(101, KeyboardGeometry().tallerBy(1).heightPct)
         assertEquals(99, KeyboardGeometry().tallerBy(-1).heightPct)
-        assertEquals(10, KeyboardGeometry().raisedBy(1).raiseDp)
+        assertEquals(4, KeyboardGeometry().raisedBy(1).raiseDp)
     }
 
     @Test fun narrowKeyboardStartsCenteredAndOffsetMovesIt() {
