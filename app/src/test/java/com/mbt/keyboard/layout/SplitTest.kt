@@ -46,19 +46,36 @@ class SplitTest {
         assertEquals(listOf("n", "m", "⌫"), halves(en, 4).rightLabels())
     }
 
-    @Test fun dubeolsikFollowsHandsOnQwerty() {
+    @Test fun dubeolsikSplitsConsonantsLeftAndVowelsRight() {
         val ko = Layouts.korean
         assertEquals("ㅂㅈㄷㄱㅅ", halves(ko, 2).leftLabels().joinToString(""))
+        assertEquals("ㅛㅕㅑㅐㅔ", halves(ko, 2).rightLabels().joinToString(""))
         assertEquals("ㅁㄴㅇㄹㅎ", halves(ko, 3).leftLabels().filter { it.isNotEmpty() }.joinToString(""))
-        assertEquals(listOf("⇧", "ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅠ"), halves(ko, 4).leftLabels())
+        assertEquals("ㅗㅓㅏㅣ", halves(ko, 3).rightLabels().filter { it.isNotEmpty() }.joinToString(""))
+        assertEquals(listOf("⇧", "ㅋ", "ㅌ", "ㅊ", "ㅍ"), halves(ko, 4).leftLabels())
+        assertEquals(listOf("ㅠ", "ㅜ", "ㅡ", "⌫"), halves(ko, 4).rightLabels())
     }
 
-    @Test fun singleVowelRowsSplitFourAndFour() {
+    @Test fun singleVowelSplitsConsonantsLeftAndVowelsRight() {
         val s = Layouts.koreanSingle
-        assertEquals("ㅂㅈㄷㄱ", halves(s, 2).leftLabels().joinToString(""))
-        assertEquals("ㅅㅗㅐㅔ", halves(s, 2).rightLabels().joinToString(""))
-        assertEquals("ㅁㄴㅇㄹ", halves(s, 3).leftLabels().joinToString(""))
-        assertEquals("ㅎㅓㅏㅣ", halves(s, 3).rightLabels().joinToString(""))
+        assertEquals("ㅂㅈㄷㄱㅅ", halves(s, 2).leftLabels().joinToString(""))
+        assertEquals("ㅗㅐㅔ", halves(s, 2).rightLabels().joinToString(""))
+        assertEquals("ㅁㄴㅇㄹㅎ", halves(s, 3).leftLabels().joinToString(""))
+        assertEquals("ㅓㅏㅣ", halves(s, 3).rightLabels().joinToString(""))
+        assertEquals("ㅋㅌㅊㅍ", halves(s, 4).leftLabels().filter { it.isNotEmpty() }.joinToString(""))
+        assertEquals(listOf("ㅜ", "ㅡ", "⌫"), halves(s, 4).rightLabels())
+    }
+
+    @Test fun koreanLayoutsNeverMixJamoKindsAcrossHalves() {
+        listOf(Layouts.koreanSingle, Layouts.korean).forEach { l ->
+            for (r in Layouts.LETTER_ROW_START until Layouts.LETTER_ROW_START + 3) {
+                val h = halves(l, r)
+                val left = h.left.map { it.key }.filter { it.type == KeyType.CHAR }.map { it.label[0] }
+                val right = h.right.map { it.key }.filter { it.type == KeyType.CHAR }.map { it.label[0] }
+                assertTrue("${l.id} row $r left has vowel", left.none { com.mbt.keyboard.hangul.Jamo.isVowel(it) })
+                assertTrue("${l.id} row $r right has consonant", right.none { com.mbt.keyboard.hangul.Jamo.isConsonant(it) })
+            }
+        }
     }
 
     @Test fun toolbarAndNumberRowsSplitFiveAndFive() {

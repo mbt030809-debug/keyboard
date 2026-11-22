@@ -140,8 +140,8 @@ object Layouts {
         ),
         rowHeights,
         hangul = true,
-        // 마지막 글자 줄: ⇧ㅋㅌㅊㅍㅠ | ㅜㅡ⌫  (ㅠ는 왼손 키)
-        splitAt = listOf(null, null, null, null, 6, null),
+        // 나눠쓰기: 왼쪽=자음, 오른쪽=모음. 마지막 글자 줄은 ⇧ㅋㅌㅊㅍ | ㅠㅜㅡ⌫ (ㅠ는 모음이라 오른쪽)
+        splitAt = listOf(null, null, null, null, 5, null),
     )
 
     /**
@@ -176,6 +176,9 @@ object Layouts {
         rowHeights,
         hangul = true,
         doubleTap = true,
+        // 나눠쓰기: 왼쪽=자음(ㅂㅈㄷㄱㅅ / ㅁㄴㅇㄹㅎ / ㅋㅌㅊㅍ), 오른쪽=모음(ㅗㅐㅔ / ㅓㅏㅣ / ㅜㅡ⌫)
+        // 3번째 줄은 맨 앞의 여백 칸이 왼쪽 묶음에 들어가므로 5개
+        splitAt = listOf(null, null, 5, 5, 5, null),
     )
 
     val english = KeyboardLayout(

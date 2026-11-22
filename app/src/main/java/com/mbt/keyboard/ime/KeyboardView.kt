@@ -62,6 +62,16 @@ class KeyboardView(context: Context) : View(context) {
     /** 진동 피드백 (키 누를 때, 꾹 누르기, 스와이프) */
     var haptics: Haptics? = null
 
+    /** 키보드 세로 길이 배율 (크기 조정 설정). 1.0 = 기본 */
+    var heightScale: Float = 1f
+        set(v) {
+            if (field == v) return
+            field = v
+            computeCells()
+            requestLayout()
+            invalidate()
+        }
+
     /** 꾹 누르기로 인식하는 시간 (설정 화면에서 변경) */
     var longPressMs: Long = Timing.LONG_PRESS_DEFAULT_MS
 
@@ -177,7 +187,7 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     private val rowCount get() = keyboardLayout?.rows?.size ?: 0
-    private val keyHeightPx get() = theme.keyHeightDp * density
+    private val keyHeightPx get() = theme.keyHeightDp * density * heightScale
     private val padPx get() = 4 * density
 
     private fun rowHeightPx(r: Int) = keyHeightPx * (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)

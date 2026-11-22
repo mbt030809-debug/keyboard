@@ -11,6 +11,29 @@ object Prefs {
     private const val KEY_HAPTIC_STRENGTH = "haptic_strength"
 
     private const val KEY_SPLIT = "split_on_large_screen"
+
+    private fun geoKey(large: Boolean, field: String) = "geo_${if (large) "large" else "normal"}_$field"
+
+    /** 키보드 크기·위치. [large]가 true면 폴드를 펼친 넓은 화면용, false면 접힘(일반) 화면용 */
+    fun geometry(context: Context, large: Boolean): KeyboardGeometry {
+        val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        return KeyboardGeometry(
+            p.getInt(geoKey(large, "w"), KeyboardGeometry.WIDTH_DEFAULT),
+            p.getInt(geoKey(large, "h"), KeyboardGeometry.HEIGHT_DEFAULT),
+            p.getInt(geoKey(large, "x"), KeyboardGeometry.X_DEFAULT),
+            p.getInt(geoKey(large, "r"), KeyboardGeometry.RAISE_DEFAULT),
+        ).clamped()
+    }
+
+    fun setGeometry(context: Context, large: Boolean, g: KeyboardGeometry) {
+        val c = g.clamped()
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putInt(geoKey(large, "w"), c.widthPct)
+            .putInt(geoKey(large, "h"), c.heightPct)
+            .putInt(geoKey(large, "x"), c.xPct)
+            .putInt(geoKey(large, "r"), c.raiseDp)
+            .apply()
+    }
     private const val KEY_PAUSE_MS = "pause_split_ms"
     private const val KEY_LONG_PRESS_MS = "long_press_ms"
 

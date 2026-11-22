@@ -27,6 +27,11 @@
         </activity>
 
         <activity
+            android:name=".ResizeActivity"
+            android:exported="false"
+            android:label="@string/resize_title" />
+
+        <activity
             android:name=".PermissionActivity"
             android:excludeFromRecents="true"
             android:exported="false"

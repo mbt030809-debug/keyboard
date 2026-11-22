@@ -25,6 +25,7 @@ import com.mbt.keyboard.layout.KeyType
 import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.phrase.Phrases
 import com.mbt.keyboard.R
+import com.mbt.keyboard.settings.KeyboardGeometry
 import com.mbt.keyboard.settings.Prefs
 import com.mbt.keyboard.settings.Timing
 import com.mbt.keyboard.spell.SpellChecker
@@ -32,6 +33,7 @@ import com.mbt.keyboard.spell.SpellChecker
 class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private lateinit var root: FrameLayout
+    private lateinit var host: FrameLayout
     private lateinit var view: KeyboardView
     private lateinit var panel: EmojiPanel
     private lateinit var phrasePanel: PhrasePanel
@@ -93,11 +95,16 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         panel = EmojiPanel(this, emojiListener).also { it.visibility = View.GONE }
         phrasePanel = PhrasePanel(this, phraseListener).also { it.visibility = View.GONE }
         // 키보드와 이모지 패널을 같은 자리에 겹쳐 두고 번갈아 보여준다 (패널 높이 = 키보드 높이)
-        root = FrameLayout(this).apply {
+        // host: 키보드·패널을 담는 틀. 설정한 가로/세로 크기와 위치(좌우, 바닥에서 띄우기)는 이 틀에 적용한다
+        host = FrameLayout(this).apply {
             addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             addView(phrasePanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
+        root = FrameLayout(this).apply {
+            addView(host, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        applyGeometry(resources.configuration)
         return root
     }
 
@@ -110,12 +117,28 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** 폴드를 펼치거나 접으면 화면 크기가 바뀐다 → 나눠쓰기 전환 */
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        if (::view.isInitialized) updateSplit(newConfig)
+        if (::view.isInitialized) {
+            updateSplit(newConfig)
+            applyGeometry(newConfig)
+        }
     }
 
-    /** 가장 짧은 변이 [LARGE_SCREEN_DP] 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
+    /**
+     * 설정한 키보드 크기·위치를 적용한다. 폴드를 접었을 때와 펼쳤을 때 각각 따로 저장된 값을 쓴다.
+     */
+    private fun applyGeometry(config: Configuration) {
+        val large = KeyboardGeometry.isLargeScreen(config.smallestScreenWidthDp)
+        val g = Prefs.geometry(this, large)
+        val density = resources.displayMetrics.density
+        val screenW = if (config.screenWidthDp > 0) (config.screenWidthDp * density).toInt()
+        else resources.displayMetrics.widthPixels
+        KeyboardHost.apply(host, screenW, g, density)
+        view.heightScale = g.heightScale
+    }
+
+    /** 가장 짧은 변이 600dp 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
     private fun updateSplit(config: Configuration) {
-        view.split = Prefs.splitOnLargeScreen(this) && config.smallestScreenWidthDp >= LARGE_SCREEN_DP
+        view.split = Prefs.splitOnLargeScreen(this) && KeyboardGeometry.isLargeScreen(config.smallestScreenWidthDp)
     }
 
     private val emojiListener = object : EmojiPanel.Listener {
@@ -177,6 +200,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         composer.reset()
         hideEmojiPanel()
         updateSplit(resources.configuration)   // 설정에서 나눠쓰기를 바꿨을 수 있다
+        applyGeometry(resources.configuration)  // 설정에서 크기·위치를 바꿨을 수 있다
         loadTimings()
         shift.reset(); syncShift()
         haptics.refresh()   // 설정 화면에서 바꾼 진동 설정 반영
@@ -502,7 +526,6 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         const val DOUBLE_TAP_MS = 350L
 
         const val SPELL_MAX_CHARS = 1000
-        const val LARGE_SCREEN_DP = 600
         val LATIN_VARIATIONS = setOf(
             InputType.TYPE_TEXT_VARIATION_PASSWORD,
             InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,

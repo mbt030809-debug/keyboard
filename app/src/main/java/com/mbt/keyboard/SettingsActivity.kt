@@ -55,6 +55,11 @@ class SettingsActivity : AppCompatActivity() {
         btnEnable.setOnClickListener { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
         btnSelect.setOnClickListener { imm.showInputMethodPicker() }
 
+        // 키보드 크기·위치 조정 화면
+        findViewById<MaterialButton>(R.id.btnResize).setOnClickListener {
+            startActivity(Intent(this, ResizeActivity::class.java))
+        }
+
         // 입력 타이밍: 슬라이더 값은 정수 단위(멈춤 0.1초, 꾹 누르기 0.05초)라 저장값과 어긋나지 않는다
         val sliderPause = findViewById<Slider>(R.id.sliderPause)
         val valuePause = findViewById<TextView>(R.id.valuePause)
