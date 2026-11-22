@@ -378,11 +378,11 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /**
      * 쉬프트 키 누름/뗌 (상태 변화는 [ShiftController] 참고).
-     * 탭: 켜기/끄기, 길게: 고정, 누른 채 다른 키 입력: 그 동안만.
+     * 한 번 탭: 켜기, 빠르게 두 번: 캡스락(고정), 고정에서 한 번 더: 끄기, 누른 채 다른 키 입력: 그 동안만.
      */
     override fun onShiftPress(down: Boolean) {
         val now = SystemClock.uptimeMillis()
-        if (down) shift.press(now) else shift.release(now)
+        if (down) shift.press(now) else shift.release()
         syncShift()
     }
 

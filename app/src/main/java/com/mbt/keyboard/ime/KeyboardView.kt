@@ -451,15 +451,17 @@ class KeyboardView(context: Context) : View(context) {
         p.popup = null
         if (pop != null) invalidate() else invalidateCell(cell)
 
-        if (p.shiftHeld) {
+        val shiftWasHeld = p.shiftHeld
+        if (shiftWasHeld) {
             p.shiftHeld = false
             listener?.onShiftPress(false)
         }
         if (fire && !p.ignore) {
             when {
                 pop != null -> if (pop.selected >= 0) listener?.onText(pop.items[pop.selected])
-                cell != null && cell.key.type == KeyType.SHIFT -> {
-                    // 다른 키에서 쉬프트 위로 미끄러져 뗀 경우: 한 번 누른 것으로 처리
+                cell != null && cell.key.type == KeyType.SHIFT -> if (!shiftWasHeld) {
+                    // 다른 키에서 쉬프트 위로 미끄러져 뗀 경우만: 한 번 누른 것으로 처리
+                    // (쉬프트를 직접 눌렀다 뗀 경우는 위에서 이미 처리했으므로 다시 보내면 안 된다)
                     listener?.onShiftPress(true)
                     listener?.onShiftPress(false)
                 }

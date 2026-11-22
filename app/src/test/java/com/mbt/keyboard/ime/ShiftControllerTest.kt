@@ -6,26 +6,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ShiftControllerTest {
-    private val c = ShiftController(longPressMs = 450)
+    private val c = ShiftController(doubleTapMs = 400)
 
-    private fun tap(at: Long, holdMs: Long = 80) { c.press(at); c.release(at + holdMs) }
+    /** 탭: [at]에 눌렀다가 곧바로 뗀다 */
+    private fun tap(at: Long) { c.press(at); c.release() }
 
-    @Test fun tapTurnsOnAndSecondTapTurnsOffEvenIfFast() {
-        tap(0)
-        assertEquals(ShiftState.ON, c.state)
-        tap(120)                       // 아주 빠르게 다시 탭해도 고정이 아니라 해제
-        assertEquals(ShiftState.OFF, c.state)
-    }
-
-    @Test fun secondTapTurnsOffWhenSlowToo() {
-        tap(0); tap(2000)
-        assertEquals(ShiftState.OFF, c.state)
-    }
-
-    @Test fun pressAppliesImmediately() {
+    @Test fun singleTapTurnsOnAndPressAppliesImmediately() {
         c.press(0)
         assertEquals(ShiftState.ON, c.state)
         assertTrue(c.held)
+        c.release()
+        assertEquals(ShiftState.ON, c.state)
+        assertFalse(c.held)
     }
 
     @Test fun oneShotIsConsumedByFirstKey() {
@@ -34,40 +26,72 @@ class ShiftControllerTest {
         assertEquals(ShiftState.OFF, c.state)
     }
 
-    @Test fun longPressLocksAndTapUnlocks() {
-        c.press(0); c.release(600)
+    @Test fun quickDoubleTapLocksAndOneMoreTapReleases() {
+        tap(0)
+        tap(250)                                  // 빠르게 두 번 → 캡스락
         assertEquals(ShiftState.LOCK, c.state)
-        c.consume()                                   // 고정은 글자를 쳐도 유지
-        assertEquals(ShiftState.LOCK, c.state)
-        tap(1000)
+        tap(1500)                                 // 한 번 더 → 풀림
         assertEquals(ShiftState.OFF, c.state)
+    }
+
+    @Test fun lockedStaysLockedWhileTyping() {
+        tap(0); tap(250)
+        c.consume(); c.consume(); c.consume()
+        assertEquals(ShiftState.LOCK, c.state)
+    }
+
+    @Test fun lockedReleasesEvenIfTappedAgainVeryQuickly() {
+        tap(0); tap(250)                          // LOCK
+        tap(400)                                  // 곧바로 한 번 더 → 풀림 (다시 잠기지 않는다)
+        assertEquals(ShiftState.OFF, c.state)
+    }
+
+    @Test fun slowSecondTapTurnsOffInsteadOfLocking() {
+        tap(0)
+        tap(2000)
+        assertEquals(ShiftState.OFF, c.state)
+    }
+
+    @Test fun afterReleaseAnotherTapTurnsOnAgain() {
+        tap(0); tap(250); tap(1500)               // ON → LOCK → OFF
+        tap(3000)
+        assertEquals(ShiftState.ON, c.state)
     }
 
     @Test fun holdingShiftWhileTypingStaysOnUntilReleased() {
         c.press(0)
-        c.consume(); c.consume()                      // 누른 채로 두 글자
+        c.consume(); c.consume()                  // 누른 채로 두 글자
         assertEquals(ShiftState.ON, c.state)
-        c.release(1000)
-        assertEquals(ShiftState.OFF, c.state)         // 오래 눌렀어도 입력했으면 고정되지 않는다
+        c.release()
+        assertEquals(ShiftState.OFF, c.state)
         assertFalse(c.held)
     }
 
     @Test fun holdingFromLockKeepsLock() {
-        c.press(0); c.release(600)                    // LOCK
-        c.press(2000); c.consume(); c.release(2500)
+        tap(0); tap(250)                          // LOCK
+        c.press(2000); c.consume(); c.release()
         assertEquals(ShiftState.LOCK, c.state)
     }
 
+    @Test fun holdingAfterTypingDoesNotCountAsTapForDoubleTap() {
+        c.press(0); c.consume(); c.release()      // 누른 채 입력 (탭 아님)
+        tap(100)                                  // 바로 이어진 탭은 첫 탭
+        assertEquals(ShiftState.ON, c.state)
+    }
+
     @Test fun resetClearsEverything() {
-        c.press(0); c.release(600)
+        tap(0); tap(250)
         c.reset()
         assertEquals(ShiftState.OFF, c.state)
         assertFalse(c.held)
     }
 
-    @Test fun shiftPressedThenSelectionSwipeConsumesOneShot() {
-        tap(0)                                         // ON
-        c.consume()                                    // 스와이프(선택)가 끝나면 한 번용 해제
+    @Test fun shiftSwipeSelectionConsumesOneShotButNotLock() {
+        tap(0)
+        c.consume()
         assertEquals(ShiftState.OFF, c.state)
+        tap(5000); tap(5200)
+        c.consume()
+        assertEquals(ShiftState.LOCK, c.state)
     }
 }
