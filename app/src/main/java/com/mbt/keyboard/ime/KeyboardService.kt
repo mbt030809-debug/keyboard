@@ -17,6 +17,7 @@ import com.mbt.keyboard.settings.Prefs
 class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private lateinit var view: KeyboardView
+    private lateinit var haptics: Haptics
     private val composer = HangulComposer()
     private var layoutId = Layouts.KOS
     private var lastShiftTap = 0L
@@ -30,11 +31,13 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     override fun onCreate() {
         super.onCreate()
         layoutId = Prefs.koreanLayout(this)
+        haptics = Haptics(this)
     }
 
     override fun onCreateInputView(): View {
         view = KeyboardView(this).also {
             it.listener = this
+            it.haptics = haptics
             it.keyboardLayout = Layouts.byId(layoutId)
         }
         return view
@@ -45,6 +48,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         composer.reset()
         view.shiftState = ShiftState.OFF
         view.phrases = Phrases.load(this)
+        haptics.refresh()   // 설정 화면에서 바꾼 진동 설정 반영
         // 비밀번호·이메일·URL 입력칸은 영문 자판으로 시작
         val cls = info.inputType and InputType.TYPE_MASK_CLASS
         val variation = info.inputType and InputType.TYPE_MASK_VARIATION

@@ -11,6 +11,9 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.EditText
 import android.widget.RadioGroup
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.slider.Slider
+import com.mbt.keyboard.ime.Haptics
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -50,6 +53,24 @@ class SettingsActivity : AppCompatActivity() {
 
         btnEnable.setOnClickListener { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
         btnSelect.setOnClickListener { imm.showInputMethodPicker() }
+
+        // 진동 피드백: 바꾸는 즉시 저장하고 체험 진동
+        val preview = Haptics(this)
+        val sw = findViewById<MaterialSwitch>(R.id.switchHaptic)
+        val slider = findViewById<Slider>(R.id.sliderHaptic)
+        sw.isChecked = Prefs.hapticEnabled(this)
+        slider.value = Prefs.hapticStrength(this).toFloat()
+        slider.isEnabled = sw.isChecked
+        sw.setOnCheckedChangeListener { _, on ->
+            Prefs.setHapticEnabled(this, on)
+            slider.isEnabled = on
+            preview.refresh(); preview.key()
+        }
+        slider.addOnChangeListener { _, value, fromUser ->
+            if (!fromUser) return@addOnChangeListener
+            Prefs.setHapticStrength(this, value.toInt())
+            preview.refresh(); preview.key()
+        }
 
         // 한글 자판 선택: 고르는 즉시 저장
         val radio = findViewById<RadioGroup>(R.id.radioLayout)

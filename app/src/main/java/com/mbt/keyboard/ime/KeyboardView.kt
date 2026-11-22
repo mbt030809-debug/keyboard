@@ -8,7 +8,6 @@ import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
-import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.view.ViewCompat
@@ -45,6 +44,9 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     var listener: Listener? = null
+
+    /** 진동 피드백 (키 누를 때, 꾹 누르기, 스와이프) */
+    var haptics: Haptics? = null
 
     var theme: KeyboardTheme = KeyboardTheme.system(context)
         set(v) { field = v; requestLayout(); invalidate() }
@@ -96,7 +98,7 @@ class KeyboardView(context: Context) : View(context) {
         val cell = pressed ?: return@Runnable
         val p = buildPopup(cell) ?: return@Runnable
         popup = p
-        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        haptics?.longPress()
         invalidate()
     }
 
@@ -262,6 +264,7 @@ class KeyboardView(context: Context) : View(context) {
                 downX = e.x
                 downY = e.y
                 pressed = hit(e.x, e.y)
+                if (pressed != null) haptics?.key()
                 invalidate()
                 onPressedChanged()
             }
@@ -296,7 +299,7 @@ class KeyboardView(context: Context) : View(context) {
             if (abs(e.x - downX) > SWIPE_THRESHOLD_DP * density) {
                 ignoreUntilUp = true          // 자판이 바뀌면 셀이 교체되므로 이후 터치는 무시
                 stopTimers()
-                performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                haptics?.tick()
                 listener?.onSwipeSpace()
                 invalidate()
             }
@@ -337,7 +340,7 @@ class KeyboardView(context: Context) : View(context) {
         val steps = ((e.x - dragAnchorX) / stepPx).toInt()
         if (steps != 0) {
             dragAnchorX += steps * stepPx
-            performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            haptics?.tick()
             listener?.onCursorMove(steps)
         }
     }

@@ -9,6 +9,11 @@
     <string name="step2_title">키보드 선택</string>
     <string name="step2_desc">입력 방법을 MBT 키보드로 바꿔주세요</string>
     <string name="step2_btn">키보드 선택하기</string>
+    <string name="haptic_title">진동 피드백</string>
+    <string name="haptic_switch">키를 누를 때 진동</string>
+    <string name="haptic_strength">진동 세기</string>
+    <string name="haptic_weak">약함</string>
+    <string name="haptic_strong">강함</string>
     <string name="layout_title">한글 자판</string>
     <string name="layout_desc">한/영 전환 시 사용할 한글 자판이에요. 단모음은 같은 키를 연달아 두 번 치면 ㄱ→ㄲ, ㅏ→ㅑ로 바뀌어요</string>
     <string name="layout_single">단모음 (기본)</string>
