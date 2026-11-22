@@ -33,4 +33,17 @@ class LayoutsTest {
     @Test fun everyRowHasWeight() {
         Layouts.all.forEach { l -> l.rows.forEach { r -> assertTrue(r.sumOf { it.weight.toDouble() } > 0) } }
     }
+
+    @Test fun everyLetterKeyHasLongPressHint() {
+        Layouts.all.forEach { l ->
+            l.rows.flatten().filter { it.type == KeyType.CHAR }.forEach {
+                assertTrue("${l.id}:${it.label}", it.hints.isNotEmpty())
+            }
+        }
+    }
+
+    @Test fun topRowHintsAreDigits() {
+        assertEquals((1..9).map { it.toString() } + "0", Layouts.korean.rows[0].flatMap { it.hints })
+        assertEquals((1..9).map { it.toString() } + "0", Layouts.english.rows[0].flatMap { it.hints })
+    }
 }

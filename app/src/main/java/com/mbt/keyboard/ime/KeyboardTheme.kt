@@ -10,6 +10,8 @@ data class KeyboardTheme(
     val specialKey: Int,
     val keyPressed: Int,
     val text: Int,
+    val accent: Int,
+    val onAccent: Int,
     val keyHeightDp: Float = 52f,
     val textScale: Float = 1f,
 ) {
@@ -17,10 +19,12 @@ data class KeyboardTheme(
         val LIGHT = KeyboardTheme(
             background = 0xFFD9DCE1.toInt(), key = 0xFFFFFFFF.toInt(), specialKey = 0xFFB9BEC7.toInt(),
             keyPressed = 0xFF9AA3B5.toInt(), text = 0xFF1B1B1F.toInt(),
+            accent = 0xFF3F51B5.toInt(), onAccent = 0xFFFFFFFF.toInt(),
         )
         val DARK = KeyboardTheme(
             background = 0xFF1E1F24.toInt(), key = 0xFF3A3C44.toInt(), specialKey = 0xFF2A2C33.toInt(),
             keyPressed = 0xFF5A5E6B.toInt(), text = 0xFFF2F2F5.toInt(),
+            accent = 0xFF8C9EFF.toInt(), onAccent = 0xFF0A1A6B.toInt(),
         )
 
         fun system(context: Context): KeyboardTheme {

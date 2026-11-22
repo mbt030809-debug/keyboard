@@ -11,6 +11,7 @@ import com.mbt.keyboard.hangul.Jamo
 import com.mbt.keyboard.layout.Key
 import com.mbt.keyboard.layout.KeyType
 import com.mbt.keyboard.layout.Layouts
+import com.mbt.keyboard.phrase.Phrases
 
 class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
@@ -31,6 +32,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         super.onStartInputView(info, restarting)
         composer.reset()
         view.shiftState = ShiftState.OFF
+        view.phrases = Phrases.load(this)
         // 비밀번호·이메일·URL 입력칸은 영문 자판으로 시작
         val cls = info.inputType and InputType.TYPE_MASK_CLASS
         val variation = info.inputType and InputType.TYPE_MASK_VARIATION
@@ -64,11 +66,21 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             KeyType.BACKSPACE -> onBackspace()
             KeyType.ENTER -> onEnter()
             KeyType.SHIFT -> onShift()
-            KeyType.LANG -> {
-                setLayout(if (layoutId == Layouts.KO) Layouts.EN else Layouts.KO)
-            }
+            KeyType.LANG -> onSwipeSpace()
             KeyType.SPACER -> Unit
         }
+    }
+
+    /** 꾹 누르기 팝업에서 고른 기호·상용문구: 조합 중인 글자를 확정하고 그대로 입력 */
+    override fun onText(text: String) {
+        flushComposing()
+        commit(text)
+        if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
+    }
+
+    /** 스페이스바 스와이프 → 한/영 전환 */
+    override fun onSwipeSpace() {
+        setLayout(if (layoutId == Layouts.KO) Layouts.EN else Layouts.KO)
     }
 
     private fun onChar(key: Key) {

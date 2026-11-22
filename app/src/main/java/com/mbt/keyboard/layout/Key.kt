@@ -13,9 +13,11 @@ data class Key(
     val output: String = label,
     val shifted: String? = null,
     val weight: Float = 1f,
+    /** 꾹 누르면 나오는 후보 (특수기호 등). 비어 있으면 꾹 눌러도 동작 없음 */
+    val hints: List<String> = emptyList(),
 ) {
     fun outputFor(shift: Boolean) = if (shift && shifted != null) shifted else output
     fun labelFor(shift: Boolean) = if (shift && shifted != null) shifted else label
 }
 
-data class KeyboardLayout(val id: String, val rows: List<List<Key>>)
+data class KeyboardLayout(val id: String, val name: String, val rows: List<List<Key>>)
