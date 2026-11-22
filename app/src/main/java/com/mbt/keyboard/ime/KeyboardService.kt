@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import com.mbt.keyboard.PermissionActivity
 import android.os.SystemClock
 import android.text.InputType
+import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -34,12 +35,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private lateinit var voice: VoiceInput
     private val composer = HangulComposer()
     private var layoutId = Layouts.KOS
-    private var lastShiftTap = 0L
-
-    /** 쉬프트 키를 누르고 있는 동안: 그 사이 다른 키를 쳤는지, 누르기 전 상태 */
-    private var shiftHeld = false
-    private var shiftUsedWhileHeld = false
-    private var shiftBeforeHold = ShiftState.OFF
+    private val shift = ShiftController()
 
     /** 연타 변환 판정용: 직전에 친 자모 키와 시각 */
     private var lastJamoKey: String? = null
@@ -136,7 +132,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         composer.reset()
         hideEmojiPanel()
         updateSplit(resources.configuration)   // 설정에서 나눠쓰기를 바꿨을 수 있다
-        view.shiftState = ShiftState.OFF
+        shift.reset(); syncShift()
         view.phrases = Phrases.load(this)
         haptics.refresh()   // 설정 화면에서 바꾼 진동 설정 반영
         // 비밀번호·이메일·URL 입력칸은 영문 자판으로 시작
@@ -239,16 +235,30 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         flushComposing()
         val code = if (steps < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
         // 쉬프트가 켜져 있으면 이동하면서 글자 선택 (쉬프트 + 방향키)
-        val select = view.shiftState != ShiftState.OFF
+        val select = shift.state != ShiftState.OFF
         repeat(kotlin.math.abs(steps)) { if (select) sendDpadWithShift(code) else sendDownUpKeyEvents(code) }
     }
 
+    /**
+     * 쉬프트 + 방향키로 선택 범위 확장. 일반 키보드처럼 "소프트 키보드 입력" 플래그를 달고,
+     * 쉬프트 키 누름/뗌 이벤트로 감싸서 보낸다 (플래그나 쉬프트 키 이벤트가 없으면 선택이 안 되는 앱이 많다).
+     */
     private fun sendDpadWithShift(code: Int) {
-        val ic = currentInputConnection ?: return
-        val now = SystemClock.uptimeMillis()
         val meta = KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
-        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, code, 0, meta))
-        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, code, 0, meta))
+        sendKey(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT, meta)
+        sendKey(KeyEvent.ACTION_DOWN, code, meta)
+        sendKey(KeyEvent.ACTION_UP, code, meta)
+        sendKey(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT, 0)
+    }
+
+    private fun sendKey(action: Int, code: Int, meta: Int) {
+        val now = SystemClock.uptimeMillis()
+        currentInputConnection?.sendKeyEvent(
+            KeyEvent(
+                now, now, action, code, 0, meta, KeyCharacterMap.VIRTUAL_KEYBOARD, 0,
+                KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE,
+            ),
+        )
     }
 
     /** 선택 제스처가 끝나면 한 번용 쉬프트(ON)는 해제. 고정(LOCK)은 유지 */
@@ -296,7 +306,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun onChar(key: Key) {
-        val shifted = view.shiftState != ShiftState.OFF
+        val shifted = shift.state != ShiftState.OFF
         val text = key.outputFor(shifted)
         if (layout.hangul && text.length == 1 && Jamo.isJamo(text[0])) {
             if (layout.doubleTap && tryDoubleTap(text)) {
@@ -367,42 +377,23 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     /**
-     * 쉬프트 키 누름/뗌.
-     * - 누른 채로 다른 키를 치면 그 동안만 쉬프트 (뗄 때 해제)
-     * - 키를 치지 않고 바로 떼면 탭: 한 번은 다음 글자만, 빠르게 두 번은 고정
+     * 쉬프트 키 누름/뗌 (상태 변화는 [ShiftController] 참고).
+     * 탭: 켜기/끄기, 길게: 고정, 누른 채 다른 키 입력: 그 동안만.
      */
     override fun onShiftPress(down: Boolean) {
-        if (down) {
-            shiftHeld = true
-            shiftUsedWhileHeld = false
-            shiftBeforeHold = view.shiftState
-            if (view.shiftState == ShiftState.OFF) view.shiftState = ShiftState.ON   // 누르는 즉시 적용
-        } else {
-            shiftHeld = false
-            if (shiftUsedWhileHeld) {
-                view.shiftState = if (shiftBeforeHold == ShiftState.LOCK) ShiftState.LOCK else ShiftState.OFF
-            } else {
-                view.shiftState = shiftBeforeHold
-                onShift()
-            }
-        }
+        val now = SystemClock.uptimeMillis()
+        if (down) shift.press(now) else shift.release(now)
+        syncShift()
     }
 
     /** 글자를 입력한 뒤: 누르고 있는 쉬프트는 유지, 한 번용(ON) 쉬프트는 해제 */
     private fun consumeShift() {
-        if (shiftHeld) shiftUsedWhileHeld = true
-        else if (view.shiftState == ShiftState.ON) view.shiftState = ShiftState.OFF
+        shift.consume()
+        syncShift()
     }
 
-    /** 한 번: 다음 글자만 쉬프트, 빠르게 두 번: 고정 */
-    private fun onShift() {
-        val now = SystemClock.uptimeMillis()
-        view.shiftState = when (view.shiftState) {
-            ShiftState.OFF -> if (now - lastShiftTap < DOUBLE_TAP_MS) ShiftState.LOCK else ShiftState.ON
-            ShiftState.ON -> if (now - lastShiftTap < DOUBLE_TAP_MS) ShiftState.LOCK else ShiftState.OFF
-            ShiftState.LOCK -> ShiftState.OFF
-        }
-        lastShiftTap = now
+    private fun syncShift() {
+        view.shiftState = shift.state
     }
 
     private fun setLayout(id: String) {
@@ -410,7 +401,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         lastJamoKey = null
         layoutId = id
         view.keyboardLayout = Layouts.byId(id)
-        view.shiftState = ShiftState.OFF
+        shift.reset(); syncShift()
     }
 
     private fun flushComposing() {
