@@ -11,7 +11,37 @@ object Split {
 
     data class Halves(val left: List<Part>, val right: List<Part>)
 
+    /** 한 키의 가로 위치 [left, right] */
+    data class Placement(val part: Part, val left: Float, val right: Float)
+
     private const val EPS = 0.001f
+
+    /**
+     * 나눠 쓸 때의 가로 배치. **키 크기는 원래 레이아웃과 같은 비율을 유지**한다 (모음 키만 커지거나 하지 않는다).
+     * 한 줄 전체에 같은 배율을 적용해 [gapW]만큼의 틈을 낼 자리를 만들고,
+     * 왼쪽 묶음은 왼쪽 끝에, 오른쪽 묶음은 오른쪽 끝에 붙인다. 틈은 두 묶음 사이에 생긴다.
+     * 왼쪽·오른쪽 키 개수가 달라도 키 크기를 바꾸지 않으므로, 가운데를 넘어가는 키가 있어도 그대로 둔다.
+     *
+     * @param startX 줄이 시작하는 x, [usableW] 줄의 전체 가로 길이
+     */
+    fun place(halves: Halves, startX: Float, usableW: Float, gapW: Float): List<Placement> {
+        val total = (halves.left + halves.right).sumOf { it.weight.toDouble() }.toFloat()
+        if (total <= 0f) return emptyList()
+        val unit = (usableW - gapW) / total
+        val out = ArrayList<Placement>()
+        var x = startX
+        for (p in halves.left) {
+            out += Placement(p, x, x + p.weight * unit)
+            x += p.weight * unit
+        }
+        val rightTotal = halves.right.sumOf { it.weight.toDouble() }.toFloat()
+        x = startX + usableW - rightTotal * unit
+        for (p in halves.right) {
+            out += Placement(p, x, x + p.weight * unit)
+            x += p.weight * unit
+        }
+        return out
+    }
 
     /**
      * @param splitAt 왼쪽 묶음에 넣을 키 개수. null이면 가운데(가로 비중의 절반)를 기준으로 자동 분할.

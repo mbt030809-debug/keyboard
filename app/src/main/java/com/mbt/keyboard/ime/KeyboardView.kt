@@ -218,30 +218,16 @@ class KeyboardView(context: Context) : View(context) {
             val rowH = rowHeightPx(r)
             rowTops[r] = top
             val rowList = ArrayList<Cell>()
-            fun place(parts: List<Split.Part>, startX: Float, spanW: Float) {
-                val total = parts.sumOf { it.weight.toDouble() }.toFloat()
-                if (total <= 0f) return
-                var x = startX
-                for (part in parts) {
-                    val w = spanW * part.weight / total
-                    if (part.key.type != KeyType.SPACER) {
-                        val rect = RectF(x, top, x + w, top + rowH)
-                        val cell = Cell(part.key, rect, RectF(rect).apply { inset(gap, gap) })
-                        out += cell
-                        rowList += cell
-                    }
-                    x += w
-                }
-            }
-            if (split) {
-                // 왼손/오른손 두 묶음으로 나눠 각각 자기 쪽 절반을 채운다
-                val halves = Split.halves(row, layout.splitAt.getOrNull(r))
-                val gapW = usableW * SPLIT_GAP_FRACTION
-                val halfW = (usableW - gapW) / 2f
-                place(halves.left, padPx, halfW)
-                place(halves.right, padPx + halfW + gapW, halfW)
-            } else {
-                place(row.map { Split.Part(it, it.weight) }, padPx, usableW)
+            // 나눠쓰기 아닐 때는 틈 0인 한 묶음, 나눠쓰기일 때는 두 묶음 + 가운데 틈. 키 크기 비율은 항상 원래 레이아웃 그대로
+            val halves = if (split) Split.halves(row, layout.splitAt.getOrNull(r))
+            else Split.Halves(row.map { Split.Part(it, it.weight) }, emptyList())
+            val gapW = if (split) usableW * SPLIT_GAP_FRACTION else 0f
+            for (pl in Split.place(halves, padPx, usableW, gapW)) {
+                if (pl.part.key.type == KeyType.SPACER) continue
+                val rect = RectF(pl.left, top, pl.right, top + rowH)
+                val cell = Cell(pl.part.key, rect, RectF(rect).apply { inset(gap, gap) })
+                out += cell
+                rowList += cell
             }
             rows += rowList
             top += rowH
