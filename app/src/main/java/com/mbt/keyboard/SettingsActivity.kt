@@ -23,6 +23,7 @@ import com.google.android.material.button.MaterialButton
 import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.phrase.Phrases
 import com.mbt.keyboard.settings.Prefs
+import com.mbt.keyboard.settings.Timing
 
 /** 온보딩 화면: 키보드 활성화 → 선택 → 입력 테스트. 상태는 돌아올 때마다 자동 갱신. */
 class SettingsActivity : AppCompatActivity() {
@@ -53,6 +54,28 @@ class SettingsActivity : AppCompatActivity() {
 
         btnEnable.setOnClickListener { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
         btnSelect.setOnClickListener { imm.showInputMethodPicker() }
+
+        // 입력 타이밍: 슬라이더 값은 정수 단위(멈춤 0.1초, 꾹 누르기 0.05초)라 저장값과 어긋나지 않는다
+        val sliderPause = findViewById<Slider>(R.id.sliderPause)
+        val valuePause = findViewById<TextView>(R.id.valuePause)
+        val sliderLong = findViewById<Slider>(R.id.sliderLong)
+        val valueLong = findViewById<TextView>(R.id.valueLong)
+        val pauseUnit = Timing.PAUSE_STEP_MS
+        val longUnit = Timing.LONG_PRESS_STEP_MS
+        sliderPause.value = (Prefs.pauseSplitMs(this) / pauseUnit).toFloat()
+        valuePause.text = Timing.seconds(Prefs.pauseSplitMs(this))
+        sliderPause.addOnChangeListener { _, value, fromUser ->
+            val ms = value.toLong() * pauseUnit
+            valuePause.text = Timing.seconds(ms)
+            if (fromUser) Prefs.setPauseSplitMs(this, ms)
+        }
+        sliderLong.value = (Prefs.longPressMs(this) / longUnit).toFloat()
+        valueLong.text = Timing.seconds(Prefs.longPressMs(this))
+        sliderLong.addOnChangeListener { _, value, fromUser ->
+            val ms = value.toLong() * longUnit
+            valueLong.text = Timing.seconds(ms)
+            if (fromUser) Prefs.setLongPressMs(this, ms)
+        }
 
         // 진동 피드백: 바꾸는 즉시 저장하고 체험 진동
         val preview = Haptics(this)

@@ -11,6 +11,29 @@ object Prefs {
     private const val KEY_HAPTIC_STRENGTH = "haptic_strength"
 
     private const val KEY_SPLIT = "split_on_large_screen"
+    private const val KEY_PAUSE_MS = "pause_split_ms"
+    private const val KEY_LONG_PRESS_MS = "long_press_ms"
+
+    /** 단모음: 이 시간 이상 멈췄다 친 자음은 다음 글자 초성 (기본 0.7초) */
+    fun pauseSplitMs(context: Context): Long =
+        Timing.snapPause(
+            context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getLong(KEY_PAUSE_MS, Timing.PAUSE_DEFAULT_MS),
+        )
+
+    fun setPauseSplitMs(context: Context, ms: Long) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_PAUSE_MS, Timing.snapPause(ms)).apply()
+
+    /** 꾹 누르기 인식 시간 (기본 0.35초) */
+    fun longPressMs(context: Context): Long =
+        Timing.snapLongPress(
+            context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+                .getLong(KEY_LONG_PRESS_MS, Timing.LONG_PRESS_DEFAULT_MS),
+        )
+
+    fun setLongPressMs(context: Context, ms: Long) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putLong(KEY_LONG_PRESS_MS, Timing.snapLongPress(ms)).apply()
 
     /** 폴드를 펼친 것처럼 큰 화면에서 자판 나눠쓰기 (기본: 켬) */
     fun splitOnLargeScreen(context: Context) =

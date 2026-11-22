@@ -19,6 +19,7 @@ import com.mbt.keyboard.layout.Key
 import com.mbt.keyboard.layout.KeyType
 import com.mbt.keyboard.layout.KeyboardLayout
 import com.mbt.keyboard.layout.Split
+import com.mbt.keyboard.settings.Timing
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -60,6 +61,9 @@ class KeyboardView(context: Context) : View(context) {
 
     /** 진동 피드백 (키 누를 때, 꾹 누르기, 스와이프) */
     var haptics: Haptics? = null
+
+    /** 꾹 누르기로 인식하는 시간 (설정 화면에서 변경) */
+    var longPressMs: Long = Timing.LONG_PRESS_DEFAULT_MS
 
     var theme: KeyboardTheme = KeyboardTheme.system(context)
         set(v) { field = v; requestLayout(); invalidate() }
@@ -394,7 +398,7 @@ class KeyboardView(context: Context) : View(context) {
                 listener?.onKey(c.key)
                 handler.postDelayed(p.repeat, REPEAT_DELAY_MS)
             }
-            hasLongPress(c.key) -> handler.postDelayed(p.longPress, LONG_PRESS_MS)
+            hasLongPress(c.key) -> handler.postDelayed(p.longPress, longPressMs)
         }
     }
 
@@ -585,7 +589,6 @@ class KeyboardView(context: Context) : View(context) {
     private companion object {
         const val REPEAT_DELAY_MS = 400L
         const val REPEAT_INTERVAL_MS = 45L
-        const val LONG_PRESS_MS = 350L
         const val SWIPE_THRESHOLD_DP = 40f
         const val SLOP_DP = 8f
         const val DRAG_START_DP = 24f

@@ -26,6 +26,7 @@ import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.phrase.Phrases
 import com.mbt.keyboard.R
 import com.mbt.keyboard.settings.Prefs
+import com.mbt.keyboard.settings.Timing
 import com.mbt.keyboard.spell.SpellChecker
 
 class KeyboardService : InputMethodService(), KeyboardView.Listener {
@@ -39,6 +40,9 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private val composer = HangulComposer()
     private var layoutId = Layouts.KOS
     private val shift = ShiftController()
+
+    /** 설정 화면에서 바꾸는 입력 타이밍 */
+    private var pauseSplitMs = Timing.PAUSE_DEFAULT_MS
 
     /** 연타 변환 판정용: 직전에 친 자모 키와 시각 */
     private var lastJamoKey: String? = null
@@ -85,6 +89,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             it.keyboardLayout = Layouts.byId(layoutId)
         }
         updateSplit(resources.configuration)
+        loadTimings()
         panel = EmojiPanel(this, emojiListener).also { it.visibility = View.GONE }
         phrasePanel = PhrasePanel(this, phraseListener).also { it.visibility = View.GONE }
         // 키보드와 이모지 패널을 같은 자리에 겹쳐 두고 번갈아 보여준다 (패널 높이 = 키보드 높이)
@@ -94,6 +99,12 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             addView(phrasePanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
         return root
+    }
+
+    /** 설정 화면에서 바꾼 입력 타이밍(멈춤 기준, 꾹 누르기 시간)을 반영 */
+    private fun loadTimings() {
+        pauseSplitMs = Prefs.pauseSplitMs(this)
+        view.longPressMs = Prefs.longPressMs(this)
     }
 
     /** 폴드를 펼치거나 접으면 화면 크기가 바뀐다 → 나눠쓰기 전환 */
@@ -166,6 +177,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         composer.reset()
         hideEmojiPanel()
         updateSplit(resources.configuration)   // 설정에서 나눠쓰기를 바꿨을 수 있다
+        loadTimings()
         shift.reset(); syncShift()
         haptics.refresh()   // 설정 화면에서 바꾼 진동 설정 반영
         // 비밀번호·이메일·URL 입력칸은 영문 자판으로 시작
@@ -376,7 +388,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             val jamo = text[0]
             if (layout.doubleTap) {
                 val now = SystemClock.uptimeMillis()
-                val paused = now - lastJamoTime >= PAUSE_SPLIT_MS      // 직전 입력 뒤 잠시 멈췄는가
+                val paused = now - lastJamoTime >= pauseSplitMs        // 직전 입력 뒤 잠시 멈췄는가
                 when {
                     tryDoubleTap(text, now) -> Unit                    // 연타 변환 완료
                     // 모음으로 끝난 글자 뒤에서 잠시 멈췄다 친 자음은 받침이 아니라 다음 글자 초성 (어 … ㄷ → 어 + ㄷ)
@@ -489,8 +501,6 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private companion object {
         const val DOUBLE_TAP_MS = 350L
 
-        /** 단모음 자판: 모음으로 끝난 글자 뒤에서 이만큼 멈췄다 친 자음은 다음 글자 초성이 된다 */
-        const val PAUSE_SPLIT_MS = 700L
         const val SPELL_MAX_CHARS = 1000
         const val LARGE_SCREEN_DP = 600
         val LATIN_VARIATIONS = setOf(
