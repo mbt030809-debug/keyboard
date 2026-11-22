@@ -36,8 +36,8 @@
     <string name="resize_height">세로 길이</string>
     <string name="resize_gap">갈라진 정도</string>
     <string name="resize_move">위치 이동</string>
-    <string name="resize_move_hint_x">좌우는 가로를 줄이면 움직여요 · 바닥에서 %1$ddp 위</string>
-    <string name="resize_move_hint_full">가로가 100%%라 좌우 이동은 없어요 · 바닥에서 %1$ddp 위</string>
+    <string name="resize_move_hint_x">◀ ▶로 16dp씩 옮겨요 · 바닥에서 %1$ddp 위</string>
+    <string name="resize_move_hint_full">가로가 꽉 차 있어서, ◀ ▶를 누르면 가로가 한 단계 줄어들며 움직여요 · 바닥에서 %1$ddp 위</string>
     <string name="resize_reset">초기화</string>
     <string name="resize_done">완료</string>
     <string name="timing_title">입력 타이밍</string>

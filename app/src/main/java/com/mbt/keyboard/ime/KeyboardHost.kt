@@ -20,7 +20,7 @@ object KeyboardHost {
         lp.width = geometry.widthPx(containerWidthPx)
         lp.height = FrameLayout.LayoutParams.WRAP_CONTENT
         lp.gravity = Gravity.BOTTOM or Gravity.START
-        lp.leftMargin = geometry.leftMarginPx(containerWidthPx)
+        lp.leftMargin = geometry.leftMarginPx(containerWidthPx, density)
         lp.rightMargin = 0
         lp.bottomMargin = geometry.raisePx(density)
         host.layoutParams = lp

@@ -5,7 +5,7 @@ import com.mbt.keyboard.layout.Layouts
 
 /** 사용자 설정 저장소 */
 object Prefs {
-    private const val FILE = "mbt_keyboard"
+    const val FILE = "mbt_keyboard"
     private const val KEY_KOREAN = "korean_layout"
     private const val KEY_HAPTIC_ON = "haptic_enabled"
     private const val KEY_HAPTIC_STRENGTH = "haptic_strength"
@@ -20,7 +20,7 @@ object Prefs {
         return KeyboardGeometry(
             p.getInt(geoKey(large, "w"), KeyboardGeometry.WIDTH_DEFAULT),
             p.getInt(geoKey(large, "h"), KeyboardGeometry.HEIGHT_DEFAULT),
-            p.getInt(geoKey(large, "x"), KeyboardGeometry.X_DEFAULT),
+            p.getInt(geoKey(large, "xd"), KeyboardGeometry.X_DEFAULT),
             p.getInt(geoKey(large, "r"), KeyboardGeometry.RAISE_DEFAULT),
             p.getInt(geoKey(large, "g"), KeyboardGeometry.GAP_DEFAULT),
         ).clamped()
@@ -31,7 +31,7 @@ object Prefs {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
             .putInt(geoKey(large, "w"), c.widthPct)
             .putInt(geoKey(large, "h"), c.heightPct)
-            .putInt(geoKey(large, "x"), c.xPct)
+            .putInt(geoKey(large, "xd"), c.xDp)
             .putInt(geoKey(large, "r"), c.raiseDp)
             .putInt(geoKey(large, "g"), c.gapPct)
             .apply()

@@ -17,6 +17,7 @@ import com.mbt.keyboard.ime.KeyboardView
 import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.settings.KeyboardGeometry
 import com.mbt.keyboard.settings.Prefs
+import com.mbt.keyboard.settings.ScreenProfile
 
 /**
  * 키보드 크기·위치 조정 화면.
@@ -25,13 +26,18 @@ import com.mbt.keyboard.settings.Prefs
  */
 class ResizeActivity : AppCompatActivity() {
 
-    private val large get() = KeyboardGeometry.isLargeScreen(resources.configuration.smallestScreenWidthDp)
+    /** 키보드와 같은 기준(기기 화면 전체 크기)으로 접힘/펼침을 판정해야 저장한 값이 키보드에 적용된다 */
+    private val large get() = ScreenProfile.isLarge(this)
     private lateinit var geometry: KeyboardGeometry
     private lateinit var host: FrameLayout
     private lateinit var keyboard: KeyboardView
 
     /** 갈라진 자판이 적용 중인가 (펼침 화면 + 설정 켬). 아닐 때는 "갈라진 정도" 행을 숨긴다 */
     private var splitActive = false
+
+    /** 미리보기가 놓이는 실제 가로 폭(px). 측정되기 전에는 화면 폭으로 대신한다 */
+    private var containerWidthPx = 0
+    private val density get() = resources.displayMetrics.density
     private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,9 +62,19 @@ class ResizeActivity : AppCompatActivity() {
         host = FrameLayout(this).apply {
             addView(keyboard, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
         }
-        findViewById<FrameLayout>(R.id.previewContainer).addView(
+        val previewContainer = findViewById<FrameLayout>(R.id.previewContainer)
+        previewContainer.addView(
             host, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT),
         )
+        containerWidthPx = resources.displayMetrics.widthPixels
+        // 실제 폭이 정해지거나 바뀌면(분할 화면, 폴드 펼침 등) 그 폭으로 미리보기를 다시 계산
+        previewContainer.addOnLayoutChangeListener { _, l, _, r, _, _, _, _, _ ->
+            val w = r - l
+            if (w > 0 && w != containerWidthPx) {
+                containerWidthPx = w
+                previewContainer.post { refresh() }
+            }
+        }
 
         // 길게 누르면 계속 변하는 버튼들
         bind(R.id.widthMinus) { geometry = geometry.widerBy(-1) }
@@ -67,8 +83,8 @@ class ResizeActivity : AppCompatActivity() {
         bind(R.id.heightPlus) { geometry = geometry.tallerBy(1) }
         bind(R.id.gapMinus) { geometry = geometry.gapWiderBy(-1) }
         bind(R.id.gapPlus) { geometry = geometry.gapWiderBy(1) }
-        bind(R.id.moveLeft) { geometry = geometry.movedX(-1) }
-        bind(R.id.moveRight) { geometry = geometry.movedX(1) }
+        bind(R.id.moveLeft) { geometry = geometry.movedX(-1, containerWidthPx, density) }
+        bind(R.id.moveRight) { geometry = geometry.movedX(1, containerWidthPx, density) }
         bind(R.id.moveUp) { geometry = geometry.raisedBy(1) }
         bind(R.id.moveDown) { geometry = geometry.raisedBy(-1) }
 
@@ -87,6 +103,8 @@ class ResizeActivity : AppCompatActivity() {
         val button = findViewById<MaterialButton>(id)
         val repeat = object : Runnable {
             override fun run() {
+                // 끝에 닿아 버튼이 비활성이 되면 반복을 멈춘다 (값이 계속 쌓이지 않게)
+                if (!button.isEnabled) return
                 change(); refresh()
                 handler.postDelayed(this, 90L)
             }
@@ -111,8 +129,7 @@ class ResizeActivity : AppCompatActivity() {
     /** 값을 저장하고 미리보기·표시를 갱신 */
     private fun refresh() {
         Prefs.setGeometry(this, large, geometry)
-        val density = resources.displayMetrics.density
-        KeyboardHost.apply(host, resources.displayMetrics.widthPixels, geometry, density)
+        KeyboardHost.apply(host, containerWidthPx, geometry, density)
         keyboard.heightScale = geometry.heightScale
         keyboard.splitGapFraction = geometry.gapFraction
 
@@ -129,13 +146,13 @@ class ResizeActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.gapValue).text = "${geometry.gapPct}%"
         findViewById<View>(R.id.gapMinus).isEnabled = geometry.gapPct > KeyboardGeometry.GAP_MIN
         findViewById<View>(R.id.gapPlus).isEnabled = geometry.gapPct < KeyboardGeometry.GAP_MAX
-        findViewById<View>(R.id.moveLeft).isEnabled = geometry.canMoveX && geometry.xPct > KeyboardGeometry.X_MIN
-        findViewById<View>(R.id.moveRight).isEnabled = geometry.canMoveX && geometry.xPct < KeyboardGeometry.X_MAX
+        findViewById<View>(R.id.moveLeft).isEnabled = geometry.canMoveLeft(containerWidthPx, density)
+        findViewById<View>(R.id.moveRight).isEnabled = geometry.canMoveRight(containerWidthPx, density)
         findViewById<View>(R.id.moveUp).isEnabled = geometry.canRaise
         findViewById<View>(R.id.moveDown).isEnabled = geometry.canLower
 
         findViewById<TextView>(R.id.moveHint).text =
-            if (geometry.canMoveX) getString(R.string.resize_move_hint_x, geometry.raiseDp)
+            if (geometry.freePx(containerWidthPx) > 0) getString(R.string.resize_move_hint_x, geometry.raiseDp)
             else getString(R.string.resize_move_hint_full, geometry.raiseDp)
     }
 

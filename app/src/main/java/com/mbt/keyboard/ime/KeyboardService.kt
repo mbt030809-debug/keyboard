@@ -3,8 +3,11 @@ package com.mbt.keyboard.ime
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
+import android.os.Handler
+import android.os.Looper
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.Toast
@@ -25,8 +28,8 @@ import com.mbt.keyboard.layout.KeyType
 import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.phrase.Phrases
 import com.mbt.keyboard.R
-import com.mbt.keyboard.settings.KeyboardGeometry
 import com.mbt.keyboard.settings.Prefs
+import com.mbt.keyboard.settings.ScreenProfile
 import com.mbt.keyboard.settings.Timing
 import com.mbt.keyboard.spell.SpellChecker
 
@@ -34,6 +37,10 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private lateinit var root: FrameLayout
     private lateinit var host: FrameLayout
+
+    /** 키보드 틀이 실제로 놓이는 가로 폭(px). 화면 크기를 추측하지 않고 실제 측정값을 쓴다 */
+    private var rootWidthPx = 0
+    private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var view: KeyboardView
     private lateinit var panel: EmojiPanel
     private lateinit var phrasePanel: PhrasePanel
@@ -57,9 +64,20 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         layoutId = Prefs.koreanLayout(this)
         haptics = Haptics(this)
         voice = VoiceInput(this, voiceCallback)
+        // 설정 앱에서 크기·위치를 바꾸면 키보드가 켜져 있는 동안에도 바로 반영한다
+        getSharedPreferences(Prefs.FILE, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(prefsListener)
+    }
+
+    /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen")) {
+            updateSplit(resources.configuration)
+            applyGeometry(resources.configuration)
+        }
     }
 
     override fun onDestroy() {
+        getSharedPreferences(Prefs.FILE, MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(prefsListener)
         voice.destroy()
         super.onDestroy()
     }
@@ -103,6 +121,15 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         }
         root = FrameLayout(this).apply {
             addView(host, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            // 실제 가로 폭이 정해지거나 바뀌면(폴드 펼침/접힘, 회전, 분할 화면) 그 폭으로 다시 계산
+            addOnLayoutChangeListener { _, l, _, r, _, _, _, _, _ ->
+                val w = r - l
+                if (w > 0 && w != rootWidthPx) {
+                    rootWidthPx = w
+                    // 레이아웃 도중에 다시 레이아웃을 요청하지 않도록 다음 루프에서 적용
+                    mainHandler.post { applyGeometry(resources.configuration) }
+                }
+            }
         }
         applyGeometry(resources.configuration)
         return root
@@ -127,11 +154,14 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
      * 설정한 키보드 크기·위치를 적용한다. 폴드를 접었을 때와 펼쳤을 때 각각 따로 저장된 값을 쓴다.
      */
     private fun applyGeometry(config: Configuration) {
-        val large = KeyboardGeometry.isLargeScreen(config.smallestScreenWidthDp)
+        val large = ScreenProfile.isLarge(this)
         val g = Prefs.geometry(this, large)
         val density = resources.displayMetrics.density
-        val screenW = if (config.screenWidthDp > 0) (config.screenWidthDp * density).toInt()
-        else resources.displayMetrics.widthPixels
+        val screenW = when {
+            rootWidthPx > 0 -> rootWidthPx
+            config.screenWidthDp > 0 -> (config.screenWidthDp * density).toInt()
+            else -> resources.displayMetrics.widthPixels
+        }
         KeyboardHost.apply(host, screenW, g, density)
         view.heightScale = g.heightScale
         view.splitGapFraction = g.gapFraction
@@ -139,7 +169,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /** 가장 짧은 변이 600dp 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
     private fun updateSplit(config: Configuration) {
-        view.split = Prefs.splitOnLargeScreen(this) && KeyboardGeometry.isLargeScreen(config.smallestScreenWidthDp)
+        view.split = Prefs.splitOnLargeScreen(this) && ScreenProfile.isLarge(this)
     }
 
     private val emojiListener = object : EmojiPanel.Listener {
