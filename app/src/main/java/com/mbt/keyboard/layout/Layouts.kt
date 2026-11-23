@@ -90,19 +90,25 @@ object Layouts {
     )
 
     /**
-     * 단모음 자판의 쉬프트·지우기 (ㅋㅌㅊㅍㅜㅡ 줄의 양 끝). 위 줄들(키 8개)과 키 폭이 같도록 둘 다 1칸.
+     * 단모음 자판의 쉬프트·지우기 (ㅋㅌㅊㅍㅜㅡ 줄의 양 끝).
+     * - 지우기는 예전과 같은 1.5칸 폭, 줄의 오른쪽 끝
+     * - 쉬프트는 1칸보다 작게 0.75칸
+     * - 그 사이 글자 6개는 남는 폭을 똑같이 나눠 가진다 (줄 전체 8칸 유지 → 위 줄들과 오른쪽 끝이 맞는다)
      * 쉬프트: 쌍자음·ㅑㅕㅛㅠ·ㅒㅖ
      */
-    private val shiftWide = Key("⇧", KeyType.SHIFT, weight = 1f)
-    private val backspaceWide = Key("⌫", KeyType.BACKSPACE, weight = 1f)
+    private const val SHIFT_NARROW = 0.75f
+    private const val BACKSPACE_WEIGHT = 1.5f
+    private const val SINGLE_ROW_TOTAL = 8f
+    private val shiftNarrow = Key("⇧", KeyType.SHIFT, weight = SHIFT_NARROW)
+    private val singleRowLetterWeight = (SINGLE_ROW_TOTAL - SHIFT_NARROW - BACKSPACE_WEIGHT) / 6f
 
     /**
      * 글자 줄 생성. 기호 묶음은 [symbolStart]번부터 키 순서대로 배정된다.
      * @param shifted 쉬프트 상태 글자 (없으면 null)
      */
-    private fun letters(chars: List<String>, shifted: List<String?>, symbolStart: Int) =
+    private fun letters(chars: List<String>, shifted: List<String?>, symbolStart: Int, weight: Float = 1f) =
         chars.mapIndexed { i, c ->
-            Key(label = c, shifted = shifted[i], hints = SYMBOL_GROUPS[symbolStart + i])
+            Key(label = c, shifted = shifted[i], hints = SYMBOL_GROUPS[symbolStart + i], weight = weight)
         }
 
     /** 한글 두벌식. 쉬프트: ㅃㅉㄸㄲㅆ ㅒ ㅖ */
@@ -158,12 +164,13 @@ object Layouts {
                 8,
             ),
             // 쉬프트는 이 줄의 맨 왼쪽 (예전 하단 왼쪽에서 한 줄 위로)
-            listOf(shiftWide) +
+            listOf(shiftNarrow) +
                 letters(
                     listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅜ", "ㅡ"),
                     listOf(null, null, null, null, "ㅠ", null),
                     16,
-                ) + backspaceWide,
+                    weight = singleRowLetterWeight,
+                ) + backspace,
             bottom(),
         ),
         rowHeights,

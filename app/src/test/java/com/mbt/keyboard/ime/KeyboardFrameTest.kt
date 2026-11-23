@@ -103,4 +103,57 @@ class KeyboardFrameTest {
         view.dispatchTouchEvent(android.view.MotionEvent.obtain(t, t + 10, android.view.MotionEvent.ACTION_UP, x, y, 0))
         assertTrue(fired.toString(), fired == listOf("q"))
     }
+
+    private fun renderToBitmap(): android.graphics.Bitmap {
+        val bmp = android.graphics.Bitmap.createBitmap(widthPx, view.measuredHeight, android.graphics.Bitmap.Config.ARGB_8888)
+        view.draw(android.graphics.Canvas(bmp))
+        return bmp
+    }
+
+    @Test fun languageIndicatorDrawsForKoreanEnglishAndSplitWithoutProblems() {
+        for (layout in Layouts.all) {
+            view.keyboardLayout = layout
+            relayout()
+            assertTrue(renderToBitmap().width == widthPx)
+            view.split = true
+            relayout()
+            assertTrue(renderToBitmap().width == widthPx)
+            view.split = false
+        }
+    }
+
+    /** 어떤 글자를 어떤 색·굵기로 그렸는지 기록하는 캔버스 (가상 환경은 픽셀을 실제로 그리지 않는다) */
+    private class RecordingCanvas : android.graphics.Canvas() {
+        data class Text(val text: String, val color: Int, val bold: Boolean)
+        val texts = ArrayList<Text>()
+        override fun drawText(text: String, x: Float, y: Float, paint: android.graphics.Paint) {
+            texts += Text(text, paint.color, paint.isFakeBoldText)
+        }
+    }
+
+    private fun drawnTexts(): List<RecordingCanvas.Text> {
+        val c = RecordingCanvas()
+        view.draw(c)
+        return c.texts
+    }
+
+    @Test fun spaceBarShowsOnlyTheLanguageTokensNotTheLayoutName() {
+        view.keyboardLayout = Layouts.koreanSingle; relayout()
+        val texts = drawnTexts().map { it.text }
+        assertTrue("한" in texts && "EN" in texts)
+        assertTrue("예전 글자(자판 이름)는 더 이상 없다", "한글 단모음" !in texts && "English" !in texts && "한글" !in texts)
+    }
+
+    @Test fun activeLanguageTokenIsHighlightedInAccentColor() {
+        val accent = view.theme.accent
+        view.keyboardLayout = Layouts.koreanSingle; relayout()
+        var t = drawnTexts()
+        assertEquals(accent, t.first { it.text == "한" }.color)
+        assertTrue(t.first { it.text == "EN" }.color != accent)         // 쓰지 않는 언어는 흐리게
+
+        view.keyboardLayout = Layouts.english; relayout()
+        t = drawnTexts()
+        assertEquals(accent, t.first { it.text == "EN" }.color)
+        assertTrue(t.first { it.text == "한" }.color != accent)
+    }
 }

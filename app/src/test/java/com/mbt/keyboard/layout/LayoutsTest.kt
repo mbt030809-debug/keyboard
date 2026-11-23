@@ -131,7 +131,14 @@ class LayoutsTest {
         assertEquals(1, rows.flatten().count { it.type == KeyType.SHIFT })
         assertEquals(listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅜ", "ㅡ"), shiftRow.filter { it.type == KeyType.CHAR }.map { it.label })
         assertEquals(KeyType.BACKSPACE, shiftRow.last().type)
-        assertEquals(8.0, shiftRow.sumOf { it.weight.toDouble() }, 0.001)  // 위 줄들과 같은 키 폭
+        assertEquals(8.0, shiftRow.sumOf { it.weight.toDouble() }, 0.001)  // 줄 전체 8칸: 위 줄들과 오른쪽 끝이 맞는다
+        // 지우기는 예전처럼 1.5칸, 쉬프트는 1칸보다 작게
+        assertEquals(1.5f, shiftRow.last().weight, 0.0001f)
+        assertTrue(shiftRow.first().weight < 1f && shiftRow.first().weight > 0.5f)
+        // 글자 키 6개는 거의 1칸(위 줄 키와 폭 차이 5% 이내)
+        val letterW = shiftRow.filter { it.type == KeyType.CHAR }.map { it.weight }
+        assertEquals(6, letterW.size)
+        assertTrue(letterW.all { it in 0.95f..1f })
         // 모든 자판의 하단 줄 폭은 10
         Layouts.all.forEach { l -> assertEquals(10.0, l.rows.last().sumOf { it.weight.toDouble() }, 0.001) }
     }

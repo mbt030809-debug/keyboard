@@ -301,10 +301,13 @@ class KeyboardView(context: Context) : View(context) {
             val r = cell.inner
             canvas.drawRoundRect(r, radius, radius, paint)
 
+            // 스페이스바: 글자 대신 언어 표시. 나눠쓰기에서 스페이스바가 둘로 갈라져도 왼쪽에만 그린다
+            if (key.type == KeyType.SPACE) {
+                if (cell.rect.left < width / 2f) drawLanguageIndicator(canvas, r)
+                continue
+            }
             val label = when {
                 key.type == KeyType.SHIFT && shiftState == ShiftState.LOCK -> "⇪"
-                // 나눠쓰기에서 스페이스바가 둘로 갈라져도 자판 이름은 왼쪽에만 표시
-                key.type == KeyType.SPACE -> if (cell.rect.left >= width / 2f) "" else keyboardLayout?.name.orEmpty()
                 else -> key.labelFor(shiftState != ShiftState.OFF)
             }
             if (label.isEmpty()) continue
@@ -355,6 +358,49 @@ class KeyboardView(context: Context) : View(context) {
     private fun isPressed(cell: Cell): Boolean {
         for (i in 0 until pointers.size()) if (pointers.valueAt(i).cell === cell) return true
         return false
+    }
+
+    /**
+     * 스페이스바 가운데의 언어 표시: `한` `EN` 두 토큰, 지금 쓰는 언어만 알약 배경 + 강조색.
+     * 스와이프로 바꿀 수 있다는 걸 글자 없이 보여준다.
+     */
+    private fun drawLanguageIndicator(canvas: Canvas, r: RectF) {
+        val korean = keyboardLayout?.hangul == true
+        val tokens = listOf("한" to korean, "EN" to !korean)
+        paint.textSize = r.height() * 0.34f * theme.textScale
+        val padH = 9 * density
+        val between = 4 * density
+        val boxH = paint.textSize * 1.75f
+        val widths = tokens.map { paint.measureText(it.first) + 2 * padH }
+        val total = widths.sum() + between
+        if (total > r.width()) {
+            // 칸이 좁으면(나눠쓰기 등) 지금 언어만
+            val (text, _) = tokens.first { it.second }
+            paint.color = theme.accent
+            paint.isFakeBoldText = true
+            drawCentered(canvas, text, r)
+            paint.isFakeBoldText = false
+            return
+        }
+        var x = r.centerX() - total / 2f
+        tokens.forEachIndexed { i, (text, active) ->
+            val box = RectF(x, r.centerY() - boxH / 2f, x + widths[i], r.centerY() + boxH / 2f)
+            if (active) {
+                paint.color = theme.accent
+                paint.alpha = 56
+                canvas.drawRoundRect(box, boxH / 2f, boxH / 2f, paint)
+                paint.alpha = 255
+                paint.color = theme.accent
+                paint.isFakeBoldText = true
+            } else {
+                paint.color = theme.text
+                paint.alpha = 105
+            }
+            drawCentered(canvas, text, box)
+            paint.isFakeBoldText = false
+            paint.alpha = 255
+            x += widths[i] + between
+        }
     }
 
     private fun drawCentered(canvas: Canvas, text: String, r: RectF) {
