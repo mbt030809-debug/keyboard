@@ -112,6 +112,7 @@ class FnTabTest {
     @Test fun plateIsRoundedOnTopAndSquareAtTheBottom() {
         val r = FnTab.plateRadii(10f)
         assertEquals(listOf(10f, 10f, 10f, 10f), r.take(4))      // 좌상·우상
+        assertEquals(listOf(10f, 10f, 4f, 4f), FnTab.plateRadii(10f, 4f).take(4))
         assertEquals(listOf(0f, 0f, 0f, 0f), r.drop(4))          // 우하·좌하 = 사각
         // 실제로 바탕은 경로로 그려진다 (둥근 사각형 호출이 아니라)
         val v = keyView(true, true)
@@ -135,6 +136,33 @@ class FnTabTest {
             assertEquals(digit.top, v.fnTabPadPx(), 1f)
             assertEquals(f.rightDp * d, v.fnTabRightPx(), 0.5f)
         }
+    }
+
+    @Test fun noLeftoverSpaceWhenAllMarginSettingsAreZero() {
+        val f = KeyboardFrame(leftDp = 0, topDp = 0, rightDp = 0, bottomDp = 0, keyGapDp = 0, rowGapDp = 0)
+        val v = KeyboardView(ctx).also { it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english; it.frame = f; measure(it) }
+        assertEquals(0f, v.fnTabPadPx(), 0.01f)
+        assertEquals(0f, v.fnTabPadBottomPx(), 0.01f)
+        assertEquals(0f, v.fnTabLeftPx() + v.fnTabInsetPx(), 0.01f)
+        assertEquals(0f, v.fnTabRightPx() + v.fnTabInsetPx(), 0.01f)
+        val tab = FnTab(ctx, v)
+        measure(tab, 1000)
+        // 탭 높이 = 버튼 높이, 탭 아래 끝 = 키보드 맨 위 = 첫 숫자 키 윗변
+        assertEquals(v.fnKeyHeightPx(), tab.height.toFloat(), 1f)
+        assertEquals(0f, v.keyInnerRects().first { it.first.label == "1" }.second.top, 0.01f)
+        assertTrue(tab.width.toFloat() - 3 * v.fnKeyWidthPx() < 1f)                        // 오른쪽 덤 폭 없음
+        // 바탕 모서리는 버튼 모서리와 같은 둥글기(7dp)라 빈틈이 안 남는다
+        val rects = ArrayList<FloatArray>()
+        val canvas = object : android.graphics.Canvas() {
+            override fun drawPath(path: android.graphics.Path, p: android.graphics.Paint) {
+                val rf = android.graphics.RectF(); path.computeBounds(rf, true); rects += floatArrayOf(rf.left, rf.top, rf.right, rf.bottom)
+            }
+            override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { rects += floatArrayOf(l, t, r, b) }
+        }
+        tab.draw(canvas)
+        val plate = rects.first(); val first = rects[1]
+        assertEquals(plate[0], first[0], 0.5f); assertEquals(plate[1], first[1], 0.5f)
+        assertEquals(plate[3], first[3], 0.5f)
     }
 
     @Test fun gapBetweenTabAndDigitKeysMatchesTheGapBetweenLetterRows() {

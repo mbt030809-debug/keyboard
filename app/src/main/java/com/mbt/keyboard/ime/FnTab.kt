@@ -34,12 +34,12 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
 
     companion object {
         /** 바탕 모서리 반지름(좌상·우상·우하·좌하, x·y 순): 위쪽만 둥글고 아래쪽은 사각 */
-        fun plateRadii(r: Float) = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
+        fun plateRadii(left: Float, right: Float = left) = floatArrayOf(left, left, right, right, 0f, 0f, 0f, 0f)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = src.fnTabLeftPx() + keys.size * src.fnKeyWidthPx() + src.fnTabRightPx()
-        setMeasuredDimension(w.toInt() + 1, src.fnTabHeightPx().toInt().coerceAtLeast(1))
+        setMeasuredDimension(kotlin.math.ceil(w).toInt(), src.fnTabHeightPx().toInt().coerceAtLeast(1))
     }
 
     private fun keyLeft(i: Int) = src.fnTabLeftPx() + i * src.fnKeyWidthPx()
@@ -62,11 +62,13 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val plateLeft = 0f
         paint.color = withAlpha(theme.background, alphaPercent)
         // 위쪽 모서리만 둥글게, 아래쪽(키보드와 맞닿는 쪽)은 사각
-        val r = radius + 3 * d
-        plate.rewind()
-        plate.addRoundRect(RectF(plateLeft, 0f, width.toFloat(), height.toFloat()), plateRadii(r), Path.Direction.CW)
-        canvas.drawPath(plate, paint)
+        // 모서리는 버튼 모서리와 같은 중심(동심원): 여백이 0이면 버튼 모서리와 똑같이 맞물려 빈틈이 남지 않는다
         val gx = src.fnTabInsetPx()
+        val rl = radius + minOf(pad, src.fnTabLeftPx() + gx, 10 * d)
+        val rr = radius + minOf(pad, src.fnTabRightPx() + gx, 10 * d)
+        plate.rewind()
+        plate.addRoundRect(RectF(plateLeft, 0f, width.toFloat(), height.toFloat()), plateRadii(rl, rr), Path.Direction.CW)
+        canvas.drawPath(plate, paint)
         keys.forEachIndexed { i, k ->
             val cl = keyLeft(i)
             val l = cl + gx
