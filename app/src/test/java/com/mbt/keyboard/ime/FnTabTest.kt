@@ -537,3 +537,41 @@ class FrostTabJoinTest {
         assertTrue("판 높이 + 탭 + 틈: ${sizes.first()} vs ${v.measuredHeight}", sizes.first() > v.measuredHeight)
     }
 }
+
+/** 폴드를 접고 펼쳐도 전복붙 탭이 키보드 숫자 키와 같은 크기로 다시 맞춰져야 한다 */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class FnTabFoldResizeTest {
+    private val ctx get() = ApplicationProvider.getApplicationContext<Context>()
+
+    private fun layout(root: View, w: Int) {
+        repeat(2) {
+            root.measure(View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            root.layout(0, 0, root.measuredWidth, root.measuredHeight)
+            shadowOf(android.os.Looper.getMainLooper()).idle()
+        }
+    }
+
+    @Test fun tabIsMeasuredAgainWhenTheKeyboardWidthChanges() {
+        Prefs.setNumberKeysLeft(ctx, true)
+        Prefs.setFnTabEnabled(ctx, true)
+        val service = Robolectric.buildService(KeyboardService::class.java).create().get()
+        val root = service.onCreateInputView() as FrameLayout
+        layout(root, 1000)
+        val host = root.getChildAt(0) as FrameLayout
+        val kb = host.getChildAt(0) as KeyboardView
+        val tab = root.getChildAt(1) as FnTab
+        val wide = tab.width
+        assertEquals(Math.ceil(kb.fnTabWidthPx().toDouble()).toInt(), wide)
+        // 접힘(좁은 화면)으로 바뀐 것처럼 폭을 줄이면 탭도 다시 맞춰진다
+        layout(root, 540)
+        assertEquals(Math.ceil(kb.fnTabWidthPx().toDouble()).toInt(), tab.width)
+        assertTrue("접힘에서는 탭이 더 좁다: $wide -> ${tab.width}", tab.width < wide)
+        // 다시 펼치면 원래대로
+        layout(root, 1000)
+        assertEquals(wide, tab.width)
+        // 탭 버튼은 항상 숫자 키와 같은 크기
+        val digit = kb.keyInnerRects().first { it.first.label == "1" }.second
+        assertEquals(digit.width(), kb.fnKeyWidthPx() - 2 * kb.fnTabInsetPx(), 1f)
+    }
+}

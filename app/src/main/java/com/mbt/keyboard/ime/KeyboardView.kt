@@ -416,7 +416,19 @@ class KeyboardView(context: Context) : View(context) {
 
     private fun stripWidthFor(w: Int) = (w - padL - padR + 2 * halfKeyGapPx) * (SIDE_STRIP_FRACTION * frame.numberRowScale / 0.8f).coerceIn(0.05f, 0.30f)
 
-    private fun layoutWidth() = if (width > 0) width else measuredWidth
+    /** 가장 최근에 정해진 가로 폭. 폴드를 접고 펼칠 때 아직 배치 전이어도 방금 잰 값(measuredWidth)을 먼저 쓴다 */
+    private fun layoutWidth() = if (measuredWidth > 0) measuredWidth else width
+
+    /**
+     * 이 키보드의 크기·설정이 바뀌어 다시 배치될 때 같이 불린다. 전복붙 탭은 키보드와 형제 뷰라 따로 알려 주지 않으면
+     * 예전 크기 그대로 남는다(폴드를 접고 펼치면 탭 크기가 어긋나던 원인).
+     */
+    var onRelayoutRequested: (() -> Unit)? = null
+
+    override fun requestLayout() {
+        super.requestLayout()
+        onRelayoutRequested?.invoke()
+    }
 
     /** 반투명 탭 버튼 하나의 가로 길이 = 숫자 키 한 칸 (띠 폭의 절반) */
     fun fnKeyWidthPx(): Float = stripWidthFor(layoutWidth()) / 2f
@@ -482,6 +494,7 @@ class KeyboardView(context: Context) : View(context) {
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         computeCells()
+        onRelayoutRequested?.invoke()
     }
 
     private fun computeCells() {

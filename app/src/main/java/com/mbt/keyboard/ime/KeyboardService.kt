@@ -163,6 +163,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             it.visibility = View.GONE
             it.onKey = { key -> onKey(key) }
         }
+        view.onRelayoutRequested = { fnTab.requestLayout(); fnTab.invalidate() }
         root = FrameLayout(this).apply {
             addView(host, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             // 전체·복사·붙임 반투명 탭: 키보드 맨 위 왼쪽에 겹쳐 띄운다 (자리는 host 위쪽 여백으로 확보)

@@ -93,6 +93,7 @@ class ResizeActivity : AppCompatActivity() {
         )
         // 실제 키보드처럼 전체·복사·붙임 반투명 탭도 미리보기에 같이 보인다
         fnTab = FnTab(this, keyboard).also { it.visibility = View.GONE }
+        keyboard.onRelayoutRequested = { fnTab.requestLayout(); fnTab.invalidate() }
         previewContainer.addView(
             fnTab, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP or android.view.Gravity.START),
         )
