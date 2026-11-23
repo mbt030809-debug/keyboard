@@ -165,21 +165,25 @@ class FnTabTest {
         assertEquals(plate[3], first[3], 0.5f)
     }
 
-    @Test fun gapBetweenTabAndDigitKeysMatchesTheGapBetweenLetterRows() {
-        val v = KeyboardView(ctx).also {
-            it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english
-            it.frame = KeyboardFrame(topDp = 4, rowGapDp = 6)
-            measure(it)
+    @Test fun tabPaddingOnAllFourSidesFollowsTheFourMarginSettings() {
+        for (f in listOf(KeyboardFrame(), KeyboardFrame(leftDp = 10, topDp = 12, rightDp = 2, bottomDp = 7, keyGapDp = 2, rowGapDp = 14))) {
+            val v = KeyboardView(ctx).also { it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english; it.frame = f; measure(it) }
+            val d = ctx.resources.displayMetrics.density
+            val tab = FnTab(ctx, v)
+            measure(tab, 1000)
+            val rects = ArrayList<FloatArray>()
+            tab.draw(object : android.graphics.Canvas() {
+                override fun drawPath(path: android.graphics.Path, p: android.graphics.Paint) {
+                    val rf = android.graphics.RectF(); path.computeBounds(rf, true); rects += floatArrayOf(rf.left, rf.top, rf.right, rf.bottom)
+                }
+                override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { rects += floatArrayOf(l, t, r, b) }
+            })
+            val plate = rects.first(); val buttons = rects.drop(1)
+            assertEquals("${f} 위", f.topDp * d, buttons.minOf { it[1] } - plate[1], 0.6f)
+            assertEquals("${f} 아래", f.bottomDp * d, plate[3] - buttons.maxOf { it[3] }, 0.6f)
+            assertEquals("${f} 왼쪽", f.leftDp * d, buttons.minOf { it[0] } - plate[0], 0.6f)
+            assertEquals("${f} 오른쪽", f.rightDp * d, plate[2] - buttons.maxOf { it[2] }, 1.01f)
         }
-        val tab = FnTab(ctx, v)
-        measure(tab, 1000)
-        val d = ctx.resources.displayMetrics.density
-        val firstDigitTop = v.keyInnerRects().first { it.first.label == "1" }.second.top
-        // 탭 버튼 아래 끝 = 탭 높이 − 아래 바탕. 키보드 맨 위는 탭 높이만큼 아래에서 시작
-        val buttonBottom = tab.height - v.fnTabPadBottomPx()
-        val gap = tab.height - buttonBottom + v.fnTabGapPx() + firstDigitTop       // + 탭과 키보드 사이 틈
-        val letterGap = v.keyInnerRects().let { r -> r.first { it.first.label == "a" }.second.top - r.first { it.first.label == "q" }.second.bottom }
-        assertEquals(letterGap, gap, 2.5f * d)
     }
 
     @Test fun spaceBarGetsWiderWhenTheTabTakesOverTheThreeKeys() {

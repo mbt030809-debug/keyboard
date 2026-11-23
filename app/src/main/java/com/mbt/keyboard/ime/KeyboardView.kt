@@ -453,11 +453,8 @@ class KeyboardView(context: Context) : View(context) {
     /** 탭 바탕의 오른쪽 여백 */
     fun fnTabRightPx(): Float = padR - halfKeyGapPx
 
-    /**
-     * 탭 버튼 아래 바탕 폭. 버튼과 맨 위 숫자 키 사이가 글자 줄 사이 간격(줄 여백)과 같아지도록,
-     * 키보드 위쪽 여백(위 여백)만큼은 뺀다. 위 여백이 줄 여백 이상이면 0이고, 바탕이 키보드에 바로 맞닿는다
-     */
-    fun fnTabPadBottomPx(): Float = (frame.rowGapDp - frame.topDp - FN_TAB_GAP_DP).coerceAtLeast(0f) * density
+    /** 탭 버튼 아래 바탕 폭 = "아래쪽 여백" 설정 (위·왼쪽·오른쪽 여백과 똑같이 설정을 그대로 따른다) */
+    fun fnTabPadBottomPx(): Float = frame.bottomDp * density
 
     /** 탭과 키보드 사이의 작은 틈 (둘이 딱 붙어 보이지 않게 약 2dp) */
     fun fnTabGapPx(): Float = FN_TAB_GAP_DP * density
