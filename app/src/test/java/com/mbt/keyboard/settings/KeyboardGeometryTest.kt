@@ -138,4 +138,13 @@ class KeyboardGeometryTest {
         val c = KeyboardGeometry(padLeftDp = -5, padTopDp = 99, padRightDp = -1, padBottomDp = 41, keyGapDp = 99).clamped()
         assertEquals(listOf(0, 40, 0, 40, 16), listOf(c.padLeftDp, c.padTopDp, c.padRightDp, c.padBottomDp, c.keyGapDp))
     }
+
+    @Test fun keyHeightShrinksOnLowScreensOnly() {
+        assertEquals(0.65f, ScreenProfile.heightFactor(360), 0.0001f)      // 폰 가로 모드
+        assertEquals(0.65f, ScreenProfile.heightFactor(479), 0.0001f)
+        assertEquals(1f, ScreenProfile.heightFactor(480), 0.0001f)
+        assertEquals(1f, ScreenProfile.heightFactor(800), 0.0001f)         // 폰 세로
+        assertEquals(1f, ScreenProfile.heightFactor(700), 0.0001f)         // 폴드 펼친 가로
+        assertEquals(1f, ScreenProfile.heightFactor(0), 0.0001f)           // 알 수 없음
+    }
 }

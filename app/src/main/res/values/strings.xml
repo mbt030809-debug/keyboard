@@ -43,6 +43,14 @@
     <string name="resize_reset">초기화</string>
     <string name="resize_done">완료</string>
     <string name="version_label">버전 %1$s (빌드 %2$d)</string>
+    <string name="clip_title">클립보드 기록</string>
+    <string name="clip_desc">복사한 글자를 최대 30개까지 기록해요. 엔터를 꾹 누르면 나오는 패널의 "최근기록" 탭에서 볼 수 있어요. 비밀번호 입력칸이나 비밀번호 관리자가 민감 정보로 표시한 복사는 저장하지 않아요</string>
+    <string name="clip_switch">복사한 내용 기록하기</string>
+    <string name="clip_clear">기록 모두 지우기</string>
+    <string name="clip_cleared">클립보드 기록을 지웠어요</string>
+    <string name="english_title">영어 입력</string>
+    <string name="autocaps_switch">첫 글자 자동 대문자</string>
+    <string name="autocaps_desc">영어 자판에서 문장을 시작할 때(맨 처음, 마침표·물음표·느낌표 뒤, 새 줄)에 첫 글자를 자동으로 대문자로 입력해요</string>
     <string name="timing_title">입력 타이밍</string>
     <string name="timing_pause_label">멈춤 기준 (단모음)</string>
     <string name="timing_pause_desc">모음으로 끝난 글자(어, 가…) 뒤에서 이 시간 이상 멈췄다가 자음을 치면, 받침이 아니라 다음 글자 초성이 돼요. 길게 하면 사실상 꺼져요</string>
@@ -56,7 +64,7 @@
     <string name="layout_single">단모음 (기본)</string>
     <string name="layout_dubeolsik">두벌식</string>
     <string name="phrase_title">상용문구</string>
-    <string name="phrase_desc">엔터를 꾹 누르면 네모난 칸(3열)으로 나와요. 한 줄에 하나씩, 최대 100개까지 추가할 수 있어요</string>
+    <string name="phrase_desc">엔터를 꾹 누르면 나오는 패널의 "상용문구" 탭이에요. 네모난 칸(3열)으로 나오고, 한 줄에 하나씩 최대 100개까지 추가할 수 있어요</string>
     <string name="phrase_hint">예: 지금 통화 가능하세요?</string>
     <string name="test_title">입력 테스트</string>
     <string name="test_hint">여기를 눌러 입력해 보세요</string>

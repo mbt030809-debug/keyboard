@@ -65,7 +65,7 @@ class KeyboardView(context: Context) : View(context) {
         fun onCursorMoveEnd()
         /** 쉬프트 키를 누름(true)/뗌(false). 누른 채로 다른 키를 치면 그 동안만 쉬프트 */
         fun onShiftPress(down: Boolean)
-        /** 엔터 꾹 누르기: 상용구 패널 열기 */
+        /** 엔터 꾹 누르기: 상용문구·최근기록 패널 열기 */
         fun onEnterLongPress()
     }
 
@@ -168,7 +168,7 @@ class KeyboardView(context: Context) : View(context) {
         val longPress = Runnable {
             val c = cell ?: return@Runnable
             if (c.key.type == KeyType.ENTER) {
-                // 엔터 꾹: 상용구 패널을 연다. 손가락을 뗄 때 엔터가 입력되지 않도록 이 제스처는 무시
+                // 엔터 꾹: 상용문구·최근기록 패널을 연다. 손가락을 뗄 때 엔터가 입력되지 않도록 이 제스처는 무시
                 ignore = true
                 haptics?.longPress()
                 invalidateCell(c)
@@ -253,9 +253,10 @@ class KeyboardView(context: Context) : View(context) {
             rowTops[r] = top
             val rowList = ArrayList<Cell>()
             // 나눠쓰기 아닐 때는 틈 0인 한 묶음, 나눠쓰기일 때는 두 묶음 + 가운데 틈. 키 크기 비율은 항상 원래 레이아웃 그대로
-            val halves = if (split) Split.halves(row, layout.splitAt.getOrNull(r))
+            val doSplit = split && layout.splittable
+            val halves = if (doSplit) Split.halves(row, layout.splitAt.getOrNull(r))
             else Split.Halves(row.map { Split.Part(it, it.weight) }, emptyList())
-            val gapW = if (split) usableW * splitGapFraction else 0f
+            val gapW = if (doSplit) usableW * splitGapFraction else 0f
             for (pl in Split.place(halves, padL, usableW, gapW)) {
                 if (pl.part.key.type == KeyType.SPACER) continue
                 val rect = RectF(pl.left, top, pl.right, top + rowH)

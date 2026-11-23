@@ -6,6 +6,8 @@ enum class KeyType {
     SELECT_ALL, COPY, PASTE,
     /** 이모티콘·이모지 패널 열기 */
     EMOJI,
+    /** 숫자 키패드에서 글자 자판으로 돌아가기 */
+    LETTERS,
 }
 
 /**
@@ -38,4 +40,6 @@ data class KeyboardLayout(
     val doubleTap: Boolean = false,
     /** 나눠쓰기 때 줄별 왼쪽 묶음 키 개수. null이면 자동(가운데 기준). 비어 있으면 모두 자동 */
     val splitAt: List<Int?> = emptyList(),
+    /** 나눠쓰기(갈라진 자판)를 적용할 수 있는가. 숫자 키패드는 4칸뿐이라 나누지 않는다 */
+    val splittable: Boolean = true,
 )

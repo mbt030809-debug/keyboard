@@ -12,6 +12,30 @@ object Prefs {
 
     private const val KEY_SPLIT = "split_on_large_screen"
     private const val KEY_LAST_ENGLISH = "last_language_english"
+    private const val KEY_AUTO_CAPS = "auto_capitalize"
+    private const val KEY_CLIPBOARD_ON = "clipboard_history_enabled"
+    private const val KEY_QUICK_TAB = "quick_panel_tab"
+
+    /** 엔터 꾹 누르기 패널을 마지막에 보던 탭 (0=상용문구, 1=최근기록) */
+    fun quickPanelTab(context: Context): Int =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_QUICK_TAB, 0).coerceIn(0, 1)
+
+    fun setQuickPanelTab(context: Context, tab: Int) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putInt(KEY_QUICK_TAB, tab.coerceIn(0, 1)).apply()
+
+    /** 클립보드 기록 저장 (기본: 켬). 끄면 새로 기록하지 않는다 */
+    fun clipboardEnabled(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_CLIPBOARD_ON, true)
+
+    fun setClipboardEnabled(context: Context, on: Boolean) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_CLIPBOARD_ON, on).apply()
+
+    /** 영어 문장 첫 글자 자동 대문자 (기본: 켬) */
+    fun autoCapitalize(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_AUTO_CAPS, true)
+
+    fun setAutoCapitalize(context: Context, on: Boolean) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_AUTO_CAPS, on).apply()
 
     /** 마지막으로 직접 고른 언어가 영어인가. 키보드를 다시 띄울 때 이 언어로 시작한다 (기본: 한글) */
     fun lastLanguageEnglish(context: Context): Boolean =

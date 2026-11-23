@@ -15,11 +15,14 @@ import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
 import com.mbt.keyboard.ime.Haptics
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
+import com.mbt.keyboard.clipboard.ClipboardHistory
+import com.mbt.keyboard.clipboard.PrefsClipboardStore
 import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.phrase.Phrases
 import com.mbt.keyboard.settings.Prefs
@@ -60,6 +63,20 @@ class SettingsActivity : AppCompatActivity() {
         @Suppress("DEPRECATION")
         findViewById<TextView>(R.id.versionText).text =
             getString(R.string.version_label, info.versionName, info.versionCode)
+
+        // 클립보드 기록: 켜기/끄기, 전체 삭제
+        val clip = findViewById<MaterialSwitch>(R.id.switchClipboard)
+        clip.isChecked = Prefs.clipboardEnabled(this)
+        clip.setOnCheckedChangeListener { _, on -> Prefs.setClipboardEnabled(this, on) }
+        findViewById<MaterialButton>(R.id.btnClearClipboard).setOnClickListener {
+            ClipboardHistory(PrefsClipboardStore(this)).clear()
+            Toast.makeText(this, R.string.clip_cleared, Toast.LENGTH_SHORT).show()
+        }
+
+        // 영어 첫 글자 자동 대문자: 켜고 끄는 즉시 저장
+        val autoCaps = findViewById<MaterialSwitch>(R.id.switchAutoCaps)
+        autoCaps.isChecked = Prefs.autoCapitalize(this)
+        autoCaps.setOnCheckedChangeListener { _, on -> Prefs.setAutoCapitalize(this, on) }
 
         // 키보드 크기·위치 조정 화면
         findViewById<MaterialButton>(R.id.btnResize).setOnClickListener {

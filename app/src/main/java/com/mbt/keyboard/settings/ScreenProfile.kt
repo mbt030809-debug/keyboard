@@ -28,6 +28,17 @@ object ScreenProfile {
         return byConfig || byDisplay
     }
 
+    /**
+     * 키 높이 자동 배율. 폰을 가로로 돌리면 화면 높이가 낮아서(약 360dp) 키보드 5줄이 화면을 대부분 덮는다.
+     * 화면 높이가 [LOW_HEIGHT_DP]보다 낮으면 키 높이를 [LOW_HEIGHT_FACTOR]배로 줄인다.
+     * (폴드를 펼친 가로 화면처럼 높이가 충분하면 그대로)
+     */
+    fun heightFactor(screenHeightDp: Int): Float =
+        if (screenHeightDp in 1 until LOW_HEIGHT_DP) LOW_HEIGHT_FACTOR else 1f
+
+    const val LOW_HEIGHT_DP = 480
+    const val LOW_HEIGHT_FACTOR = 0.65f
+
     fun isLarge(widthPx: Int, heightPx: Int, density: Float): Boolean =
         KeyboardGeometry.isLargeScreen((min(widthPx, heightPx) / density).toInt())
 }

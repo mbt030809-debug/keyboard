@@ -17,7 +17,7 @@ object Layouts {
     val PAIRS = setOf("()", "[]", "{}", "<>", "\"\"", "''")
 
     /**
-     * 꾹 누르기 기호 묶음. 글자 키에 읽는 순서(왼쪽 위 → 오른쪽 아래)대로 배정한다.
+     * 꾹 누르기 기호 묶음 (줄별로 8개·8개·6개 + 두벌식·영어용 보조 4개). 어느 줄에 어느 묶음이 가는지는 [ROW1_GROUPS] 등 참고.
      * 각 묶음의 첫 항목이 기본값(꾹 누르고 그대로 떼면 입력), 나머지는 밀어서 선택.
      * 자주 쓰는 것을 앞쪽 키에 두었고, 괄호·따옴표는 쌍이 기본이다.
      * 숫자는 맨 윗줄에 있으므로 제외.
@@ -54,6 +54,20 @@ object Layouts {
         listOf("©", "®", "™"),
         listOf("¿", "¡"),
     )
+
+    /**
+     * 줄별 기호 묶음. **같은 줄·같은 순서(왼쪽부터 몇 번째 글자 키)에는 어느 자판이든 같은 기호**가 온다.
+     * 단모음(8·8·6키)을 기준으로 정하고, 두벌식·영어(10·9·7키)는 그 줄의 앞쪽 키에 같은 기호를 놓은 뒤
+     * 남는 맨 오른쪽 키에만 보조 기호([EXTRA_GROUPS])를 놓는다.
+     */
+    private val ROW1_GROUPS = SYMBOL_GROUPS.subList(0, 8)
+    private val ROW2_GROUPS = SYMBOL_GROUPS.subList(8, 16)
+    private val ROW3_GROUPS = SYMBOL_GROUPS.subList(16, 22)
+    private val EXTRA_GROUPS = SYMBOL_GROUPS.subList(22, 26)
+
+    private val wideRow1Groups = ROW1_GROUPS + EXTRA_GROUPS.subList(0, 2)     // 10키: 뒤 2키가 보조 기호
+    private val wideRow2Groups = ROW2_GROUPS + EXTRA_GROUPS.subList(2, 3)     // 9키: 뒤 1키가 보조 기호
+    private val wideRow3Groups = ROW3_GROUPS + EXTRA_GROUPS.subList(3, 4)     // 7키: 뒤 1키가 보조 기호
 
     private fun spacer(w: Float) = Key(label = "", type = KeyType.SPACER, weight = w)
 
@@ -101,13 +115,14 @@ object Layouts {
     private val wideRowLetterWeight = (10f - 1.5f - BACKSPACE_WEIGHT) / 7f
 
     /**
-     * 글자 줄 생성. 기호 묶음은 [symbolStart]번부터 키 순서대로 배정된다.
+     * 글자 줄 생성.
      * @param shifted 쉬프트 상태 글자 (없으면 null)
+     * @param groups 키마다 꾹 누르기 기호 묶음 (글자 개수와 같아야 한다)
      */
-    private fun letters(chars: List<String>, shifted: List<String?>, symbolStart: Int, weight: Float = 1f) =
-        chars.mapIndexed { i, c ->
-            Key(label = c, shifted = shifted[i], hints = SYMBOL_GROUPS[symbolStart + i], weight = weight)
-        }
+    private fun letters(chars: List<String>, shifted: List<String?>, groups: List<List<String>>, weight: Float = 1f): List<Key> {
+        require(groups.size == chars.size) { "기호 묶음 ${groups.size}개 != 글자 ${chars.size}개" }
+        return chars.mapIndexed { i, c -> Key(label = c, shifted = shifted[i], hints = groups[i], weight = weight) }
+    }
 
     /** 한글 두벌식. 쉬프트: ㅃㅉㄸㄲㅆ ㅒ ㅖ */
     val korean = KeyboardLayout(
@@ -117,19 +132,19 @@ object Layouts {
             letters(
                 listOf("ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅛ", "ㅕ", "ㅑ", "ㅐ", "ㅔ"),
                 listOf("ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅆ", null, null, null, "ㅒ", "ㅖ"),
-                0,
+                wideRow1Groups,
             ),
             listOf(spacer(0.5f)) +
                 letters(
                     listOf("ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "ㅗ", "ㅓ", "ㅏ", "ㅣ"),
                     List(9) { null },
-                    10,
+                    wideRow2Groups,
                 ) + spacer(0.5f),
             listOf(shift) +
                 letters(
                     listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅠ", "ㅜ", "ㅡ"),
                     List(7) { null },
-                    19,
+                    wideRow3Groups,
                     weight = wideRowLetterWeight,
                 ) + backspaceMid,
             bottom(),
@@ -153,19 +168,19 @@ object Layouts {
             letters(
                 listOf("ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅗ", "ㅐ", "ㅔ"),
                 listOf("ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅆ", "ㅛ", "ㅒ", "ㅖ"),
-                0,
+                ROW1_GROUPS,
             ),
             letters(
                 listOf("ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "ㅓ", "ㅏ", "ㅣ"),
                 listOf(null, null, null, null, null, "ㅕ", "ㅑ", null),
-                8,
+                ROW2_GROUPS,
             ),
             // 쉬프트는 이 줄의 맨 왼쪽 (예전 하단 왼쪽에서 한 줄 위로)
             listOf(shiftNarrow) +
                 letters(
                     listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅜ", "ㅡ"),
                     listOf(null, null, null, null, "ㅠ", null),
-                    16,
+                    ROW3_GROUPS,
                     weight = singleRowLetterWeight,
                 ) + backspaceMid,
             bottom(),
@@ -183,13 +198,13 @@ object Layouts {
         EN, "English",
         listOf(
             numberRow,
-            letters("qwertyuiop".map { it.toString() }, "qwertyuiop".map { it.uppercase() }, 0),
+            letters("qwertyuiop".map { it.toString() }, "qwertyuiop".map { it.uppercase() }, wideRow1Groups),
             listOf(spacer(0.5f)) +
-                letters("asdfghjkl".map { it.toString() }, "asdfghjkl".map { it.uppercase() }, 10) +
+                letters("asdfghjkl".map { it.toString() }, "asdfghjkl".map { it.uppercase() }, wideRow2Groups) +
                 spacer(0.5f),
             listOf(shift) +
                 letters(
-                    "zxcvbnm".map { it.toString() }, "zxcvbnm".map { it.uppercase() }, 19,
+                    "zxcvbnm".map { it.toString() }, "zxcvbnm".map { it.uppercase() }, wideRow3Groups,
                     weight = wideRowLetterWeight,
                 ) + backspaceMid,
             bottom(),
@@ -199,6 +214,46 @@ object Layouts {
         splitAt = listOf(null, null, null, 6, null),
     )
 
+    /** 숫자 입력칸(숫자·날짜) 전용 키패드 */
+    const val NUM = "num"
+    /** 전화번호 입력칸 전용 키패드 */
+    const val PHONE = "phone"
+
+    private val padRowHeights = List(4) { 1f }
+
+    /** 숫자 키패드: 1~9, 0, 소수점·쉼표·부호, 지우기, 엔터, 글자 자판 복귀(ABC) */
+    val numberPad = KeyboardLayout(
+        NUM, "숫자",
+        listOf(
+            listOf(Key("1"), Key("2"), Key("3"), Key("⌫", KeyType.BACKSPACE)),
+            listOf(Key("4"), Key("5"), Key("6"), Key(".", hints = listOf("/", ":"))),
+            listOf(Key("7"), Key("8"), Key("9"), Key("-")),
+            listOf(Key("ABC", KeyType.LETTERS), Key("0", hints = listOf("+")), Key(","), Key("⏎", KeyType.ENTER)),
+        ),
+        padRowHeights,
+        splittable = false,
+    )
+
+    /** 전화번호 키패드: 1~9, 0(꾹 누르면 +), * # -, 지우기, 엔터, 글자 자판 복귀 */
+    val phonePad = KeyboardLayout(
+        PHONE, "전화번호",
+        listOf(
+            listOf(Key("1"), Key("2"), Key("3"), Key("⌫", KeyType.BACKSPACE)),
+            listOf(Key("4"), Key("5"), Key("6"), Key("-", hints = listOf("(", ")"))),
+            listOf(Key("7"), Key("8"), Key("9"), Key("*")),
+            listOf(Key("ABC", KeyType.LETTERS), Key("0", hints = listOf("+")), Key("#"), Key("⏎", KeyType.ENTER)),
+        ),
+        padRowHeights,
+        splittable = false,
+    )
+
+    /** 글자 자판 (한글 단모음·두벌식·영어). 한/영 전환 대상이 되는 것들 */
     val all = listOf(koreanSingle, korean, english)
-    fun byId(id: String) = all.first { it.id == id }
+
+    /** 입력칸 종류에 따라 자동으로 뜨는 키패드 */
+    val pads = listOf(numberPad, phonePad)
+
+    fun byId(id: String) = (all + pads).first { it.id == id }
+
+    fun isPad(id: String) = id == NUM || id == PHONE
 }

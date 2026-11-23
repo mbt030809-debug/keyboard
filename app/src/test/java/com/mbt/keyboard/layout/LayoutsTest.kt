@@ -297,4 +297,91 @@ class LayoutsTest {
             assertEquals("${l.id}", expectedTotal, row.sumOf { it.weight.toDouble() }, 0.001)
         }
     }
+
+    // ---- 숫자·전화번호 키패드
+
+    @Test fun padsAreNotLetterLayouts() {
+        assertEquals(listOf("kos", "ko", "en"), Layouts.all.map { it.id })     // 한/영 전환 대상은 그대로
+        assertEquals(listOf("num", "phone"), Layouts.pads.map { it.id })
+        assertTrue(Layouts.isPad("num") && Layouts.isPad("phone") && !Layouts.isPad("en"))
+        assertEquals("num", Layouts.byId("num").id)
+        assertEquals("phone", Layouts.byId("phone").id)
+        Layouts.pads.forEach { assertTrue(!it.hangul && !it.splittable) }
+    }
+
+    @Test fun padsHaveAllDigitsOnceAndFourEqualColumns() {
+        Layouts.pads.forEach { p ->
+            val digits = p.rows.flatten().filter { it.type == KeyType.CHAR && it.label.length == 1 && it.label[0].isDigit() }
+            assertEquals("0123456789".toList().map { it.toString() }, digits.map { it.label }.sorted())
+            assertEquals(4, p.rows.size)
+            p.rows.forEach { r -> assertEquals(4, r.size); assertTrue(r.all { it.weight == 1f }) }
+            assertEquals(p.rows.size, p.rowHeights.size)
+            val types = p.rows.flatten().map { it.type }
+            assertTrue(KeyType.BACKSPACE in types && KeyType.ENTER in types && KeyType.LETTERS in types)
+        }
+    }
+
+    @Test fun numberPadHasDecimalMinusAndPlusOnZero() {
+        val keys = Layouts.numberPad.rows.flatten().filter { it.type == KeyType.CHAR }.map { it.label }
+        assertTrue(listOf(".", ",", "-").all { it in keys })
+        assertEquals(listOf("+"), Layouts.numberPad.rows.flatten().first { it.label == "0" }.hints)
+    }
+
+    @Test fun phonePadHasStarHashAndPlusOnZero() {
+        val keys = Layouts.phonePad.rows.flatten().filter { it.type == KeyType.CHAR }.map { it.label }
+        assertTrue(listOf("*", "#", "-").all { it in keys })
+        assertEquals(listOf("+"), Layouts.phonePad.rows.flatten().first { it.label == "0" }.hints)
+    }
+
+    // ---- 자판 간 기호 배치 일관성
+
+    private fun letterRowChars(l: KeyboardLayout, row: Int) = l.rows[row].filter { it.type == KeyType.CHAR }
+
+    @Test fun sameRowAndSameOrderHasTheSameSymbolsInEveryLetterLayout() {
+        for (r in Layouts.LETTER_ROW_START until Layouts.LETTER_ROW_START + 3) {
+            val single = letterRowChars(Layouts.koreanSingle, r)
+            listOf(Layouts.korean, Layouts.english).forEach { wide ->
+                val w = letterRowChars(wide, r)
+                single.forEachIndexed { i, key ->
+                    assertEquals("${wide.id} 줄$r ${i}번째 키", key.hints, w[i].hints)
+                }
+            }
+        }
+    }
+
+    @Test fun koreanDubeolsikAndEnglishHaveIdenticalSymbolsKeyByKey() {
+        for (r in Layouts.LETTER_ROW_START until Layouts.LETTER_ROW_START + 3) {
+            assertEquals(
+                letterRowChars(Layouts.korean, r).map { it.hints },
+                letterRowChars(Layouts.english, r).map { it.hints },
+            )
+        }
+    }
+
+    @Test fun extraKeysOnWideLayoutsOnlyHoldTheAuxiliarySymbolsAtTheRowEnd() {
+        val extras = Layouts.SYMBOL_GROUPS.subList(22, 26)
+        // 단모음보다 키가 많은 줄: 1줄 +2, 2줄 +1, 3줄 +1 (모두 줄의 맨 오른쪽)
+        val expectedExtra = mapOf(1 to extras.subList(0, 2), 2 to extras.subList(2, 3), 3 to extras.subList(3, 4))
+        for ((row, ex) in expectedExtra) {
+            listOf(Layouts.korean, Layouts.english).forEach { wide ->
+                val tail = letterRowChars(wide, row).takeLast(ex.size).map { it.hints }
+                assertEquals("${wide.id} 줄$row", ex, tail)
+            }
+            // 단모음에는 보조 기호가 없다
+            val singleHints = letterRowChars(Layouts.koreanSingle, row).flatMap { it.hints }
+            assertTrue(ex.flatten().none { it in singleHints })
+        }
+    }
+
+    @Test fun everyMainSymbolSitsOnTheSameRowAcrossLayouts() {
+        // 예: ? 는 어느 자판에서든 맨 아래 글자 줄, ( ) 는 맨 윗 글자 줄
+        listOf("()", "?", "!", "@", "/", "_", "❤\uFE0F", "→").forEach { sym ->
+            val rows = Layouts.all.map { l ->
+                (Layouts.LETTER_ROW_START until Layouts.LETTER_ROW_START + 3).first { r ->
+                    letterRowChars(l, r).any { sym in it.hints }
+                }
+            }
+            assertEquals("$sym 의 줄", 1, rows.toSet().size)
+        }
+    }
 }

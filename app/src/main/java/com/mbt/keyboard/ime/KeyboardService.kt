@@ -3,6 +3,7 @@ package com.mbt.keyboard.ime
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.ClipboardManager
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
@@ -26,6 +27,8 @@ import com.mbt.keyboard.layout.KeyType
 import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.phrase.Phrases
 import com.mbt.keyboard.R
+import com.mbt.keyboard.clipboard.ClipboardHistory
+import com.mbt.keyboard.clipboard.PrefsClipboardStore
 import com.mbt.keyboard.settings.Prefs
 import com.mbt.keyboard.settings.ScreenProfile
 import com.mbt.keyboard.settings.Timing
@@ -37,10 +40,14 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /** 키보드 틀이 실제로 놓이는 가로 폭(px). 화면 크기를 추측하지 않고 실제 측정값을 쓴다 */
     private var rootWidthPx = 0
+
+    /** 우리가 마지막으로 입력창을 편집한 시각 (옛 선택 변경 알림 구분용) */
+    private var lastEditTime = 0L
     private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var view: KeyboardView
     private lateinit var panel: EmojiPanel
-    private lateinit var phrasePanel: PhrasePanel
+    private lateinit var quickPanel: QuickPanel
+    private lateinit var history: ClipboardHistory
     private lateinit var haptics: Haptics
     private lateinit var voice: VoiceInput
     private val composer = HangulComposer()
@@ -61,6 +68,8 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         layoutId = Prefs.koreanLayout(this)
         haptics = Haptics(this)
         voice = VoiceInput(this, voiceCallback)
+        history = ClipboardHistory(PrefsClipboardStore(this))
+        (getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager)?.addPrimaryClipChangedListener(clipListener)
         // 설정 앱에서 크기·위치를 바꾸면 키보드가 켜져 있는 동안에도 바로 반영한다
         getSharedPreferences(Prefs.FILE, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(prefsListener)
     }
@@ -73,7 +82,28 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         }
     }
 
+    /** 클립보드 내용이 바뀔 때마다 기록에 남긴다 (키보드가 떠 있는 동안) */
+    private val clipListener = ClipboardManager.OnPrimaryClipChangedListener { recordClipboard() }
+
+    /**
+     * 지금 클립보드 내용을 기록에 추가한다. 다음은 저장하지 않는다:
+     * 설정에서 끈 경우 / 비밀번호 입력칸 / 비밀번호 관리자 등이 "민감 정보"로 표시한 복사 / 글자가 아닌 내용.
+     */
+    internal fun recordClipboard(inputType: Int? = currentInputEditorInfo?.inputType) {
+        if (!Prefs.clipboardEnabled(this)) return
+        if (inputType != null && InputKinds.isPassword(inputType)) return
+        val clip = try {
+            (getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager)?.primaryClip
+        } catch (e: SecurityException) {
+            null
+        } ?: return
+        if (clip.description?.extras?.getBoolean(InputKinds.EXTRA_IS_SENSITIVE, false) == true) return
+        if (clip.itemCount == 0) return
+        history.add(clip.getItemAt(0)?.coerceToText(this)?.toString())
+    }
+
     override fun onDestroy() {
+        (getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager)?.removePrimaryClipChangedListener(clipListener)
         getSharedPreferences(Prefs.FILE, MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(prefsListener)
         voice.destroy()
         super.onDestroy()
@@ -108,13 +138,13 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         updateSplit(resources.configuration)
         loadTimings()
         panel = EmojiPanel(this, emojiListener).also { it.visibility = View.GONE }
-        phrasePanel = PhrasePanel(this, phraseListener).also { it.visibility = View.GONE }
+        quickPanel = QuickPanel(this, quickListener).also { it.visibility = View.GONE }
         // 키보드와 이모지 패널을 같은 자리에 겹쳐 두고 번갈아 보여준다 (패널 높이 = 키보드 높이)
         // host: 키보드·패널을 담는 틀. 설정한 가로/세로 크기와 위치(좌우, 바닥에서 띄우기)는 이 틀에 적용한다
         host = FrameLayout(this).apply {
             addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-            addView(phrasePanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(quickPanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
         root = FrameLayout(this).apply {
             addView(host, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -160,7 +190,8 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             else -> resources.displayMetrics.widthPixels
         }
         KeyboardHost.apply(host, screenW, g, density)
-        view.heightScale = g.heightScale
+        // 가로 모드처럼 화면이 낮으면 키 높이를 자동으로 줄인다 (사용자가 정한 세로 길이에 곱해진다)
+        view.heightScale = g.heightScale * ScreenProfile.heightFactor(config.screenHeightDp)
         view.splitGapFraction = g.gapFraction
         view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp)
     }
@@ -199,35 +230,49 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private fun hideEmojiPanel() {
         panel.visibility = View.GONE
-        phrasePanel.visibility = View.GONE
+        quickPanel.visibility = View.GONE
         view.visibility = View.VISIBLE
     }
 
-    private val phraseListener = object : PhrasePanel.Listener {
+    private val quickListener = object : QuickPanel.Listener {
         override fun onInsert(text: String) {
             haptics.key()
             currentInputConnection?.commitText(text, 1)
             hideEmojiPanel()      // 입력하면 키보드로 돌아간다
         }
 
+        override fun onDeleteClip(text: String) {
+            history.remove(text)
+            quickPanel.setClips(history.items())
+        }
+
+        override fun onClearClips() {
+            history.clear()
+            quickPanel.setClips(history.items())
+        }
+
         override fun onClose() = hideEmojiPanel()
+
+        override fun onTabChanged(tab: Int) = Prefs.setQuickPanelTab(this@KeyboardService, tab)
     }
 
-    /** 엔터 꾹 누르기: 상용구 패널 (3열 격자, 행은 개수만큼 늘어남) */
+    /** 엔터 꾹 누르기: 상용문구 | 최근기록 탭 패널 (마지막에 보던 탭으로 열린다) */
     override fun onEnterLongPress() {
         abortVoice()
         flushComposing()
-        phrasePanel.setPhrases(Phrases.load(this))
-        fitToKeyboard(phrasePanel)
-        phrasePanel.setBottomInset(view.bottomInsetPx)
+        recordClipboard()                       // 지금 클립보드 내용도 최근기록에 포함
+        quickPanel.open(Phrases.load(this), history.items(), Prefs.quickPanelTab(this))
+        fitToKeyboard(quickPanel)
+        quickPanel.setBottomInset(view.bottomInsetPx)
         view.visibility = View.INVISIBLE
-        phrasePanel.visibility = View.VISIBLE
+        quickPanel.visibility = View.VISIBLE
     }
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         composer.reset()
         hideEmojiPanel()
+        recordClipboard(info.inputType)      // 키보드가 꺼져 있는 동안 복사한 내용도 놓치지 않고 기록
         updateSplit(resources.configuration)   // 설정에서 나눠쓰기를 바꿨을 수 있다
         applyGeometry(resources.configuration)  // 설정에서 크기·위치를 바꿨을 수 있다
         loadTimings()
@@ -238,9 +283,16 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         val cls = info.inputType and InputType.TYPE_MASK_CLASS
         val variation = info.inputType and InputType.TYPE_MASK_VARIATION
         val wantsLatin = cls == InputType.TYPE_CLASS_TEXT && variation in LATIN_VARIATIONS
-        val remembered = if (Prefs.lastLanguageEnglish(this)) Layouts.EN else Prefs.koreanLayout(this)
-        val target = if (wantsLatin) Layouts.EN else remembered
+        val remembered = rememberedLetterLayout()
+        val target = when {
+            // 숫자·날짜 입력칸은 숫자 키패드, 전화번호 칸은 전화번호 키패드 (ABC 키로 글자 자판 전환 가능)
+            cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_DATETIME -> Layouts.NUM
+            cls == InputType.TYPE_CLASS_PHONE -> Layouts.PHONE
+            wantsLatin -> Layouts.EN
+            else -> remembered
+        }
         if (target != layoutId) setLayout(target)
+        refreshAutoCaps()      // 영어 자판이고 입력칸이 문장 시작이면 첫 글자는 대문자
     }
 
     override fun onFinishInput() {
@@ -250,14 +302,21 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         super.onFinishInput()
     }
 
-    /** 커서가 앱 쪽에서 움직였으면 조합 상태를 버린다. */
+    /**
+     * 가로 모드에서 안드로이드가 기본으로 띄우는 "전체화면 입력창"(화면 전체를 덮는 편집창)을 끈다.
+     */
+    override fun onEvaluateFullscreenMode(): Boolean = false
+
+    /** 커서가 앱 쪽에서 움직였으면 조합 상태를 버린다. (옛 알림은 무시: [SelectionUpdatePolicy]) */
     override fun onUpdateSelection(
         oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int,
         candidatesStart: Int, candidatesEnd: Int,
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
-        if (composer.isComposing &&
-            (newSelStart != candidatesEnd || newSelEnd != candidatesEnd)
+        if (SelectionUpdatePolicy.shouldResetComposition(
+                composer.isComposing, newSelStart, newSelEnd, candidatesEnd,
+                SystemClock.uptimeMillis() - lastEditTime,
+            )
         ) {
             composer.reset()
             currentInputConnection?.finishComposingText()
@@ -265,16 +324,18 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onKey(key: Key) {
+        lastEditTime = SystemClock.uptimeMillis()
         if (key.type != KeyType.VOICE) abortVoice()
         if (key.type != KeyType.CHAR) lastJamoKey = null
         when (key.type) {
             KeyType.CHAR -> onChar(key)
-            KeyType.SPACE -> { flushComposing(); commit(" ") }
-            KeyType.BACKSPACE -> onBackspace()
-            KeyType.ENTER -> onEnter()
+            KeyType.SPACE -> { flushComposing(); commit(" "); refreshAutoCaps() }
+            KeyType.BACKSPACE -> { onBackspace(); refreshAutoCaps() }
+            KeyType.ENTER -> { onEnter(); refreshAutoCaps() }
             KeyType.SHIFT -> Unit   // 쉬프트는 onShiftPress로 처리
             KeyType.VOICE -> onVoice()
             KeyType.EMOJI -> showEmojiPanel()
+            KeyType.LETTERS -> setLayout(rememberedLetterLayout())     // 숫자 키패드 → 글자 자판
             KeyType.SELECT_ALL -> editAction(android.R.id.selectAll)
             KeyType.COPY -> editAction(android.R.id.copy)
             KeyType.PASTE -> editAction(android.R.id.paste)
@@ -284,6 +345,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /** 꾹 누르기 팝업에서 고른 기호·상용문구: 조합 중인 글자를 확정하고 그대로 입력 */
     override fun onText(text: String) {
+        lastEditTime = SystemClock.uptimeMillis()
         abortVoice()
         lastJamoKey = null
         val ic = currentInputConnection ?: return
@@ -358,7 +420,10 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     /** 선택 제스처가 끝나면 한 번용 쉬프트(ON)는 해제. 고정(LOCK)은 유지 */
-    override fun onCursorMoveEnd() = consumeShift()
+    override fun onCursorMoveEnd() {
+        consumeShift()
+        refreshAutoCaps()
+    }
 
     /** 사용자에게 결과를 알린다: 키보드 안 배너 (키보드가 아직 없으면 토스트) */
     private fun say(msg: String) {
@@ -372,6 +437,10 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         flushComposing()
         currentInputConnection?.performContextMenuAction(id)
     }
+
+    /** 마지막으로 직접 고른 언어의 글자 자판 (영어 또는 설정한 한글 자판) */
+    private fun rememberedLetterLayout() =
+        if (Prefs.lastLanguageEnglish(this)) Layouts.EN else Prefs.koreanLayout(this)
 
     /** 스페이스바 스와이프 → 한/영 전환 */
     override fun onSwipeSpace() {
@@ -481,12 +550,40 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.shiftState = shift.state
     }
 
+    /**
+     * 영어 자동 대문자: 입력창이 "문장 시작"(맨 처음, 마침표·물음표·느낌표 뒤, 새 줄)이면 쉬프트를 한 번용으로 켠다.
+     * 판단은 입력창에 물어본다([android.view.inputmethod.InputConnection.getCursorCapsMode]) —
+     * 입력창이 대문자를 요청하지 않으면(비밀번호, 주소 등) 0이 와서 켜지지 않는다.
+     * 앱에 묻는 호출이라 글자마다 하지 않고 스페이스·엔터·지우기·입력칸 시작 때만 한다.
+     */
+    private fun refreshAutoCaps() {
+        val ic = currentInputConnection
+        val info = currentInputEditorInfo
+        applyAutoCaps(if (ic != null && info != null) ic.getCursorCapsMode(info.inputType) else null)
+    }
+
+    /**
+     * 자동 대문자 적용. [capsMode]는 입력창이 알려준 값(0이면 대문자 아님, null이면 알 수 없음).
+     * 설정이 꺼져 있거나 영어 자판이 아니면(한글·숫자 키패드) 자동으로 켠 쉬프트를 끈다.
+     */
+    internal fun applyAutoCaps(capsMode: Int?) {
+        val eligible = Prefs.autoCapitalize(this) && !layout.hangul && !Layouts.isPad(layoutId)
+        if (!eligible) {
+            shift.autoCapitalize(false)
+        } else {
+            if (capsMode == null) return
+            shift.autoCapitalize(capsMode != 0)
+        }
+        syncShift()
+    }
+
     private fun setLayout(id: String) {
         flushComposing()
         lastJamoKey = null
         layoutId = id
         view.keyboardLayout = Layouts.byId(id)
         shift.reset(); syncShift()
+        refreshAutoCaps()
     }
 
     private fun flushComposing() {

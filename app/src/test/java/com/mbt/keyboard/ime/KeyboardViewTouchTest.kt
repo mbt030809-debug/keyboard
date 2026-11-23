@@ -168,4 +168,36 @@ class KeyboardViewTouchTest {
         send(ev(MotionEvent.ACTION_UP, Triple(0, x + 5 * density, y + 3 * density)))
         assertEquals(listOf("ㄴ"), rec.keys)
     }
+
+    private fun idleFor(ms: Long) =
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(ms))
+
+    @Test fun longPressingPasteNoLongerOpensAnythingAndStillPastesOnRelease() {
+        // 최근기록은 엔터 꾹 누르기 패널로 옮겼다. 붙임은 오래 눌러도 붙여넣기만 한다
+        downTime = SystemClock.uptimeMillis()
+        val a = p(0, "붙임")
+        send(ev(MotionEvent.ACTION_DOWN, a))
+        idleFor(view.longPressMs + 200)
+        send(ev(MotionEvent.ACTION_UP, a))
+        assertEquals(listOf("붙임"), rec.keys)
+        assertEquals(0, rec.enterLongPress)
+    }
+
+    @Test fun tappingPasteStillPastes() {
+        downTime = SystemClock.uptimeMillis()
+        val a = p(0, "붙임")
+        send(ev(MotionEvent.ACTION_DOWN, a))
+        send(ev(MotionEvent.ACTION_UP, a))
+        assertEquals(listOf("붙임"), rec.keys)
+    }
+
+    @Test fun longPressingEnterOpensTheQuickPanelAndDoesNotTypeEnter() {
+        downTime = SystemClock.uptimeMillis()
+        val a = p(0, "⏎")
+        send(ev(MotionEvent.ACTION_DOWN, a))
+        idleFor(view.longPressMs + 50)
+        send(ev(MotionEvent.ACTION_UP, a))
+        assertEquals(1, rec.enterLongPress)
+        assertTrue(rec.keys.isEmpty())
+    }
 }

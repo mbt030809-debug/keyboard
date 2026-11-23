@@ -94,4 +94,55 @@ class ShiftControllerTest {
         c.consume()
         assertEquals(ShiftState.LOCK, c.state)
     }
+
+    // ---- 영어 자동 대문자
+
+    @Test fun autoCapitalizeTurnsOnAndOffOnlyWhatItTurnedOn() {
+        c.autoCapitalize(true)
+        assertEquals(ShiftState.ON, c.state)
+        c.autoCapitalize(false)                       // 문장 시작이 아니게 됨 → 자동으로 켠 것은 끈다
+        assertEquals(ShiftState.OFF, c.state)
+    }
+
+    @Test fun autoCapitalizedShiftIsConsumedByTheFirstLetter() {
+        c.autoCapitalize(true)
+        c.consume()
+        assertEquals(ShiftState.OFF, c.state)
+        c.autoCapitalize(false)
+        assertEquals(ShiftState.OFF, c.state)
+    }
+
+    @Test fun autoCapitalizeNeverTouchesUserChosenShift() {
+        tap(0)                                         // 사용자가 직접 켬
+        c.autoCapitalize(false)                        // 문장 시작이 아니어도 끄지 않는다
+        assertEquals(ShiftState.ON, c.state)
+        c.reset()
+        tap(5000); tap(5200)                           // 빠르게 두 번: 캡스락
+        assertEquals(ShiftState.LOCK, c.state)
+        c.autoCapitalize(false); c.autoCapitalize(true)
+        assertEquals(ShiftState.LOCK, c.state)
+    }
+
+    @Test fun autoCapitalizeIsIgnoredWhileShiftIsHeld() {
+        c.press(0)
+        c.autoCapitalize(false)
+        assertEquals(ShiftState.ON, c.state)
+        c.release()
+    }
+
+    @Test fun pressingShiftTakesOverAnAutoCapitalizedState() {
+        c.autoCapitalize(true)
+        c.press(0); c.release()                        // 사용자가 쉬프트를 눌러 해제
+        assertEquals(ShiftState.OFF, c.state)
+        c.autoCapitalize(true)                         // 다시 문장 시작 → 다시 켜짐
+        assertEquals(ShiftState.ON, c.state)
+    }
+
+    @Test fun resetClearsAutoFlag() {
+        c.autoCapitalize(true)
+        c.reset()
+        c.press(0); c.consume(); c.release()           // 직접 켜고 쓴 뒤
+        c.autoCapitalize(false)
+        assertEquals(ShiftState.OFF, c.state)
+    }
 }

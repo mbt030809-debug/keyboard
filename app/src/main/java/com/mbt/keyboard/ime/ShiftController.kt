@@ -18,6 +18,9 @@ class ShiftController(private val doubleTapMs: Long = 400L) {
     var held: Boolean = false
         private set
 
+    /** 자동 대문자로 켠 상태인가 (사용자가 직접 켠 것과 구분해, 자동으로 켠 것만 자동으로 끈다) */
+    private var auto = false
+
     private var usedWhileHeld = false
     private var before = ShiftState.OFF
     private var downTime = 0L
@@ -25,6 +28,7 @@ class ShiftController(private val doubleTapMs: Long = 400L) {
 
     /** 쉬프트 키를 누름. 꺼져 있으면 누르는 즉시 켜진다 */
     fun press(now: Long) {
+        auto = false
         held = true
         usedWhileHeld = false
         before = state
@@ -51,11 +55,30 @@ class ShiftController(private val doubleTapMs: Long = 400L) {
 
     /** 글자를 입력(또는 선택 이동)한 뒤. 누르고 있는 쉬프트는 유지, 한 번용(ON)은 해제 */
     fun consume() {
+        auto = false
         if (held) usedWhileHeld = true
         else if (state == ShiftState.ON) state = ShiftState.OFF
     }
 
+    /**
+     * 영어 자동 대문자: 문장 시작이면 [on]=true로 켜고, 시작이 아니게 되면(backspace·커서 이동 등) false로 끈다.
+     * 쉬프트를 누르고 있거나 고정(LOCK) 중이거나 사용자가 직접 켠 상태는 건드리지 않는다.
+     */
+    fun autoCapitalize(on: Boolean) {
+        if (held) return
+        if (on) {
+            if (state == ShiftState.OFF) {
+                state = ShiftState.ON
+                auto = true
+            }
+        } else if (auto && state == ShiftState.ON) {
+            state = ShiftState.OFF
+            auto = false
+        }
+    }
+
     fun reset() {
+        auto = false
         state = ShiftState.OFF
         held = false
         usedWhileHeld = false
