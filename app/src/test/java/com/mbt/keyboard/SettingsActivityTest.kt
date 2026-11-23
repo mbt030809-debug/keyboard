@@ -110,4 +110,24 @@ class SettingsActivityTest {
             }
         }
     }
+
+    @Test fun tryButtonIsInTheHeaderNotInsideAnyTabAndOpensATestField() {
+        ActivityScenario.launch(SettingsActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                val btn = a.findViewById<android.view.View>(R.id.btnTry)
+                val sections = listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionInfo)
+                var v: android.view.View? = btn
+                var inside = false
+                while (v != null) { if (v.id in sections) inside = true; v = v.parent as? android.view.View }
+                assertTrue("탭 안에 있으면 안 된다", !inside)
+                // 어느 탭이 선택돼 있어도 항상 보인다
+                a.findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabs).getTabAt(3)!!.select()
+                assertEquals(android.view.View.VISIBLE, btn.visibility)
+                btn.performClick()
+                val dialog = org.robolectric.shadows.ShadowDialog.getLatestDialog()
+                assertTrue(dialog != null && dialog.isShowing)
+                assertTrue(dialog.findViewById<android.view.View>(R.id.tryField) != null)
+            }
+        }
+    }
 }

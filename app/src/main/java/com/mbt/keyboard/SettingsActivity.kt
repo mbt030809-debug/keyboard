@@ -60,6 +60,7 @@ class SettingsActivity : AppCompatActivity() {
         btnSelect = findViewById(R.id.btnSelect)
 
         setupTabs(savedInstanceState)
+        findViewById<View>(R.id.btnTry).setOnClickListener { showTryDialog() }
 
         btnEnable.setOnClickListener { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
         btnSelect.setOnClickListener { imm.showInputMethodPicker() }
@@ -190,6 +191,19 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private var currentTab = 0
+
+    /** 어느 탭에서든 오른쪽 위 버튼으로 열어 보는 입력 테스트 창 (설정을 바꾸고 바로 눌러 보기 좋다) */
+    private fun showTryDialog() {
+        val view = layoutInflater.inflate(R.layout.dialog_try, null)
+        val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.test_title)
+            .setView(view)
+            .setPositiveButton(R.string.try_close, null)
+            .create()
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+        dialog.show()
+        view.findViewById<View>(R.id.tryField).requestFocus()
+    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
