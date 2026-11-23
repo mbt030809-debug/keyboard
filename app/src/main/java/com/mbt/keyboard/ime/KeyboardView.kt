@@ -643,7 +643,7 @@ class KeyboardView(context: Context) : View(context) {
         }
         // 스페이스바: 좌우로 충분히 밀면 한/영 전환 (한 제스처에 1회)
         if (p.cell?.key?.type == KeyType.SPACE) {
-            if (abs(x - p.downX) > SWIPE_THRESHOLD_DP * density) {
+            if (abs(x - p.downX) > SPACE_SWIPE_DP * density) {
                 p.ignore = true               // 자판이 바뀌면 셀이 교체되므로 이후 터치는 무시
                 p.cancelTimers()
                 invalidateCell(p.cell)
@@ -841,6 +841,8 @@ class KeyboardView(context: Context) : View(context) {
         const val LEGACY_GAP_DP = 6f
         const val REPEAT_DELAY_MS = 400L
         const val SWIPE_THRESHOLD_DP = 40f
+        /** 스페이스바를 밀어 한/영을 바꾸는 거리: 예전 40dp보다 30% 짧게 */
+        const val SPACE_SWIPE_DP = 28f
         const val SLOP_DP = 8f
         /** 스페이스바의 "한 EN" 표시와 🎤 아이콘을 이만큼(dp) 작게 */
         const val ICON_SHRINK_DP = 1f

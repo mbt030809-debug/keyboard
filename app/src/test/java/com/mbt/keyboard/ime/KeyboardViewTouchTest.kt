@@ -151,6 +151,21 @@ class KeyboardViewTouchTest {
         assertTrue(rec.keys.isEmpty())
     }
 
+    @Test fun spaceSwipeNeedsOnlyAbout28dpNowThirtyPercentShorterThanBefore() {
+        fun swipeBy(dp: Float): Int {
+            rec.swipeSpace = 0
+            downTime = SystemClock.uptimeMillis()
+            val (x, y) = center("")
+            send(ev(MotionEvent.ACTION_DOWN, Triple(0, x, y)))
+            send(ev(MotionEvent.ACTION_MOVE, Triple(0, x + dp * density, y)))
+            send(ev(MotionEvent.ACTION_UP, Triple(0, x + dp * density, y)))
+            return rec.swipeSpace
+        }
+        assertEquals(0, swipeBy(25f))          // 28dp 미만: 전환되지 않는다 (그냥 스페이스)
+        assertEquals(1, swipeBy(30f))          // 예전(40dp)에는 안 되던 거리도 이제 전환
+        assertEquals(1, swipeBy(45f))
+    }
+
     @Test fun swipingLeftOnSpaceTogglesTooSoDirectionDoesNotMatter() {
         downTime = SystemClock.uptimeMillis()
         val (x, y) = center("")
