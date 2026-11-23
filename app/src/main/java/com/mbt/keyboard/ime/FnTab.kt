@@ -33,8 +33,12 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
 
     companion object {
+        /** 글래스 테마 탭 바탕의 불투명도 % (키보드 판과 비슷하게 거의 불투명) */
+        const val FROST_TAB_ALPHA = 92
+
         /** 바탕 모서리 반지름(좌상·우상·우하·좌하, x·y 순): 위쪽만 둥글고 아래쪽은 사각 */
-        fun plateRadii(left: Float, right: Float = left) = floatArrayOf(left, left, right, right, 0f, 0f, 0f, 0f)
+        fun plateRadii(left: Float, right: Float = left, bottom: Boolean = false) =
+            if (bottom) floatArrayOf(left, left, right, right, right, right, left, left) else floatArrayOf(left, left, right, right, 0f, 0f, 0f, 0f)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -60,20 +64,21 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val radius = 7 * d
         // 키보드 바탕: 버튼 상하좌우로 같은 폭만큼, 버튼과 똑같이 반투명
         val plateLeft = 0f
-        paint.color = withAlpha(if (theme.frost) 0xFFFFFFFF.toInt() else theme.background, alphaPercent)
+        // 글래스 테마: 키보드 판과 같은 재질 (판 아래에는 앱이 비치지 않으므로 탭도 거의 불투명한 번짐 색)
+        paint.color = if (theme.frost) withAlpha(theme.backgroundMid, FROST_TAB_ALPHA) else withAlpha(theme.background, alphaPercent)
         // 위쪽 모서리만 둥글게, 아래쪽(키보드와 맞닿는 쪽)은 사각
         // 모서리는 버튼 모서리와 같은 중심(동심원): 여백이 0이면 버튼 모서리와 똑같이 맞물려 빈틈이 남지 않는다
         val gx = src.fnTabInsetPx()
         val rl = radius + minOf(pad, src.fnTabLeftPx() + gx, 10 * d)
         val rr = radius + minOf(pad, src.fnTabRightPx() + gx, 10 * d)
         plate.rewind()
-        plate.addRoundRect(RectF(plateLeft, 0f, width.toFloat(), height.toFloat()), plateRadii(rl, rr), Path.Direction.CW)
+        plate.addRoundRect(RectF(plateLeft, 0f, width.toFloat(), height.toFloat()), plateRadii(rl, rr, bottom = theme.frost), Path.Direction.CW)
         canvas.drawPath(plate, paint)
         keys.forEachIndexed { i, k ->
             val cl = keyLeft(i)
             val l = cl + gx
             val r = cl + kw - gx
-            paint.color = withAlpha(if (i == pressed) theme.keyPressed else theme.specialKey, alphaPercent)
+            paint.color = if (theme.frost) (if (i == pressed) theme.keyPressed else theme.key) else withAlpha(if (i == pressed) theme.keyPressed else theme.specialKey, alphaPercent)
             canvas.drawRoundRect(l, top, r, kh, radius, radius, paint)
             if (theme.keyBorder != 0) {
                 paint.color = withAlpha(theme.keyBorder, alphaPercent.coerceAtLeast(60))
@@ -82,7 +87,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
                 canvas.drawRoundRect(l + d / 2, top + d / 2, r - d / 2, kh - d / 2, radius, radius, paint)
                 paint.style = Paint.Style.FILL
             }
-            paint.color = withAlpha(theme.text, alphaPercent)          // 글씨도 버튼·바탕과 같은 반투명
+            paint.color = if (theme.frost) theme.text else withAlpha(theme.text, alphaPercent)          // 글씨도 버튼·바탕과 같은 반투명
             paint.textSize = src.fnLabelSizePx(kw, kh - top)
             val y = (top + kh) / 2f - (paint.descent() + paint.ascent()) / 2f
             canvas.drawText(k.label, (l + r) / 2f, y, paint)

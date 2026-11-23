@@ -598,11 +598,11 @@ class KeyboardView(context: Context) : View(context) {
     private val bgPaint = Paint()
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
 
-    /** 프로스티드 글래스 뒷배경: 연한 레인보우 번짐 (선명한 원본). 키 사이로 이게 그대로 보인다 */
+    /** 유리판 뒤에 깔리는 배경(연한 번짐)을 [w]×[h]에 그린다 */
     private fun drawFrostBackdrop(canvas: Canvas, w: Float, h: Float) {
         bgPaint.shader = theme.backgroundShader(w, h)
         canvas.drawRect(0f, 0f, w, h, bgPaint)
-        val blobs = if (theme.frostStyle == 1) PEARL_BLOBS else HOLO_BLOBS
+        val blobs = when (theme.frostStyle) { 1 -> TAUPE_BLOBS; 2 -> NAVY_BLOBS; else -> HOLO_BLOBS }
         for ((fx, fy, rr, c) in blobs) {
             val r = max(w, h) * rr
             bgPaint.shader = android.graphics.RadialGradient(w * fx, h * fy, r, c, c and 0x00FFFFFF, Shader.TileMode.CLAMP)
@@ -611,81 +611,87 @@ class KeyboardView(context: Context) : View(context) {
         bgPaint.shader = null
     }
 
-    private var frostSharp: Bitmap? = null
     private var frostBlur: Bitmap? = null
     private var frostKey: Triple<Int, Int, KeyboardTheme>? = null
 
-    /** 뒷배경 원본과, 그걸 약하게 흐린 사본(키 안쪽에 비치는 용도)을 만든다. 크기·테마가 바뀔 때만 다시 만든다 */
+    /** 유리판에 비치는 "흐린 뒷배경". 크기·테마가 바뀔 때만 다시 만든다 (작게 줄였다 늘리면 부드럽게 흐려진다) */
     private fun ensureFrostBitmaps() {
         val key = Triple(width, height, theme)
-        if (frostKey == key && frostSharp != null) return
-        frostSharp?.recycle(); frostBlur?.recycle()
+        if (frostKey == key && frostBlur != null) return
+        frostBlur?.recycle()
         val sharp = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
         drawFrostBackdrop(Canvas(sharp), sharp.width.toFloat(), sharp.height.toFloat())
-        // 1/4로 줄였다가 부드럽게 늘리면 약한 블러(반경 몇 dp)가 된다
         val small = Bitmap.createScaledBitmap(sharp, max(sharp.width / FROST_BLUR_DIV, 1), max(sharp.height / FROST_BLUR_DIV, 1), true)
         val blur = Bitmap.createScaledBitmap(small, sharp.width, sharp.height, true)
-        if (small !== sharp && small !== blur) small.recycle()
-        frostSharp = sharp; frostBlur = blur; frostKey = key
+        if (small !== blur) small.recycle()
+        sharp.recycle()
+        frostBlur = blur; frostKey = key
     }
 
     private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val glassBitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val glassPath = Path()
-    private val edgeColors = intArrayOf(0xF2FFFFFF.toInt(), 0x66FFFFFF, 0xB3FFFFFF.toInt())
-    private val edgeStops = floatArrayOf(0f, 0.55f, 1f)
-    private val glowColors = intArrayOf(0x00FFFFFF, 0x00FFFFFF, 0x38FFFFFF)
+    private val edgeColors = intArrayOf(0xF2FFFFFF.toInt(), 0x2EFFFFFF, 0x0FFFFFFF, 0x33FFFFFF, 0xCCFFFFFF.toInt())
+    private val edgeStops = floatArrayOf(0f, 0.22f, 0.5f, 0.78f, 1f)
 
     /**
-     * 유리 키 하나: ① 부드러운 그림자 ② 뒷배경을 약하게 흐려 비춤 ③ 투명한 흰색 ④ 위쪽 광택과 아래쪽 빛 번짐
-     * ⑤ 위쪽 가는 빛줄 ⑥ 왼쪽 위는 밝고 오른쪽 아래는 옅은 흰 테두리. [tint]는 키 면의 ARGB 색.
+     * 키보드 판 전체가 한 장의 두꺼운 유리: ① 뒷배경을 흐리게 비춤 ② 투명한 흰색 ③ 왼쪽 위 비스듬한 빛과 가는 빛줄
+     * ④ 가장자리 림(왼쪽 위·오른쪽 아래가 밝음) ⑤ 안쪽 가는 이중 테두리. 위쪽 모서리만 둥글다.
      */
-    private fun drawGlassKey(canvas: Canvas, r: RectF, radius: Float, tint: Int, pressed: Boolean) {
+    private fun drawFrostPlate(canvas: Canvas) {
         ensureFrostBitmaps()
-        val h = r.height()
-        // ① 그림자 (넓고 옅은 것 + 가깝고 진한 것)
-        glassPaint.shader = null
-        glassPaint.style = Paint.Style.FILL
-        glassPaint.color = 0x142A3C64
-        canvas.drawRoundRect(r.left - density, r.top + 1.5f * density, r.right + density, r.bottom + 4 * density, radius + density, radius + density, glassPaint)
-        glassPaint.color = 0x242A3C64
-        canvas.drawRoundRect(r.left, r.top + density, r.right, r.bottom + 2 * density, radius, radius, glassPaint)
-
+        val w = width.toFloat(); val h = height.toFloat()
+        val r = FROST_PLATE_RADIUS_DP * density
         glassPath.rewind()
-        glassPath.addRoundRect(r, radius, radius, Path.Direction.CW)
+        glassPath.addRoundRect(RectF(0f, 0f, w, h), floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f), Path.Direction.CW)
         canvas.save()
         canvas.clipPath(glassPath)
-        // ② 약하게 흐린 뒷배경 (키가 놓인 바로 그 자리)
-        frostBlur?.let { canvas.drawBitmap(it, Rect(r.left.toInt(), r.top.toInt(), r.right.toInt() + 1, r.bottom.toInt() + 1), r, glassBitmapPaint) }
-        // ③ 투명한 흰색
-        glassPaint.color = if (pressed) theme.keyPressed else tint
-        canvas.drawRoundRect(r, radius, radius, glassPaint)
-        // ④ 위쪽 광택(위→아래로 옅어짐)과 아래쪽 빛 번짐
-        glassPaint.shader = LinearGradient(0f, r.top, 0f, r.top + h * 0.5f, 0x4DFFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP)
-        canvas.drawRect(r.left, r.top, r.right, r.top + h * 0.5f, glassPaint)
-        glassPaint.shader = LinearGradient(0f, r.top, 0f, r.bottom, glowColors, edgeStops, Shader.TileMode.CLAMP)
-        canvas.drawRect(r, glassPaint)
+        frostBlur?.let { canvas.drawBitmap(it, 0f, 0f, null) }
+        glassPaint.style = Paint.Style.FILL
         glassPaint.shader = null
-        // ⑤ 위쪽 가는 빛줄
-        glassPaint.color = 0xA6FFFFFF.toInt()
-        canvas.drawRect(r.left + radius * 0.6f, r.top + density, r.right - radius * 0.6f, r.top + 2 * density, glassPaint)
+        glassPaint.color = theme.frostTint
+        canvas.drawRect(0f, 0f, w, h, glassPaint)
+        // 왼쪽 위에서 비스듬히 오는 빛 + 그 뒤의 가는 빛줄
+        glassPaint.shader = LinearGradient(0f, 0f, w * 0.55f, h * 1.4f, intArrayOf(0x3DFFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x1AFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.28f, 0.5f, 0.56f, 0.62f), Shader.TileMode.CLAMP)
+        canvas.drawRect(0f, 0f, w, h, glassPaint)
+        glassPaint.shader = null
         canvas.restore()
-        // ⑥ 테두리: 왼쪽 위 밝음 → 오른쪽 아래 옅음
-        glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, edgeColors, edgeStops, Shader.TileMode.CLAMP)
+        // 림: 밝은 가장자리 선 (2dp) + 안쪽 가는 선
         glassPaint.style = Paint.Style.STROKE
+        glassPaint.strokeWidth = 2 * density
+        glassPaint.shader = LinearGradient(0f, 0f, w, h, edgeColors, edgeStops, Shader.TileMode.CLAMP)
+        canvas.drawPath(glassPath, glassPaint)
         glassPaint.strokeWidth = density
-        val hh = density / 2f
-        canvas.drawRoundRect(r.left + hh, r.top + hh, r.right - hh, r.bottom - hh, radius, radius, glassPaint)
         glassPaint.shader = null
+        glassPaint.color = 0x2EFFFFFF
+        canvas.save()
+        canvas.translate(3 * density, 3 * density)
+        canvas.scale((w - 6 * density) / w, (h - 6 * density) / h)
+        canvas.drawPath(glassPath, glassPaint)
+        canvas.restore()
         glassPaint.style = Paint.Style.FILL
     }
 
+    /**
+     * 판 위의 키: 선명한 유리 버튼. 아래에 얇고 진한 선 + 부드러운 그림자, 윗면에 하이라이트.
+     * [tint]는 키 면의 ARGB 색(흰색에 가깝고 기능키는 더 투명하다).
+     */
+    private fun drawFrostKey(canvas: Canvas, r: RectF, radius: Float, tint: Int, pressed: Boolean) {
+        glassPaint.shader = null
+        glassPaint.style = Paint.Style.FILL
+        glassPaint.color = 0x14000000                    // 부드러운 아래 그림자
+        canvas.drawRoundRect(r.left, r.top + 2 * density, r.right, r.bottom + 3 * density, radius, radius, glassPaint)
+        glassPaint.color = 0x38000000                    // 얇고 진한 아랫선
+        canvas.drawRoundRect(r.left, r.top + density, r.right, r.bottom + density, radius, radius, glassPaint)
+        glassPaint.color = if (pressed) theme.keyPressed else tint
+        canvas.drawRoundRect(r, radius, radius, glassPaint)
+        // 윗면 하이라이트 + 아래쪽 옅은 음영
+        glassPaint.shader = LinearGradient(0f, r.top, 0f, r.bottom, intArrayOf(0x66FFFFFF, 0x00FFFFFF, 0x00000000, 0x0F000000), floatArrayOf(0f, 0.18f, 0.7f, 1f), Shader.TileMode.CLAMP)
+        canvas.drawRoundRect(r, radius, radius, glassPaint)
+        glassPaint.shader = null
+    }
+
     private fun drawBackground(canvas: Canvas) {
-        if (theme.frost) {
-            ensureFrostBitmaps()
-            frostSharp?.let { canvas.drawBitmap(it, 0f, 0f, null) }
-            return
-        }
+        if (theme.frost) { drawFrostPlate(canvas); return }
         val shader = theme.backgroundShader(width.toFloat(), height.toFloat())
         if (shader == null) {
             canvas.drawColor(theme.background)
@@ -714,7 +720,7 @@ class KeyboardView(context: Context) : View(context) {
             }
             val r = cell.inner
             if (theme.frost) {
-                drawGlassKey(canvas, r, radius * 1.15f, paint.color, isPressed(cell))
+                drawFrostKey(canvas, r, radius * 1.15f, if (key.type == KeyType.ENTER) theme.accent else paint.color, isPressed(cell))
             } else if (theme.keyShadow) {
                 val keep = paint.color
                 paint.color = 0x26000000
@@ -739,7 +745,7 @@ class KeyboardView(context: Context) : View(context) {
                 else -> key.labelFor(shiftState != ShiftState.OFF)
             }
             if (label.isEmpty()) continue
-            paint.color = if (key.type == KeyType.VOICE && voiceListening) theme.onAccent else theme.text
+            paint.color = if ((key.type == KeyType.VOICE && voiceListening) || (theme.frost && key.type == KeyType.ENTER)) theme.onAccent else theme.text
             val size = when {
                 key.type == KeyType.SPACE -> 0.26f
                 key.type in TOOLBAR_ACTION_TYPES -> 0.34f
@@ -1321,7 +1327,8 @@ class KeyboardView(context: Context) : View(context) {
         val FN_TYPES = setOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE)
         const val DEFAULT_NUMBER_ROW_SCALE = 0.8f
         const val LABEL_WIDTH_FACTOR = 1.35f
-        const val FROST_BLUR_DIV = 4
+        const val FROST_BLUR_DIV = 10
+        const val FROST_PLATE_RADIUS_DP = 22f
 
         /** 번짐 배경 한 덩어리: (가로 위치, 세로 위치, 반지름 비율, 색) */
         private data class Blob(val fx: Float, val fy: Float, val r: Float, val color: Int)
@@ -1334,11 +1341,16 @@ class KeyboardView(context: Context) : View(context) {
             Blob(0.94f, 0.00f, 0.34f, 0xF2FFFFFF.toInt()), Blob(0.00f, 0.78f, 0.28f, 0xE6FFFFFF.toInt()),
         )
 
-        /** 펄 화이트: 거의 흰색 바탕에 옅은 핑크·민트·하늘빛, 오른쪽 위에 강한 하얀 빛 */
-        private val PEARL_BLOBS = listOf(
-            Blob(0.38f, 0.60f, 0.30f, 0x99F8DDE8.toInt()), Blob(0.24f, 0.62f, 0.32f, 0x80D8F2EA.toInt()),
-            Blob(0.46f, 1.00f, 0.34f, 0xB3BFD4F8.toInt()), Blob(1.00f, 0.80f, 0.30f, 0x99FFF6D6.toInt()),
-            Blob(0.02f, 0.05f, 0.30f, 0x99F2F7FF.toInt()), Blob(0.92f, 0.08f, 0.40f, 0xFFFFFFFF.toInt()),
+        /** 웜 그레이지: 따뜻한 회갈색에 밝은 모래빛과 푸른 회색 */
+        private val TAUPE_BLOBS = listOf(
+            Blob(0.20f, 0.20f, 0.55f, 0xCCC9BFAE.toInt()), Blob(0.80f, 0.10f, 0.50f, 0xCCD8D0C4.toInt()),
+            Blob(0.70f, 0.95f, 0.55f, 0xCC8C91A3.toInt()), Blob(0.05f, 0.95f, 0.35f, 0x99A89A86.toInt()),
+        )
+
+        /** 딥 네이비: 어두운 남색에 보랏빛·청록빛 */
+        private val NAVY_BLOBS = listOf(
+            Blob(0.20f, 0.15f, 0.55f, 0xCC5A5FA8.toInt()), Blob(0.85f, 0.80f, 0.55f, 0xCC3B7FA0.toInt()),
+            Blob(0.60f, 0.20f, 0.30f, 0x663A4A9A.toInt()),
         )
         const val LABEL_BONUS_DP = 1f
         const val DEFAULT_NUMBER_GAP_DP = 6f

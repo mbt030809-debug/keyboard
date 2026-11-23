@@ -35,10 +35,10 @@ class KeyboardThemesTest {
     }
 
     @Test fun twentyEightThemesWithUniqueIdsAndNames() {
-        assertEquals(30, KeyboardThemes.all.size)
-        assertEquals(30, KeyboardThemes.all.map { it.id }.toSet().size)
-        assertEquals(30, KeyboardThemes.all.map { it.name }.toSet().size)
-        assertEquals(30, KeyboardThemes.all.map { it.theme.background }.toSet().size)
+        assertEquals(31, KeyboardThemes.all.size)
+        assertEquals(31, KeyboardThemes.all.map { it.id }.toSet().size)
+        assertEquals(31, KeyboardThemes.all.map { it.name }.toSet().size)
+        assertEquals(31, KeyboardThemes.all.map { it.theme.background }.toSet().size)
     }
 
     /** 반투명 [fg]를 불투명 [bg] 위에 올린 색 */
@@ -53,10 +53,12 @@ class KeyboardThemesTest {
             val t = n.theme
             // 그라데이션이면 시작·가운데·끝 어디서든 읽혀야 한다. 반투명 키는 그 배경 위에 올린 모습으로 본다
             t.backgroundStops.forEach { stop ->
-                listOf(stop, over(t.key, stop), over(t.specialKey, stop), over(t.keyPressed, stop)).forEach {
+                // 유리 테마는 글자가 판 번짐색이 아니라 키 면 위에 있으므로 키 면만 본다
+                (if (t.frost) listOf(over(t.key, stop), over(t.specialKey, stop), over(t.keyPressed, stop))
+                else listOf(stop, over(t.key, stop), over(t.specialKey, stop), over(t.keyPressed, stop))).forEach {
                     assertTrue("${n.id} 글자/바탕 ${contrast(t.text, it)}", contrast(t.text, it) >= 4.5)
                 }
-                assertTrue("${n.id} 강조/배경", contrast(t.accent, stop) >= 3.0)
+                if (!t.frost) assertTrue("${n.id} 강조/배경", contrast(t.accent, stop) >= 3.0)    // 유리 테마는 강조색이 엔터 키 면이라 onAccent 대비만 본다
             }
             assertTrue("${n.id} 강조 위 글자", contrast(t.onAccent, t.accent) >= 4.5)
             assertTrue("${n.id} 눌림이 키와 구분", t.keyPressed != t.key)

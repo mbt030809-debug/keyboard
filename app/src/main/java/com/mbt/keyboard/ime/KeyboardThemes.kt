@@ -58,22 +58,32 @@ object KeyboardThemes {
     /** 총 28가지: 감성(그라데이션) 8 + 밝은 12 + 어두운 8 (모두 같은 색의 명도만 달리한 톤온톤, 네온 나이트만 예외) */
     val all: List<NamedTheme> = listOf(
         // 감성 테마: 그라데이션 배경 + 반투명 유리 키
+        // 프로스티드 글래스 (iOS 27 스타일): 유리 판 한 장 + 선명한 흰 유리 키
         NamedTheme(
-            "rainbowfrost", "레인보우 프로스트 (유리)",
+            "iosglass_holo", "iOS 글래스 · 홀로그램",
             KeyboardTheme(
                 background = 0xFFBFC7EC.toInt(), backgroundMid = 0xFFEFF0D2.toInt(), backgroundEnd = 0xFFE9D5EE.toInt(),
-                key = 0x38FFFFFF, specialKey = 0x24FFFFFF, keyPressed = 0x8CB4C6FF.toInt(),
-                text = 0xFF37405A.toInt(), accent = 0xFF3A50C8.toInt(), onAccent = 0xFFFFFFFF.toInt(),
-                keyBorder = 0x99FFFFFF.toInt(), keyShadow = false, frost = true, numberKeyOverride = 0x2EFFFFFF,
+                key = 0xEDFFFFFF.toInt(), specialKey = 0x80FFFFFF.toInt(), keyPressed = 0xFFC9D0E8.toInt(),
+                text = 0xFF2C3550.toInt(), accent = 0xFF4256D4.toInt(), onAccent = 0xFFFFFFFF.toInt(),
+                frost = true, frostStyle = 0, frostTint = 0x1AFFFFFF, numberKeyOverride = 0xE0FFFFFF.toInt(),
             ),
         ),
         NamedTheme(
-            "pearlfrost", "펄 프로스트 (유리)",
+            "iosglass_taupe", "iOS 글래스 · 웜 그레이지",
             KeyboardTheme(
-                background = 0xFFE6EEF9.toInt(), backgroundMid = 0xFFF3F6FB.toInt(), backgroundEnd = 0xFFEAF1F6.toInt(),
-                key = 0x73FFFFFF, specialKey = 0x4DFFFFFF, keyPressed = 0x99BFD4F8.toInt(),
-                text = 0xFF3A4560.toInt(), accent = 0xFF3A50C8.toInt(), onAccent = 0xFFFFFFFF.toInt(),
-                keyBorder = 0xCCFFFFFF.toInt(), keyShadow = false, frost = true, frostStyle = 1, numberKeyOverride = 0x5CFFFFFF,
+                background = 0xFFA89E8D.toInt(), backgroundMid = 0xFFB8AC98.toInt(), backgroundEnd = 0xFF9EA0B2.toInt(),
+                key = 0xF5FFFFFF.toInt(), specialKey = 0xA6FFFFFF.toInt(), keyPressed = 0xFFC9CFDC.toInt(),
+                text = 0xFF1C1F2A.toInt(), accent = 0xFF4660C8.toInt(), onAccent = 0xFFFFFFFF.toInt(),
+                frost = true, frostStyle = 1, frostTint = 0x24FFFFFF, numberKeyOverride = 0xEBFFFFFF.toInt(),
+            ),
+        ),
+        NamedTheme(
+            "iosglass_navy", "iOS 글래스 · 딥 네이비",
+            KeyboardTheme(
+                background = 0xFF1B1F3D.toInt(), backgroundMid = 0xFF2A2F5C.toInt(), backgroundEnd = 0xFF1F3A55.toInt(),
+                key = 0xCCFFFFFF.toInt(), specialKey = 0x80FFFFFF.toInt(), keyPressed = 0xFFB4C2E0.toInt(),
+                text = 0xFF151A2E.toInt(), accent = 0xFF5A96FF.toInt(), onAccent = 0xFF0A1A3A.toInt(),
+                frost = true, frostStyle = 2, frostTint = 0x1AFFFFFF, numberKeyOverride = 0xB8FFFFFF.toInt(),
             ),
         ),
         NamedTheme("sunset", "선셋 글로우", glass(0xFFB48A, 0xB79CFF, 0x66FFFFFF, 0x99FFFFFF, 0x33FFFFFF, 0x99FFFFFF, 0x4A1F5E, 0x7A2CBF, 0xFFFFFF, mid = 0xFF8FA3)),
