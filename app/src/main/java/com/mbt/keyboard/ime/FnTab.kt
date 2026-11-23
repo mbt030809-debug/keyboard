@@ -3,6 +3,8 @@ package com.mbt.keyboard.ime
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
 import com.mbt.keyboard.layout.Key
@@ -26,11 +28,17 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
     val keys = listOf(Key("전체", KeyType.SELECT_ALL), Key("복사", KeyType.COPY), Key("붙임", KeyType.PASTE))
 
     private var pressed = -1
+    private val plate = Path()
     private val d = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
 
+    companion object {
+        /** 바탕 모서리 반지름(좌상·우상·우하·좌하, x·y 순): 위쪽만 둥글고 아래쪽은 사각 */
+        fun plateRadii(r: Float) = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val w = src.fnTabLeftPx() + keys.size * src.fnKeyWidthPx() + src.fnTabPadPx()
+        val w = src.fnTabLeftPx() + keys.size * src.fnKeyWidthPx() + src.fnTabRightPx()
         setMeasuredDimension(w.toInt() + 1, src.fnTabHeightPx().toInt().coerceAtLeast(1))
     }
 
@@ -38,7 +46,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
 
     private fun indexAt(x: Float, y: Float): Int {
         val kw = src.fnKeyWidthPx()
-        if (y < src.fnTabPadPx() || y > height - src.fnTabPadPx()) return -1
+        if (y < src.fnTabPadPx() || y > height - src.fnTabPadBottomPx()) return -1
         return keys.indices.firstOrNull { x >= keyLeft(it) && x < keyLeft(it) + kw } ?: -1      // 인식은 간격까지 포함
     }
 
@@ -48,12 +56,16 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val kw = src.fnKeyWidthPx()
         val pad = src.fnTabPadPx()
         val top = pad
-        val kh = height - pad          // 버튼 아래 끝
+        val kh = height - src.fnTabPadBottomPx()          // 버튼 아래 끝
         val radius = 7 * d
         // 키보드 바탕: 버튼 상하좌우로 같은 폭만큼, 버튼과 똑같이 반투명
-        val plateLeft = (src.fnTabLeftPx() - pad).coerceAtLeast(0f)
+        val plateLeft = 0f
         paint.color = withAlpha(theme.background, alphaPercent)
-        canvas.drawRoundRect(plateLeft, 0f, width.toFloat(), height.toFloat(), radius + 3 * d, radius + 3 * d, paint)
+        // 위쪽 모서리만 둥글게, 아래쪽(키보드와 맞닿는 쪽)은 사각
+        val r = radius + 3 * d
+        plate.rewind()
+        plate.addRoundRect(RectF(plateLeft, 0f, width.toFloat(), height.toFloat()), plateRadii(r), Path.Direction.CW)
+        canvas.drawPath(plate, paint)
         val gx = src.fnTabInsetPx()
         keys.forEachIndexed { i, k ->
             val cl = keyLeft(i)

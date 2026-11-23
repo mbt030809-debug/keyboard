@@ -92,6 +92,10 @@ class FnTabTest {
         val rects = ArrayList<FloatArray>(); val colors = ArrayList<Int>()
         val canvas = object : android.graphics.Canvas() {
             override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { rects += floatArrayOf(l, t, r, b); colors += p.color }
+            override fun drawPath(path: android.graphics.Path, p: android.graphics.Paint) {
+                val rf = android.graphics.RectF(); path.computeBounds(rf, true)
+                rects += floatArrayOf(rf.left, rf.top, rf.right, rf.bottom); colors += p.color
+            }
         }
         tab.draw(canvas)
         val plate = rects.first()
@@ -99,10 +103,55 @@ class FnTabTest {
         assertEquals(3, buttons.size)
         val pad = v.fnTabPadPx()
         assertEquals(pad, buttons.minOf { it[1] } - plate[1], 1f)                        // 위
-        assertEquals(pad, plate[3] - buttons.maxOf { it[3] }, 1f)                        // 아래
-        assertEquals(pad, plate[2] - buttons.maxOf { it[2] } - v.fnTabInsetPx(), 1f)     // 오른쪽
-        assertTrue(buttons.minOf { it[0] } - plate[0] > 0f)                              // 왼쪽
+        assertEquals(v.fnTabPadBottomPx(), plate[3] - buttons.maxOf { it[3] }, 1f)       // 아래
+        assertEquals(v.fnTabRightPx() + v.fnTabInsetPx(), plate[2] - buttons.maxOf { it[2] }, 1f)    // 오른쪽
+        assertEquals(v.fnTabLeftPx() + v.fnTabInsetPx(), buttons.minOf { it[0] } - plate[0], 1f)     // 왼쪽
         colors.forEach { assertEquals(127f, (it ushr 24).toFloat(), 1f) }                // 바탕·버튼 같은 반투명
+    }
+
+    @Test fun plateIsRoundedOnTopAndSquareAtTheBottom() {
+        val r = FnTab.plateRadii(10f)
+        assertEquals(listOf(10f, 10f, 10f, 10f), r.take(4))      // 좌상·우상
+        assertEquals(listOf(0f, 0f, 0f, 0f), r.drop(4))          // 우하·좌하 = 사각
+        // 실제로 바탕은 경로로 그려진다 (둥근 사각형 호출이 아니라)
+        val v = keyView(true, true)
+        val tab = FnTab(ctx, v)
+        measure(tab, 1000)
+        var paths = 0
+        val canvas = object : android.graphics.Canvas() {
+            override fun drawPath(p: android.graphics.Path, paint: android.graphics.Paint) { paths++ }
+        }
+        tab.draw(canvas)
+        assertEquals(1, paths)
+    }
+
+    @Test fun plateMarginsFollowTheKeyboardSettings() {
+        for (f in listOf(KeyboardFrame(), KeyboardFrame(leftDp = 10, topDp = 12, rightDp = 2, rowGapDp = 14, keyGapDp = 2))) {
+            val v = KeyboardView(ctx).also { it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english; it.frame = f; measure(it) }
+            val d = ctx.resources.displayMetrics.density
+            // 키보드의 키 둘레와 똑같다: 첫 숫자 키는 키보드 왼쪽에서 (왼쪽 여백 + 키 간격/2), 위에서는 (위 여백 + 줄 여백/2)
+            val digit = v.keyInnerRects().first { it.first.label == "1" }.second
+            assertEquals(digit.left, v.fnTabLeftPx() + v.fnTabInsetPx(), 1f)
+            assertEquals(digit.top, v.fnTabPadPx(), 1f)
+            assertEquals(f.rightDp * d, v.fnTabRightPx(), 0.5f)
+        }
+    }
+
+    @Test fun gapBetweenTabAndDigitKeysMatchesTheGapBetweenLetterRows() {
+        val v = KeyboardView(ctx).also {
+            it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english
+            it.frame = KeyboardFrame(topDp = 4, rowGapDp = 6)
+            measure(it)
+        }
+        val tab = FnTab(ctx, v)
+        measure(tab, 1000)
+        val d = ctx.resources.displayMetrics.density
+        val firstDigitTop = v.keyInnerRects().first { it.first.label == "1" }.second.top
+        // 탭 버튼 아래 끝 = 탭 높이 − 아래 바탕. 키보드 맨 위는 탭 높이만큼 아래에서 시작
+        val buttonBottom = tab.height - v.fnTabPadBottomPx()
+        val gap = tab.height - buttonBottom + firstDigitTop
+        val letterGap = v.keyInnerRects().let { r -> r.first { it.first.label == "a" }.second.top - r.first { it.first.label == "q" }.second.bottom }
+        assertEquals(letterGap, gap, 2.5f * d)
     }
 
     @Test fun spaceBarGetsWiderWhenTheTabTakesOverTheThreeKeys() {
@@ -141,6 +190,7 @@ class FnTabTest {
         val fills = ArrayList<Int>(); val textColors = ArrayList<Int>()
         val canvas = object : android.graphics.Canvas() {
             override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { fills += p.color }
+            override fun drawPath(path: android.graphics.Path, p: android.graphics.Paint) { fills += p.color }
             override fun drawText(text: String, x: Float, y: Float, p: android.graphics.Paint) { textColors += p.color }
         }
         tab.draw(canvas)

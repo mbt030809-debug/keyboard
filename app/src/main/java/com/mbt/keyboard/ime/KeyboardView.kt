@@ -398,11 +398,23 @@ class KeyboardView(context: Context) : View(context) {
     /** 탭이 키보드 왼쪽 끝에서 떨어진 거리 (숫자 띠와 같은 선) */
     fun fnTabLeftPx(): Float = padL
 
-    /** 탭 바탕이 버튼 둘레로 내미는 길이 (상하좌우 똑같이) */
-    fun fnTabPadPx(): Float = FN_TAB_PAD_DP * density
+    /**
+     * 탭 바탕의 둘레 여백은 키보드 설정을 그대로 따른다: 키보드가 키 둘레에 두는 것과 똑같이
+     * 위 = 위 여백 + 줄 여백/2, 왼쪽·오른쪽 = 각 여백 (키 사이 간격/2는 버튼 칸 안쪽에 이미 들어 있다)
+     */
+    fun fnTabPadPx(): Float = (frame.topDp + frame.rowGapDp / 2f) * density
 
-    /** 탭 전체 높이 = 버튼 + 위아래 바탕 */
-    fun fnTabHeightPx(): Float = fnKeyHeightPx() + 2 * fnTabPadPx()
+    /** 탭 바탕의 오른쪽 여백 */
+    fun fnTabRightPx(): Float = padR
+
+    /**
+     * 탭 버튼 아래 바탕 폭. 버튼과 맨 위 숫자 키 사이가 글자 줄 사이 간격(줄 여백)과 같아지도록,
+     * 키보드 위쪽 여백(위 여백 + 줄 여백/2)만큼은 뺀다. 그래서 보통은 0이고, 바탕이 키보드에 바로 맞닿는다
+     */
+    fun fnTabPadBottomPx(): Float = (frame.rowGapDp / 2f - frame.topDp).coerceAtLeast(0f) * density
+
+    /** 탭 전체 높이 = 위 바탕 + 버튼 + 아래 바탕 */
+    fun fnTabHeightPx(): Float = fnTabPadPx() + fnKeyHeightPx() + fnTabPadBottomPx()
 
     /** 탭 버튼 좌우 여백: 숫자 키와 똑같이 키 사이 간격의 절반씩 */
     fun fnTabInsetPx(): Float = frame.keyGapDp / 2f * density
@@ -1169,7 +1181,6 @@ class KeyboardView(context: Context) : View(context) {
         val FN_TYPES = setOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE)
         const val DEFAULT_NUMBER_ROW_SCALE = 0.8f
         const val LABEL_WIDTH_FACTOR = 1.35f
-        const val FN_TAB_PAD_DP = 6f
         const val LABEL_BONUS_DP = 1f
         const val DEFAULT_NUMBER_GAP_DP = 6f
         const val UNDO_MARK_DP = 52f
