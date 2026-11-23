@@ -34,11 +34,11 @@ class KeyboardThemesTest {
         return if (h < 0) h + 360 else h
     }
 
-    @Test fun tenThemesWithUniqueIdsAndNames() {
-        assertEquals(10, KeyboardThemes.all.size)
-        assertEquals(10, KeyboardThemes.all.map { it.id }.toSet().size)
-        assertEquals(10, KeyboardThemes.all.map { it.name }.toSet().size)
-        assertEquals(10, KeyboardThemes.all.map { it.theme.background }.toSet().size)
+    @Test fun twentyThemesWithUniqueIdsAndNames() {
+        assertEquals(20, KeyboardThemes.all.size)
+        assertEquals(20, KeyboardThemes.all.map { it.id }.toSet().size)
+        assertEquals(20, KeyboardThemes.all.map { it.name }.toSet().size)
+        assertEquals(20, KeyboardThemes.all.map { it.theme.background }.toSet().size)
     }
 
     @Test fun everyThemeIsReadable() {
@@ -55,7 +55,7 @@ class KeyboardThemesTest {
 
     @Test fun toneOnToneKeepsOneHuePerTheme() {
         // 채도가 있는 테마는 배경·키·기능키·눌림이 모두 같은 색상(hue) 계열
-        KeyboardThemes.all.filter { it.id != "charcoal" }.forEach { n ->
+        KeyboardThemes.all.filter { it.id !in setOf("charcoal", "cloud", "oat", "neon") }.forEach { n ->
             val t = n.theme
             val hs = listOf(t.background, t.key, t.specialKey, t.keyPressed).map { hue(it) }
             assertTrue("${n.id} $hs", hs.max() - hs.min() < 12f)
@@ -63,11 +63,11 @@ class KeyboardThemesTest {
     }
 
     @Test fun lightThemesAreLightAndDarkThemesAreDark() {
-        listOf("cream", "lavender", "mint", "sky", "rose", "sage").forEach {
-            assertTrue(lum(KeyboardThemes.byId(it)!!.theme.background) > 0.6)
+        listOf("cream", "butter", "peach", "rose", "lavender", "periwinkle", "sky", "mint", "sage", "matcha", "oat", "cloud").forEach {
+            assertTrue(it, lum(KeyboardThemes.byId(it)!!.theme.background) > 0.6)
         }
-        listOf("charcoal", "navy", "mocha", "forest").forEach {
-            assertTrue(lum(KeyboardThemes.byId(it)!!.theme.background) < 0.05)
+        listOf("charcoal", "navy", "ocean", "forest", "mocha", "wine", "plum", "neon").forEach {
+            assertTrue(it, lum(KeyboardThemes.byId(it)!!.theme.background) < 0.05)
         }
     }
 

@@ -8,7 +8,7 @@ data class NamedTheme(val id: String, val name: String, val theme: KeyboardTheme
 /**
  * 키보드 테마 모음. 모두 한 가지 색(hue)의 명도만 달리한 톤온톤·톤인톤이다.
  * 배경 < 키 < 기능키 < 눌림 순으로 같은 색 계열을 단계적으로 쓰고, 글자는 같은 색의 가장 진한(또는 연한) 톤.
- * 밝은 테마 6개 + 어두운 테마 4개.
+ * 밝은 테마 12개 + 어두운 테마 8개.
  */
 object KeyboardThemes {
     /** 기본값: 휴대폰의 밝은/어두운 모드를 따라간다 */
@@ -21,7 +21,7 @@ object KeyboardThemes {
         specialKey = hsl(h, s, 0.78f),
         keyPressed = hsl(h, s, 0.68f),
         text = hsl(h, (s * 0.8f).coerceAtMost(0.5f), 0.15f),
-        accent = hsl(h, (s + 0.2f).coerceAtMost(0.8f), 0.30f),
+        accent = hsl(h, (s + 0.2f).coerceAtMost(0.8f), 0.27f),
         onAccent = hsl(h, 0.4f, 0.97f),
     )
 
@@ -35,18 +35,40 @@ object KeyboardThemes {
         onAccent = hsl(h, s, 0.1f),
     )
 
-    /** 인기 있는 색 계열 10가지 (밝은 6 + 어두운 4) */
+    /** 네온 계열처럼 한 색 명도만 바꾸는 방식이 아닌 테마는 직접 색을 정한다 */
+    private fun custom(bg: Long, key: Long, special: Long, pressed: Long, text: Long, accent: Long, onAccent: Long) =
+        KeyboardTheme(
+            background = bg.toInt(), key = key.toInt(), specialKey = special.toInt(), keyPressed = pressed.toInt(),
+            text = text.toInt(), accent = accent.toInt(), onAccent = onAccent.toInt(),
+        )
+
+    /** 색 계열 20가지: 밝은 12 + 어두운 8 (모두 같은 색의 명도만 달리한 톤온톤, 네온 나이트만 예외) */
     val all: List<NamedTheme> = listOf(
+        // 밝은 테마
         NamedTheme("cream", "크림 베이지", light(38f, 0.45f)),
-        NamedTheme("lavender", "라벤더", light(262f, 0.45f)),
-        NamedTheme("mint", "민트", light(160f, 0.38f)),
-        NamedTheme("sky", "스카이 블루", light(207f, 0.55f)),
+        NamedTheme("butter", "버터 옐로", light(48f, 0.65f)),
+        NamedTheme("peach", "피치", light(15f, 0.7f)),
         NamedTheme("rose", "로즈 핑크", light(345f, 0.5f)),
+        NamedTheme("lavender", "라벤더", light(262f, 0.45f)),
+        NamedTheme("periwinkle", "페리윙클", light(232f, 0.55f)),
+        NamedTheme("sky", "스카이 블루", light(207f, 0.55f)),
+        NamedTheme("mint", "민트", light(160f, 0.38f)),
         NamedTheme("sage", "세이지 그린", light(100f, 0.24f)),
+        NamedTheme("matcha", "말차", light(75f, 0.38f)),
+        NamedTheme("oat", "오트밀", light(34f, 0.2f)),
+        NamedTheme("cloud", "클라우드 (모노)", light(220f, 0.04f)),
+        // 어두운 테마
         NamedTheme("charcoal", "차콜", dark(220f, 0.08f)),
         NamedTheme("navy", "미드나이트 네이비", dark(222f, 0.45f)),
-        NamedTheme("mocha", "모카 브라운", dark(24f, 0.25f)),
+        NamedTheme("ocean", "딥 오션", dark(190f, 0.4f)),
         NamedTheme("forest", "딥 포레스트", dark(150f, 0.3f)),
+        NamedTheme("mocha", "모카 브라운", dark(24f, 0.25f)),
+        NamedTheme("wine", "와인", dark(345f, 0.35f)),
+        NamedTheme("plum", "다크 플럼", dark(290f, 0.28f)),
+        NamedTheme(
+            "neon", "네온 나이트",
+            custom(0xFF0D0E1A, 0xFF1C1E36, 0xFF14152B, 0xFF30345E, 0xFFEEF0FF, 0xFF6EF3FF, 0xFF03141A),
+        ),
     )
 
     fun byId(id: String?): NamedTheme? = all.firstOrNull { it.id == id }

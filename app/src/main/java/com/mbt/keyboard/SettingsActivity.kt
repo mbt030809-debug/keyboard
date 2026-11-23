@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.tabs.TabLayout
 import com.mbt.keyboard.clipboard.ClipboardHistory
 import com.mbt.keyboard.clipboard.PrefsClipboardStore
 import com.mbt.keyboard.layout.Layouts
@@ -57,6 +58,8 @@ class SettingsActivity : AppCompatActivity() {
         status2 = findViewById(R.id.status2)
         btnEnable = findViewById(R.id.btnEnable)
         btnSelect = findViewById(R.id.btnSelect)
+
+        setupTabs(savedInstanceState)
 
         btnEnable.setOnClickListener { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
         btnSelect.setOnClickListener { imm.showInputMethodPicker() }
@@ -165,6 +168,34 @@ class SettingsActivity : AppCompatActivity() {
         })
     }
 
+    /** 위쪽 탭(시작·입력·화면·정보)을 누르면 그 탭의 카드들만 보인다 */
+    private fun setupTabs(saved: Bundle?) {
+        val ids = listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionInfo)
+        val tabs = findViewById<TabLayout>(R.id.tabs)
+        val scroll = findViewById<android.widget.ScrollView>(R.id.scroll)
+        fun show(i: Int) {
+            ids.forEachIndexed { j, id -> findViewById<View>(id).visibility = if (j == i) View.VISIBLE else View.GONE }
+            scroll.scrollTo(0, 0)
+            currentTab = i
+        }
+        tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) = show(tab.position)
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
+        // 이미 준비가 끝났으면 바로 "입력" 설정부터, 아니면 "시작" 안내부터 보여준다
+        val start = saved?.getInt(STATE_TAB) ?: if (isEnabled() && isSelected()) TAB_INPUT else TAB_START
+        tabs.getTabAt(start)?.select()
+        show(start)
+    }
+
+    private var currentTab = 0
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(STATE_TAB, currentTab)
+    }
+
     /** 테마 미리보기 카드를 2열로 늘어놓고, 누르면 바로 저장·적용 */
     private fun buildThemePicker(list: android.widget.LinearLayout) {
         val d = resources.displayMetrics.density
@@ -221,6 +252,15 @@ class SettingsActivity : AppCompatActivity() {
         setStatus(status1, enabled, getString(R.string.status_todo))
         btnEnable.isEnabled = !enabled
 
+        // 맨 위 한 줄 요약: 지금 무엇을 하면 되는지
+        findViewById<TextView>(R.id.statusBanner).text = getString(
+            when {
+                !enabled -> R.string.status_need_enable
+                !selected -> R.string.status_need_select
+                else -> R.string.status_ready
+            },
+        )
+
         if (!enabled) {
             status2.text = getString(R.string.status_wait)
             status2.setTextColor(neutral())
@@ -245,4 +285,10 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun isNight() =
         resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+
+    private companion object {
+        const val STATE_TAB = "tab"
+        const val TAB_START = 0
+        const val TAB_INPUT = 1
+    }
 }

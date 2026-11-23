@@ -85,4 +85,30 @@
     <string name="status_done">완료</string>
     <string name="status_todo">필요</string>
     <string name="status_wait">먼저 1단계</string>
+    <string name="sec_setup">① 키보드를 켜고 선택해요</string>
+    <string name="sec_try">② 입력해 보기</string>
+    <string name="sec_guide">③ 사용법</string>
+    <string name="sec_layout">자판</string>
+    <string name="sec_feel">입력 느낌</string>
+    <string name="sec_extras">편의 기능</string>
+    <string name="sec_look">모양</string>
+    <string name="sec_size">크기와 위치</string>
+    <string name="sec_split">갈라진 자판</string>
+    <string name="sec_about">앱 정보</string>
+    <string name="tab_start">시작</string>
+    <string name="tab_input">입력</string>
+    <string name="tab_screen">화면</string>
+    <string name="tab_info">정보</string>
+    <string name="about_title">MBT 키보드</string>
+    <string name="about_desc">갤럭시(폴드 포함)용 개인 키보드 · 한글 단모음 / 두벌식 / 영어</string>
+    <string name="status_ready">✅ 준비 완료! 이제 아무 입력칸에서나 쓸 수 있어요</string>
+    <string name="status_need_enable">① 먼저 키보드를 켜 주세요</string>
+    <string name="status_need_select">② 입력 방법을 MBT 키보드로 바꿔 주세요</string>
+    <string name="guide_body">• 스페이스바를 좌우로 밀기 → 한/영 전환
+• 글자 키를 꾹 누르기 → 기호·괄호 (밀어서 고르기)
+• 글자 키를 좌우로 밀기 → 커서 이동
+• 백스페이스를 왼쪽으로 밀기 → 지운 글자 되돌리기
+• 엔터를 꾹 누르기 → 상용문구·최근 복사한 글
+• 쉬프트: 한 번 = 한 글자, 빠르게 두 번 = 고정
+• 단모음: 같은 키를 빠르게 두 번 → ㄱ→ㄲ, ㅏ→ㅑ</string>
 </resources>
