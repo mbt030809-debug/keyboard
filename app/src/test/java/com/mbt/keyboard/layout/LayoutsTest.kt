@@ -68,6 +68,15 @@ class LayoutsTest {
         }
     }
 
+    @Test fun enterKeyIsOnePointTwoFiveTimesWiderThanBefore() {
+        Layouts.all.forEach { l ->
+            val bottom = l.rows.last()
+            assertEquals(l.id, 1.625f, bottom.first { it.type == KeyType.ENTER }.weight, 0.0001f)
+            assertEquals(l.id, 10.0, bottom.sumOf { it.weight.toDouble() }, 0.001)               // 줄 전체 폭은 그대로
+            assertTrue(bottom.first { it.type == KeyType.SPACE }.weight > 3.5f)                  // 스페이스는 줄었어도 충분히 넓다
+        }
+    }
+
     @Test fun voiceKeyIsAtTheFarLeftNextToTheEmojiKey() {
         Layouts.all.forEach { l ->
             val bottom = l.rows.last()

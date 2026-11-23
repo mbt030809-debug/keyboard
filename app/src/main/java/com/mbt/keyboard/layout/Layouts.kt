@@ -97,14 +97,17 @@ object Layouts {
     /** 맨 윗줄(전체·복사·붙임·숫자)은 낮게 */
     private val rowHeights = listOf(0.8f, 1f, 1f, 1f, 1f)
 
+    /** 엔터 키 폭: 예전 1.3의 1.25배 (작다는 의견). 줄 전체 10칸에서 늘어난 만큼 스페이스가 줄어든다 */
+    private const val ENTER_WEIGHT = 1.3f * 1.25f
+
     /** 녹음(음성인식)은 맨 왼쪽(이모지 왼쪽)이라 스페이스 주변을 거치적거리지 않는다. 🎤·마침표·쉼표는 같은 폭(1칸). 폭 합계 10 */
     private fun bottom() = listOf(
         Key("🎤", KeyType.VOICE, weight = 1.0f),
         Key("😊", KeyType.EMOJI, weight = 1.3f),
         Key(",", hints = listOf("'", "\"")),
-        Key("", KeyType.SPACE, output = " ", weight = 4.4f),
+        Key("", KeyType.SPACE, output = " ", weight = 10f - 1.0f - 1.3f - 1.0f - 1.0f - ENTER_WEIGHT),
         Key(".", hints = listOf("…", ".com", "·")),   // · 는 . 의 하위 후보
-        Key("⏎", KeyType.ENTER, weight = 1.3f),
+        Key("⏎", KeyType.ENTER, weight = ENTER_WEIGHT),
     )
 
     /**
