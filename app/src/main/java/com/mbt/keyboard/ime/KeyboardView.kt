@@ -335,7 +335,8 @@ class KeyboardView(context: Context) : View(context) {
             // 자판(단모음 기준: 숫자 줄 + 글자 줄 4개)과 똑같다. 줄 n개 + 여백 n칸 = 숫자 줄 + 글자 줄 4개 + 여백 4칸 + 숫자 아래 여백
             // ("숫자 줄 크기" 설정은 이때 띠의 가로 길이로 쓰이므로 높이 계산에는 기본값 80%를 쓴다)
             val n = eff.rows.size
-            val single = base * DEFAULT_NUMBER_ROW_SCALE + 4f * base + frame.numberGapDp * density + 4f * frame.rowGapDp * density
+            // ("숫자키 글자키 여백" 설정도 이때는 가로 여백이라 높이 계산에는 기본값을 쓴다)
+            val single = base * DEFAULT_NUMBER_ROW_SCALE + 4f * base + DEFAULT_NUMBER_GAP_DP * density + 4f * frame.rowGapDp * density
             return ((single - n * frame.rowGapDp * density) / n).coerceAtLeast(1f)
         }
         val scale = if (isNumberRow(r)) frame.numberRowScale else (eff?.rowHeights?.getOrNull(r) ?: 1f)
@@ -406,8 +407,10 @@ class KeyboardView(context: Context) : View(context) {
             }
             // 왼쪽 세로 띠(숫자)가 있으면 맨 아래 줄을 뺀 줄들은 그 오른쪽에서 시작한다
             val inStrip = hasSide && r < layout.rows.size - 1
-            val rowStartX = if (inStrip) padL + stripPx else padL
-            val rowUsableW = if (inStrip) usableW - stripPx else usableW
+            // 숫자 띠와 글자 키 사이 가로 여백 = "숫자키 글자키 여백" 설정 (키 사이 기본 간격 대신)
+            val stripShift = if (inStrip) (frame.numberGapDp - frame.keyGapDp) * density else 0f
+            val rowStartX = if (inStrip) padL + stripPx + stripShift else padL
+            val rowUsableW = if (inStrip) usableW - stripPx - stripShift else usableW
             if (hasSide && r == layout.rows.size - 1) {
                 // 모아키 맨 아래 줄: 전체·복사·붙임 키의 가로 폭을 숫자 키 한 칸(띠 폭의 절반)과 똑같이 맞춘다
                 val rest = halves.left.filter { it.key.type !in FN_TYPES }.sumOf { it.weight.toDouble() }.toFloat()
@@ -1101,6 +1104,7 @@ class KeyboardView(context: Context) : View(context) {
         const val SIDE_STRIP_FRACTION = 0.19f
         val FN_TYPES = setOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE)
         const val DEFAULT_NUMBER_ROW_SCALE = 0.8f
+        const val DEFAULT_NUMBER_GAP_DP = 6f
         const val UNDO_MARK_DP = 52f
         const val UNDO_MARK_MS = 900L
         const val DUPLICATE_WEIGHT = 0.85f

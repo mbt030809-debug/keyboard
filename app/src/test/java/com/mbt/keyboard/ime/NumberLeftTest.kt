@@ -107,7 +107,7 @@ class NumberLeftTest {
 
     @Test fun totalHeightStaysTheSameAsWithTheNumberRowOnTop() {
         for (layout in listOf(Layouts.koreanSingle, Layouts.korean, Layouts.english)) {
-            for (frame in listOf(KeyboardFrame(), KeyboardFrame(rowGapDp = 2, numberGapDp = 0), KeyboardFrame(rowGapDp = 12, numberGapDp = 4))) {
+            for (frame in listOf(KeyboardFrame(), KeyboardFrame(rowGapDp = 2), KeyboardFrame(rowGapDp = 12))) {
                 show(layout, numberLeft = false, frame = frame); val top = view.measuredHeight
                 show(layout, numberLeft = true, frame = frame); val left = view.measuredHeight
                 assertEquals("${layout.id} $frame", top.toDouble(), left.toDouble(), 2.0)
@@ -132,6 +132,28 @@ class NumberLeftTest {
         show(Layouts.english, numberLeft = true, frame = KeyboardFrame(numberRowScale = 0.4f)); val h1 = view.measuredHeight
         show(Layouts.english, numberLeft = true, frame = KeyboardFrame(numberRowScale = 1.2f)); val h2 = view.measuredHeight
         assertEquals(h1.toDouble(), h2.toDouble(), 1.0)
+    }
+
+    @Test fun numberToLetterGapBecomesTheHorizontalGapBetweenStripAndLetters() {
+        for ((layout, label) in listOf(Layouts.koreanSingle to "ㅂ", Layouts.korean to "ㅂ", Layouts.english to "q")) {
+            fun gap(g: Int): Float {
+                show(layout, numberLeft = true, frame = KeyboardFrame(numberGapDp = g))
+                val digit = inner("6")                      // 띠 오른쪽 열
+                val letter = inner(label)
+                return (letter.left - digit.right) / density
+            }
+            assertEquals(layout.id, 6f, gap(6), 0.1f)
+            assertEquals(layout.id, 0f, gap(0), 0.1f)
+            assertEquals(layout.id, 20f, gap(20), 0.1f)
+            // 세로 높이와는 상관없다
+            show(layout, numberLeft = true, frame = KeyboardFrame(numberGapDp = 0)); val a = view.measuredHeight
+            show(layout, numberLeft = true, frame = KeyboardFrame(numberGapDp = 30)); val b = view.measuredHeight
+            assertEquals(layout.id, a.toDouble(), b.toDouble(), 1.0)
+        }
+        // 숫자를 위에 둘 때는 예전처럼 세로 여백
+        show(Layouts.english, numberLeft = false, frame = KeyboardFrame(numberGapDp = 20))
+        val gapY = (inner("q").top - inner("1").bottom) / density
+        assertEquals(20f, gapY, 0.1f)
     }
 
     @Test fun turningItOffRestoresTheTopNumberRow() {

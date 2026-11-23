@@ -167,6 +167,21 @@ class MoakiTest {
         assertTrue(space.width() > view.keyRects().first { it.first.label == "복사" }.second.width())
     }
 
+    @Test fun numberToLetterGapSettingIsTheHorizontalGapOnMoaki() {
+        fun gap(numGap: Int): Float {
+            view.frame = com.mbt.keyboard.ime.KeyboardFrame(numberGapDp = numGap); relayout()
+            val digit = view.keyInnerRects().first { it.first.label == "6" }.second          // 띠 오른쪽 열
+            val letter = view.keyInnerRects().first { it.first.label == "ㅁ" }.second
+            return (letter.left - digit.right) / density
+        }
+        assertEquals(6f, gap(6), 0.1f)
+        assertEquals(0f, gap(0), 0.1f)
+        assertEquals(20f, gap(20), 0.1f)
+        val h1 = measuredHeightWith(Layouts.moaki, com.mbt.keyboard.ime.KeyboardFrame(numberGapDp = 0))
+        val h2 = measuredHeightWith(Layouts.moaki, com.mbt.keyboard.ime.KeyboardFrame(numberGapDp = 30))
+        assertEquals(h1.toDouble(), h2.toDouble(), 1.0)                       // 세로 높이와 무관
+    }
+
     @Test fun tappingASideDigitTypesIt() {
         fun tapKey(label: String) {
             downTime = SystemClock.uptimeMillis()
@@ -360,8 +375,8 @@ class MoakiTest {
     @Test fun moakiKeyboardHasTheSameTotalHeightAsTheSingleVowelKeyboard() {
         listOf(
             com.mbt.keyboard.ime.KeyboardFrame(),
-            com.mbt.keyboard.ime.KeyboardFrame(rowGapDp = 0, numberGapDp = 0),
-            com.mbt.keyboard.ime.KeyboardFrame(rowGapDp = 14, numberGapDp = 3),
+            com.mbt.keyboard.ime.KeyboardFrame(rowGapDp = 0),
+            com.mbt.keyboard.ime.KeyboardFrame(rowGapDp = 14),
             com.mbt.keyboard.ime.KeyboardFrame(topDp = 10, bottomDp = 2, keyGapDp = 2),
         ).forEach { f ->
             val single = measuredHeightWith(Layouts.koreanSingle, f)
