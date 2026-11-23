@@ -750,13 +750,14 @@ class KeyboardView(context: Context) : View(context) {
                 isPressed(cell) -> theme.keyPressed
                 key.type == KeyType.VOICE && voiceListening -> theme.accent
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
+                key.type == KeyType.ENTER -> theme.enterKey        // 엔터: 색은 유지하되 덜 진하게
                 isSpecial || cell.duplicate -> theme.specialKey      // 복제 키는 기능키 색으로 살짝 구분
                 isDigitKey(key) -> theme.numberKey                    // 숫자 키는 조금 어둡게
                 else -> theme.key
             }
             val r = cell.inner
             if (theme.frost) {
-                drawFrostKey(canvas, r, frostKeyRadiusPx(), if (key.type == KeyType.ENTER) theme.accent else paint.color, isPressed(cell))
+                drawFrostKey(canvas, r, frostKeyRadiusPx(), paint.color, isPressed(cell))
             } else if (theme.keyShadow) {
                 val keep = paint.color
                 paint.color = 0x26000000
@@ -781,7 +782,7 @@ class KeyboardView(context: Context) : View(context) {
                 else -> key.labelFor(shiftState != ShiftState.OFF)
             }
             if (label.isEmpty()) continue
-            paint.color = if ((key.type == KeyType.VOICE && voiceListening) || (theme.frost && key.type == KeyType.ENTER)) theme.onAccent else theme.text
+            paint.color = if (key.type == KeyType.VOICE && voiceListening) theme.onAccent else theme.text
             val size = when {
                 key.type == KeyType.SPACE -> 0.26f
                 key.type in TOOLBAR_ACTION_TYPES -> 0.34f

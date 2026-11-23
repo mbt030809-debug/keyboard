@@ -30,17 +30,25 @@ data class KeyboardTheme(
     val frostStyle: Int = 0,
     /** [frost] 유리판 위에 얹는 투명 흰색(ARGB) */
     val frostTint: Int = 0x24FFFFFF,
-    /** 0이 아니면 숫자 키 배경으로 이 색을 그대로 쓴다 (투명한 키 테마용) */
-    val numberKeyOverride: Int = 0,
 ) {
     val hasGradient: Boolean get() = backgroundEnd != 0
 
-    /** 숫자 키 배경: 테마 바탕색과 글자 키 배경색의 중간색 */
+    /** 숫자 키 배경: 글자 키 색을 모든 테마에서 똑같이 [NUMBER_KEY_DARKEN] 만큼 어둡게 (투명도는 그대로) */
     val numberKey: Int
         get() {
-            if (numberKeyOverride != 0) return numberKeyOverride
-            fun mix(sh: Int) = ((((key ushr sh) and 0xFF) + ((background ushr sh) and 0xFF)) / 2f + 0.5f).toInt().coerceIn(0, 255)
-            return (mix(24) shl 24) or (mix(16) shl 16) or (mix(8) shl 8) or mix(0)
+            fun ch(sh: Int) = (((key ushr sh) and 0xFF) * (1f - NUMBER_KEY_DARKEN) + 0.5f).toInt().coerceIn(0, 255)
+            return (key and 0xFF000000.toInt()) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+        }
+
+    /**
+     * 엔터 키 배경: 색(계열)은 그대로 두고 덜 진하게 — 글래스 테마는 강조색을, 나머지는 기능키 색을 글자 키 색 쪽으로 반쯤 섞는다.
+     */
+    val enterKey: Int
+        get() {
+            val base = if (frost) accent else specialKey
+            val toward = if (frost) 0xFFFFFFFF.toInt() else key
+            fun ch(sh: Int) = ((((base ushr sh) and 0xFF) * (1f - ENTER_KEY_SOFTEN) + ((toward ushr sh) and 0xFF) * ENTER_KEY_SOFTEN) + 0.5f).toInt().coerceIn(0, 255)
+            return (ch(24) shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
         }
 
     /** 배경 색들 (시작 → 가운데 → 끝). 그라데이션이 아니면 한 색 */
@@ -73,6 +81,12 @@ data class KeyboardTheme(
     }
 
     companion object {
+        /** 숫자 키를 글자 키보다 얼마나 어둡게 할지 (0~1) */
+        const val NUMBER_KEY_DARKEN = 0.14f
+
+        /** 엔터 키를 기능키(또는 강조색)에서 글자 키 쪽으로 얼마나 옅게 할지 (0~1) */
+        const val ENTER_KEY_SOFTEN = 0.5f
+
         val LIGHT = KeyboardTheme(
             background = 0xFFD9DCE1.toInt(), key = 0xFFFFFFFF.toInt(), specialKey = 0xFFB9BEC7.toInt(),
             keyPressed = 0xFF9AA3B5.toInt(), text = 0xFF1B1B1F.toInt(),

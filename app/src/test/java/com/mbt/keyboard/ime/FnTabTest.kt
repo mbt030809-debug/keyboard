@@ -373,7 +373,6 @@ class FrostThemeTest {
             assertEquals(3, t.backgroundStops.size)
             assertTrue("$id 키는 거의 흰색", (t.key ushr 24) >= 0xC0 && ((t.key shr 16) and 0xFF) == 0xFF)
             assertTrue("$id 기능키는 키보다 투명", (t.specialKey ushr 24) < (t.key ushr 24))
-            assertTrue("$id 숫자키 지정색", t.numberKey == t.numberKeyOverride)
         }
     }
 }

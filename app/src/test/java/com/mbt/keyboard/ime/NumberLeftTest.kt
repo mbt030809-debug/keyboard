@@ -264,14 +264,33 @@ class NumberKeyShadeTest {
         assertTrue(lum(colorOf(m, "5")) < lum(colorOf(m, "ㅂ")))
     }
 
-    @Test fun numberKeyColorIsTheMidpointOfThemeBackgroundAndLetterKeyForEveryTheme() {
+    @Test fun numberKeyIsDarkerThanTheLetterKeyInEveryTheme() {
+        fun lum(c: Int) = ((c shr 16) and 0xFF) * 0.3 + ((c shr 8) and 0xFF) * 0.59 + (c and 0xFF) * 0.11
         KeyboardThemes.all.forEach { n ->
             val t = n.theme
-            if (t.numberKeyOverride != 0) { assertEquals(t.numberKeyOverride, t.numberKey); return@forEach }   // 투명한 유리 키 테마는 지정색
             val nk = t.numberKey
+            assertEquals("${n.id} 투명도 그대로", t.key ushr 24, nk ushr 24)
+            if (lum(t.key) > 8) assertTrue("${n.id} ${lum(nk)} < ${lum(t.key)}", lum(nk) < lum(t.key))
+            listOf(16, 8, 0).forEach { sh ->
+                assertEquals("${n.id} $sh", ((t.key shr sh) and 0xFF) * (1f - KeyboardTheme.NUMBER_KEY_DARKEN), ((nk shr sh) and 0xFF).toFloat(), 1f)
+            }
+        }
+    }
+
+    @Test fun enterKeyKeepsItsColourButIsSofterInEveryTheme() {
+        fun lum(c: Int) = ((c shr 16) and 0xFF) * 0.3 + ((c shr 8) and 0xFF) * 0.59 + (c and 0xFF) * 0.11
+        KeyboardThemes.all.forEach { n ->
+            val t = n.theme
+            val e = t.enterKey
+            val base = if (t.frost) t.accent else t.specialKey
+            val toward = if (t.frost) 0xFFFFFFFF.toInt() else t.key
+            // 기준색과 글자 키 색(또는 흰색)의 딱 가운데
             listOf(24, 16, 8, 0).forEach { sh ->
-                val expected = (((t.key shr sh) and 0xFF) + ((t.background shr sh) and 0xFF)) / 2f
-                assertEquals("${n.id} $sh", expected, ((nk shr sh) and 0xFF).toFloat(), 1f)
+                val expected = (((base shr sh) and 0xFF) + ((toward shr sh) and 0xFF)) / 2f
+                assertEquals("${n.id} $sh", expected, ((e shr sh) and 0xFF).toFloat(), 1f)
+            }
+            if (!t.frost && (t.key ushr 24) == 0xFF && (t.specialKey ushr 24) == 0xFF) {
+                assertTrue("${n.id} 엔터가 기능키보다 글자 키에 가깝다", Math.abs(lum(e) - lum(t.key)) <= Math.abs(lum(t.specialKey) - lum(t.key)) + 1)
             }
         }
     }
