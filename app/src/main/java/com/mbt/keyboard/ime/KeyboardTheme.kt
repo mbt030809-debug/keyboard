@@ -30,12 +30,17 @@ data class KeyboardTheme(
     val frostStyle: Int = 0,
     /** [frost] 유리판 위에 얹는 투명 흰색(ARGB) */
     val frostTint: Int = 0x24FFFFFF,
+    /** 0이 아니면 숫자 키를 이 색의 투명한 "색입힌 유리"로 그린다 (글래스 테마용, ARGB) */
+    val numberKeyGlass: Int = 0,
+    /** 0이 아니면 엔터 키를 이 색의 투명한 "색입힌 유리"로 그린다 (글래스 테마용, ARGB) */
+    val enterKeyGlass: Int = 0,
 ) {
     val hasGradient: Boolean get() = backgroundEnd != 0
 
     /** 숫자 키 배경: 글자 키 색을 모든 테마에서 똑같이 [NUMBER_KEY_DARKEN] 만큼 어둡게 (투명도는 그대로) */
     val numberKey: Int
         get() {
+            if (numberKeyGlass != 0) return numberKeyGlass
             fun ch(sh: Int) = (((key ushr sh) and 0xFF) * (1f - NUMBER_KEY_DARKEN) + 0.5f).toInt().coerceIn(0, 255)
             return (key and 0xFF000000.toInt()) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
         }
@@ -45,6 +50,7 @@ data class KeyboardTheme(
      */
     val enterKey: Int
         get() {
+            if (enterKeyGlass != 0) return enterKeyGlass
             val base = if (frost) accent else specialKey
             val toward = if (frost) 0xFFFFFFFF.toInt() else key
             fun ch(sh: Int) = ((((base ushr sh) and 0xFF) * (1f - ENTER_KEY_SOFTEN) + ((toward ushr sh) and 0xFF) * ENTER_KEY_SOFTEN) + 0.5f).toInt().coerceIn(0, 255)

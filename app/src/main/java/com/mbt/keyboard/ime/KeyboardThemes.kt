@@ -66,6 +66,7 @@ object KeyboardThemes {
                 key = 0xEDFFFFFF.toInt(), specialKey = 0x80FFFFFF.toInt(), keyPressed = 0xFFC9D0E8.toInt(),
                 text = 0xFF2C3550.toInt(), accent = 0xFF4256D4.toInt(), onAccent = 0xFFFFFFFF.toInt(),
                 frost = true, frostStyle = 0, frostTint = 0x1AFFFFFF,
+                numberKeyGlass = 0xB8C9D3F5.toInt(), enterKeyGlass = 0xCC93A8F6.toInt(),
             ),
         ),
         NamedTheme(
@@ -75,6 +76,7 @@ object KeyboardThemes {
                 key = 0xF5FFFFFF.toInt(), specialKey = 0xA6FFFFFF.toInt(), keyPressed = 0xFFC9CFDC.toInt(),
                 text = 0xFF1C1F2A.toInt(), accent = 0xFF4660C8.toInt(), onAccent = 0xFFFFFFFF.toInt(),
                 frost = true, frostStyle = 1, frostTint = 0x24FFFFFF,
+                numberKeyGlass = 0xB8D9CCB8.toInt(), enterKeyGlass = 0xCC9DB2E8.toInt(),
             ),
         ),
         NamedTheme(
@@ -84,6 +86,7 @@ object KeyboardThemes {
                 key = 0xCCFFFFFF.toInt(), specialKey = 0x80FFFFFF.toInt(), keyPressed = 0xFFB4C2E0.toInt(),
                 text = 0xFF151A2E.toInt(), accent = 0xFF5A96FF.toInt(), onAccent = 0xFF0A1A3A.toInt(),
                 frost = true, frostStyle = 2, frostTint = 0x1AFFFFFF,
+                numberKeyGlass = 0xCCC4D2F2.toInt(), enterKeyGlass = 0xD998BEFF.toInt(),
             ),
         ),
         NamedTheme("sunset", "선셋 글로우", glass(0xFFB48A, 0xB79CFF, 0x66FFFFFF, 0x99FFFFFF, 0x33FFFFFF, 0x99FFFFFF, 0x4A1F5E, 0x7A2CBF, 0xFFFFFF, mid = 0xFF8FA3)),

@@ -795,7 +795,7 @@ class KeyboardView(context: Context) : View(context) {
         val radius = 7 * density
         for (cell in cells) {
             val key = cell.key
-            val isSpecial = key.type !in NORMAL_STYLE_TYPES
+            val isSpecial = key.type !in NORMAL_STYLE_TYPES || key.type == KeyType.VOICE      // 음성인식 키도 쉬프트·이모티콘 키와 같은 배경색
             paint.color = when {
                 isPressed(cell) -> theme.keyPressed
                 key.type == KeyType.VOICE && voiceListening -> theme.accent

@@ -269,6 +269,7 @@ class NumberKeyShadeTest {
         KeyboardThemes.all.forEach { n ->
             val t = n.theme
             val nk = t.numberKey
+            if (t.numberKeyGlass != 0) return@forEach        // 글래스 테마는 색입힌 유리 (아래 별도 테스트)
             assertEquals("${n.id} 투명도 그대로", t.key ushr 24, nk ushr 24)
             if (lum(t.key) > 8) assertTrue("${n.id} ${lum(nk)} < ${lum(t.key)}", lum(nk) < lum(t.key))
             listOf(16, 8, 0).forEach { sh ->
@@ -282,6 +283,7 @@ class NumberKeyShadeTest {
         KeyboardThemes.all.forEach { n ->
             val t = n.theme
             val e = t.enterKey
+            if (t.enterKeyGlass != 0) return@forEach         // 글래스 테마는 색입힌 유리 (아래 별도 테스트)
             val base = if (t.frost) t.accent else t.specialKey
             val toward = if (t.frost) 0xFFFFFFFF.toInt() else t.key
             // 기준색과 글자 키 색(또는 흰색)의 딱 가운데
@@ -291,6 +293,58 @@ class NumberKeyShadeTest {
             }
             if (!t.frost && (t.key ushr 24) == 0xFF && (t.specialKey ushr 24) == 0xFF) {
                 assertTrue("${n.id} 엔터가 기능키보다 글자 키에 가깝다", Math.abs(lum(e) - lum(t.key)) <= Math.abs(lum(t.specialKey) - lum(t.key)) + 1)
+            }
+        }
+    }
+
+    @Test fun glassThemesTintTheNumberAndEnterKeysAsTranslucentColouredGlass() {
+        fun over(fg: Int, bg: Int): Int {
+            val a = ((fg ushr 24) and 0xFF) / 255f
+            fun ch(sh: Int) = (((fg shr sh) and 0xFF) * a + ((bg shr sh) and 0xFF) * (1 - a)).toInt()
+            return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+        }
+        fun lum(c: Int): Double {
+            fun ch(v: Int): Double { val x = v / 255.0; return if (x <= 0.03928) x / 12.92 else Math.pow((x + 0.055) / 1.055, 2.4) }
+            return 0.2126 * ch((c shr 16) and 0xFF) + 0.7152 * ch((c shr 8) and 0xFF) + 0.0722 * ch(c and 0xFF)
+        }
+        fun contrast(a: Int, b: Int) = (maxOf(lum(a), lum(b)) + 0.05) / (minOf(lum(a), lum(b)) + 0.05)
+        KeyboardThemes.all.filter { it.theme.frost }.forEach { n ->
+            val t = n.theme
+            assertTrue("${n.id} 숫자키 유리색", t.numberKeyGlass != 0 && t.numberKey == t.numberKeyGlass)
+            assertTrue("${n.id} 엔터 유리색", t.enterKeyGlass != 0 && t.enterKey == t.enterKeyGlass)
+            assertTrue("${n.id} 숫자키 투명", (t.numberKey ushr 24) in 0x80..0xE0)       // 불투명이 아니라 투명도가 있다
+            assertTrue("${n.id} 엔터 투명", (t.enterKey ushr 24) in 0x80..0xE8)
+            t.backgroundStops.forEach { stop ->
+                assertTrue("${n.id} 숫자키는 글자 키보다 어둡다", lum(over(t.numberKey, stop)) < lum(over(t.key, stop)))
+                assertTrue("${n.id} 숫자 글자 대비 ${contrast(t.text, over(t.numberKey, stop))}", contrast(t.text, over(t.numberKey, stop)) >= 4.5)
+                assertTrue("${n.id} 엔터 글자 대비 ${contrast(t.text, over(t.enterKey, stop))}", contrast(t.text, over(t.enterKey, stop)) >= 4.5)
+            }
+        }
+    }
+
+    @Test fun voiceKeyUsesTheSameBackgroundAsShiftAndEmojiKeys() {
+        for (id in listOf("charcoal", "iosglass_holo")) {
+            val theme = KeyboardThemes.byId(id)!!.theme
+            val fills = HashMap<String, Int>()
+            val v = KeyboardView(ApplicationProvider.getApplicationContext<Context>()).also { it.theme = theme; it.keyboardLayout = Layouts.english; it.numberLeft = true; it.fnTab = true }
+            v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+            val rects = v.keyInnerRects()
+            fun nameOf(l: Float, t: Float): String? = rects.firstOrNull { Math.abs(it.second.left - l) < 1f && Math.abs(it.second.top - t) < 1f }?.first?.type?.name
+            v.draw(object : android.graphics.Canvas() {
+                override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) {
+                    nameOf(l, t)?.let { if (!fills.containsKey(it)) fills[it] = p.color }
+                }
+                override fun drawRoundRect(r: android.graphics.RectF, rx: Float, ry: Float, p: android.graphics.Paint) {
+                    nameOf(r.left, r.top)?.let { if (!fills.containsKey(it)) fills[it] = p.color }
+                }
+                override fun saveLayer(l: Float, t: Float, r: Float, b: Float, p: android.graphics.Paint?): Int = save()
+                override fun clipPath(path: android.graphics.Path): Boolean = true
+            })
+            if (id == "charcoal") {
+                assertEquals(fills["SHIFT"], fills["VOICE"])
+                assertEquals(fills["EMOJI"], fills["VOICE"])
+                assertEquals(theme.specialKey, fills["VOICE"])
             }
         }
     }
