@@ -76,6 +76,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (::host.isInitialized && key == Prefs.KEY_THEME) applyTheme()
         if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen")) {
             updateSplit(resources.configuration)
             applyGeometry(resources.configuration)
@@ -137,8 +138,10 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         }
         updateSplit(resources.configuration)
         loadTimings()
-        panel = EmojiPanel(this, emojiListener).also { it.visibility = View.GONE }
-        quickPanel = QuickPanel(this, quickListener).also { it.visibility = View.GONE }
+        val theme = KeyboardTheme.current(this)
+        view.theme = theme
+        panel = EmojiPanel(this, emojiListener, theme).also { it.visibility = View.GONE }
+        quickPanel = QuickPanel(this, quickListener, theme).also { it.visibility = View.GONE }
         // 키보드와 이모지 패널을 같은 자리에 겹쳐 두고 번갈아 보여준다 (패널 높이 = 키보드 높이)
         // host: 키보드·패널을 담는 틀. 설정한 가로/세로 크기와 위치(좌우, 바닥에서 띄우기)는 이 틀에 적용한다
         host = FrameLayout(this).apply {
@@ -162,6 +165,23 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         return root
     }
 
+    /**
+     * 테마를 바꾸면 키보드와 두 패널의 색을 바로 바꾼다.
+     * 패널은 색을 만들 때 한 번만 읽으므로 새로 만들어 같은 자리에 끼운다 (보이던 패널은 닫힌다).
+     */
+    internal fun applyTheme() {
+        val theme = KeyboardTheme.current(this)
+        view.theme = theme
+        view.invalidate()
+        host.removeView(panel)
+        host.removeView(quickPanel)
+        panel = EmojiPanel(this, emojiListener, theme).also { it.visibility = View.GONE }
+        quickPanel = QuickPanel(this, quickListener, theme).also { it.visibility = View.GONE }
+        host.addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        host.addView(quickPanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        view.visibility = View.VISIBLE
+    }
+
     /** 설정 화면에서 바꾼 입력 타이밍(멈춤 기준, 꾹 누르기 시간)을 반영 */
     private fun loadTimings() {
         pauseSplitMs = Prefs.pauseSplitMs(this)
@@ -171,6 +191,8 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** 폴드를 펼치거나 접으면 화면 크기가 바뀐다 → 나눠쓰기 전환 */
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        // 시스템 테마(기본)는 휴대폰의 밝은/어두운 모드가 바뀌면 같이 바뀐다
+        if (::host.isInitialized && Prefs.themeId(this) == KeyboardThemes.SYSTEM) applyTheme()
         if (::view.isInitialized) {
             updateSplit(newConfig)
             applyGeometry(newConfig)

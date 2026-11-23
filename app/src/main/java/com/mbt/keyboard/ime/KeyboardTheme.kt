@@ -3,7 +3,7 @@ package com.mbt.keyboard.ime
 import android.content.Context
 import android.content.res.Configuration
 
-/** 색·크기 묶음. 6단계에서 사용자 설정과 연결. */
+/** 색·크기 묶음. 사용자가 고른 테마는 [KeyboardThemes] 참고. */
 data class KeyboardTheme(
     val background: Int,
     val key: Int,
@@ -26,6 +26,10 @@ data class KeyboardTheme(
             keyPressed = 0xFF5A5E6B.toInt(), text = 0xFFF2F2F5.toInt(),
             accent = 0xFF8C9EFF.toInt(), onAccent = 0xFF0A1A6B.toInt(),
         )
+
+        /** 설정에서 고른 테마. 고르지 않았으면(또는 모르는 값이면) 시스템 모드를 따른다 */
+        fun current(context: Context): KeyboardTheme =
+            KeyboardThemes.resolve(com.mbt.keyboard.settings.Prefs.themeId(context)) ?: system(context)
 
         fun system(context: Context): KeyboardTheme {
             val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK

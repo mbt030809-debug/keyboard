@@ -25,7 +25,10 @@ import com.mbt.keyboard.clipboard.ClipboardHistory
 import com.mbt.keyboard.clipboard.PrefsClipboardStore
 import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.phrase.Phrases
+import com.mbt.keyboard.ime.KeyboardTheme
+import com.mbt.keyboard.ime.KeyboardThemes
 import com.mbt.keyboard.settings.Prefs
+import com.mbt.keyboard.settings.ThemeSwatch
 import com.mbt.keyboard.settings.Timing
 
 /** 온보딩 화면: 키보드 활성화 → 선택 → 입력 테스트. 상태는 돌아올 때마다 자동 갱신. */
@@ -77,6 +80,8 @@ class SettingsActivity : AppCompatActivity() {
         val autoCaps = findViewById<MaterialSwitch>(R.id.switchAutoCaps)
         autoCaps.isChecked = Prefs.autoCapitalize(this)
         autoCaps.setOnCheckedChangeListener { _, on -> Prefs.setAutoCapitalize(this, on) }
+
+        buildThemePicker(findViewById(R.id.themeList))
 
         // 키보드 크기·위치 조정 화면
         findViewById<MaterialButton>(R.id.btnResize).setOnClickListener {
@@ -143,6 +148,37 @@ class SettingsActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) = Unit
             override fun afterTextChanged(s: Editable?) = Phrases.saveRaw(this@SettingsActivity, s.toString())
         })
+    }
+
+    /** 테마 미리보기 카드를 2열로 늘어놓고, 누르면 바로 저장·적용 */
+    private fun buildThemePicker(list: android.widget.LinearLayout) {
+        val d = resources.displayMetrics.density
+        val items = listOf(
+            Triple(KeyboardThemes.SYSTEM, getString(R.string.theme_system), KeyboardTheme.system(this)),
+        ) + KeyboardThemes.all.map { Triple(it.id, it.name, it.theme) }
+        val swatches = ArrayList<Pair<String, ThemeSwatch>>()
+        fun refresh() {
+            val cur = Prefs.themeId(this)
+            swatches.forEach { (id, v) -> v.chosen = id == cur || (cur !in items.map { it.first } && id == KeyboardThemes.SYSTEM) }
+        }
+        items.chunked(2).forEach { pair ->
+            val row = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
+            pair.forEachIndexed { i, (id, name, theme) ->
+                val cell = android.widget.LinearLayout(this).apply {
+                    orientation = android.widget.LinearLayout.VERTICAL
+                    setPadding((4 * d).toInt(), (4 * d).toInt(), (4 * d).toInt(), (8 * d).toInt())
+                    setOnClickListener { Prefs.setThemeId(this@SettingsActivity, id); refresh() }
+                }
+                val sw = ThemeSwatch(this, theme)
+                swatches += id to sw
+                cell.addView(sw, android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, (64 * d).toInt()))
+                cell.addView(TextView(this).apply { text = name; textSize = 13f; setPadding((2 * d).toInt(), (4 * d).toInt(), 0, 0) })
+                row.addView(cell, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            }
+            if (pair.size == 1) row.addView(android.view.View(this), android.widget.LinearLayout.LayoutParams(0, 1, 1f))
+            list.addView(row)
+        }
+        refresh()
     }
 
     override fun onResume() {

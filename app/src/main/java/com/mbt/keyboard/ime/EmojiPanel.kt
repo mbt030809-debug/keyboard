@@ -23,14 +23,17 @@ import com.mbt.keyboard.emoji.EmojiData
  * - 오른쪽 위 ✕: 닫고 키보드로 돌아가기
  */
 @SuppressLint("ViewConstructor")
-class EmojiPanel(context: Context, private val listener: Listener) : LinearLayout(context) {
+class EmojiPanel(
+    context: Context,
+    private val listener: Listener,
+    private val theme: KeyboardTheme = KeyboardTheme.current(context),
+) : LinearLayout(context) {
 
     interface Listener {
         fun onInsert(text: String)
         fun onClose()
     }
 
-    private val theme = KeyboardTheme.system(context)
     private val density = resources.displayMetrics.density
 
     private val emoticons: List<Category> by lazy { EmojiData.emoticons(context) }

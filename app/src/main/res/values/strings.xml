@@ -20,6 +20,9 @@
     <string name="haptic_strength">진동 세기</string>
     <string name="haptic_weak">약함</string>
     <string name="haptic_strong">강함</string>
+    <string name="theme_card_title">키보드 테마</string>
+    <string name="theme_card_desc">같은 색 계열로 맞춘 톤온톤 테마예요. 고르면 키보드에 바로 적용돼요</string>
+    <string name="theme_system">기본 (밝은/어두운 모드 자동)</string>
     <string name="resize_card_title">키보드 크기·위치</string>
     <string name="resize_card_desc">미리보기 키보드를 보면서 가로·세로 길이와 위치를 조절해요. 폴드를 접었을 때와 펼쳤을 때가 따로 저장돼요</string>
     <string name="resize_open">크기 조정</string>

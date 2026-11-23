@@ -22,7 +22,11 @@ import android.widget.TextView
  * 입력하면 키보드로 돌아가고, 오른쪽 위 ✕로도 닫을 수 있다.
  */
 @SuppressLint("ViewConstructor")
-class QuickPanel(context: Context, private val listener: Listener) : LinearLayout(context) {
+class QuickPanel(
+    context: Context,
+    private val listener: Listener,
+    private val theme: KeyboardTheme = KeyboardTheme.current(context),
+) : LinearLayout(context) {
 
     interface Listener {
         /** 상용문구·최근기록 항목을 눌러 입력 */
@@ -36,7 +40,6 @@ class QuickPanel(context: Context, private val listener: Listener) : LinearLayou
         fun onTabChanged(tab: Int) {}
     }
 
-    private val theme = KeyboardTheme.system(context)
     private val density = resources.displayMetrics.density
 
     private var phrases: List<String> = emptyList()

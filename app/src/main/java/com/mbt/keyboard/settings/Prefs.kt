@@ -15,6 +15,14 @@ object Prefs {
     private const val KEY_AUTO_CAPS = "auto_capitalize"
     private const val KEY_CLIPBOARD_ON = "clipboard_history_enabled"
     private const val KEY_QUICK_TAB = "quick_panel_tab"
+    const val KEY_THEME = "keyboard_theme"
+
+    /** 선택한 키보드 테마 id (기본: 시스템 모드 따라가기) */
+    fun themeId(context: Context): String =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString(KEY_THEME, null) ?: "system"
+
+    fun setThemeId(context: Context, id: String) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putString(KEY_THEME, id).apply()
 
     /** 엔터 꾹 누르기 패널을 마지막에 보던 탭 (0=상용문구, 1=최근기록) */
     fun quickPanelTab(context: Context): Int =
