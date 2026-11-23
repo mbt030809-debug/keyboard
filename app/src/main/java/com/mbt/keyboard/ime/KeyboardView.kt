@@ -400,8 +400,8 @@ class KeyboardView(context: Context) : View(context) {
         cells = out
         rowCells = rows
         hitTops = FloatArray(rowTops.size) { rowTops[it] }
-        if (isNumberRow(0)) {
-            // 줄 k(0=숫자 줄, 1~3=글자 줄)의 아래 경계 = 다음 줄의 윗경계를 hitShiftDp[k]만큼 아래로
+        if (isNumberRow(0) || layout.moaki) {
+            // 줄 k(0=숫자 줄(모아키는 쌍자음 줄), 1~3=글자 줄)의 아래 경계 = 다음 줄의 윗경계를 hitShiftDp[k]만큼 아래로
             for (r in 1..minOf(4, rowTops.size - 1)) {
                 val shift = frame.hitShiftDp.getOrElse(r - 1) { 0 } * density
                 hitTops[r] = (rowTops[r] + shift).coerceAtLeast(hitTops[r - 1] + 1f)

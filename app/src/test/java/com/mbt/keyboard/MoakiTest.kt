@@ -107,6 +107,36 @@ class MoakiTest {
         assertTrue(cons > (usable * 0.81f) / 6f)
     }
 
+    @Test fun rowTouchZoneShiftAlsoWorksOnMoaki() {
+        fun tapAt(x: Float, y: Float): String? {
+            keys.clear(); moa.clear()
+            downTime = SystemClock.uptimeMillis()
+            view.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, x, y, 0))
+            view.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime + 10, MotionEvent.ACTION_UP, x, y, 0))
+            return keys.firstOrNull()
+        }
+        val b = rect("ㅂ"); val m = rect("ㅁ")
+        view.frame = com.mbt.keyboard.ime.KeyboardFrame(); relayout()
+        assertEquals("ㅁ", tapAt(m.centerX(), m.top + 2 * density))                                          // 기본(0): 경계 바로 아래는 ㅁ 줄
+        view.frame = com.mbt.keyboard.ime.KeyboardFrame(hitShiftDp = listOf(0, 10, 0, 0)); relayout()
+        // ㅂ 줄의 아래 경계를 10dp 아래로: ㅂ 줄 아래 5dp 지점이 이제 ㅂ 줄로 읽힌다
+        assertEquals("ㅂ", tapAt(b.centerX(), b.bottom + 5 * density))
+        assertEquals("ㅁ", tapAt(m.centerX(), m.centerY()))                                                       // 깊은 곳은 그대로 ㅁ
+        // 맨 아래 줄 경계(ㅋ 줄 아래)도 따로
+        view.frame = com.mbt.keyboard.ime.KeyboardFrame(hitShiftDp = listOf(0, 0, 0, 12)); relayout()
+        val k = rect("ㅋ")
+        assertEquals("ㅋ", tapAt(k.centerX(), k.bottom + 6 * density))
+        // 보이는 키는 그대로
+        val before = view.keyInnerRects().map { it.second.top }
+        view.frame = com.mbt.keyboard.ime.KeyboardFrame(hitShiftDp = listOf(12, 12, 12, 12)); relayout()
+        assertEquals(before, view.keyInnerRects().map { it.second.top })
+    }
+
+    private fun relayout() {
+        view.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+    }
+
     @Test fun tappingASideDigitTypesIt() {
         fun tapKey(label: String) {
             downTime = SystemClock.uptimeMillis()
