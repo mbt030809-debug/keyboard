@@ -97,6 +97,20 @@ class MoakiTest {
         assertEquals(4, moa.size)
     }
 
+    @Test fun diagonalsGiveEuAndI() {
+        drag("ㄱ", dxKeys = -0.6f, dyKeys = -0.6f); assertEquals("ㄱ" to 'ㅡ', moa.last())     // ↖
+        drag("ㄱ", dxKeys = 0.6f, dyKeys = 0.6f); assertEquals("ㄱ" to 'ㅣ', moa.last())      // ↘
+        // 나머지 두 대각선은 가까운 방향 모음 (↗ → ㅏ/ㅗ 쪽, ↙ → ㅓ/ㅜ 쪽)
+        drag("ㄱ", dxKeys = 0.7f, dyKeys = -0.3f); assertEquals("ㄱ" to 'ㅏ', moa.last())
+        drag("ㄱ", dxKeys = 0.3f, dyKeys = -0.7f); assertEquals("ㄱ" to 'ㅗ', moa.last())
+    }
+
+    @Test fun diagonalDirectionsCanBeSwapped() {
+        view.moaDiagonalSwap = true
+        drag("ㄴ", dxKeys = -0.6f, dyKeys = -0.6f); assertEquals("ㄴ" to 'ㅣ', moa.last())
+        drag("ㄴ", dxKeys = 0.6f, dyKeys = 0.6f); assertEquals("ㄴ" to 'ㅡ', moa.last())
+    }
+
     @Test fun longDragMakesTheYVowels() {
         drag("ㅎ", dxKeys = 1.5f); assertEquals("ㅎ" to 'ㅑ', moa.last())
         drag("ㅎ", dxKeys = -1.5f); assertEquals("ㅎ" to 'ㅕ', moa.last())
@@ -125,6 +139,56 @@ class MoakiTest {
     @Test fun sideSymbolKeysAreOrdinaryKeys() {
         drag("!"); drag("?"); drag("~")
         assertEquals(listOf("!", "?", "~"), keys)
+    }
+
+    // ---- 모음 안내 팝업 / 키 높이
+
+    private class Rec : android.graphics.Canvas() {
+        val texts = ArrayList<String>()
+        override fun drawText(text: String, x: Float, y: Float, paint: android.graphics.Paint) { texts += text }
+    }
+
+    private fun drawnTexts() = Rec().also { view.draw(it) }.texts
+
+    @Test fun pressingAConsonantShowsTheSixVowelsAroundItImmediately() {
+        val before = drawnTexts().toList()
+        downTime = SystemClock.uptimeMillis()
+        val r = rect("ㄱ")
+        view.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, r.centerX(), r.centerY(), 0))
+        val shown = drawnTexts() - before.toSet()
+        // 안내 칸: ㅏ ㅓ ㅗ ㅜ ㅡ ㅣ (일부 글자는 키 위에도 있어 개수 대신 새로 나타난 글자로 확인)
+        listOf("ㅏ", "ㅓ", "ㅗ", "ㅜ", "ㅡ", "ㅣ").forEach { v ->
+            assertTrue("$v 안내가 떠야 한다: $shown", drawnTexts().count { it == v } > before.count { it == v })
+        }
+        view.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime + 10, MotionEvent.ACTION_UP, r.centerX(), r.centerY(), 0))
+        assertEquals(before.count { it == "ㅏ" }, drawnTexts().count { it == "ㅏ" })            // 떼면 사라진다
+    }
+
+    @Test fun draggingHighlightsTheChosenSyllableInTheGuide() {
+        downTime = SystemClock.uptimeMillis()
+        val r = rect("ㄱ")
+        view.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, r.centerX(), r.centerY(), 0))
+        view.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime + 5, MotionEvent.ACTION_MOVE, r.centerX() + 0.6f * r.width(), r.centerY(), 0))
+        assertTrue("가" in drawnTexts())                                    // 고른 칸에 완성될 글자
+        view.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime + 10, MotionEvent.ACTION_UP, r.centerX() + 0.6f * r.width(), r.centerY(), 0))
+    }
+
+    @Test fun allMoakiRowsHaveTheSameKeyHeightIncludingTheNumberRow() {
+        val heights = view.keyInnerRects().groupBy { it.second.top }.values.map { it.first().second.height() }
+        assertEquals(6, heights.size)
+        heights.forEach { assertEquals(heights[0], it, 0.5f) }
+        // 다른 자판은 숫자 줄이 더 낮다 (설정값 80%)
+        view.keyboardLayout = Layouts.koreanSingle
+        view.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+        val other = view.keyInnerRects().groupBy { it.second.top }.values.map { it.first().second.height() }
+        assertTrue(other.first() < other[1])
+    }
+
+    @Test fun diagonalSwapSettingIsSaved() {
+        assertFalse(Prefs.moaDiagonalSwap(ctx))
+        Prefs.setMoaDiagonalSwap(ctx, true)
+        assertTrue(Prefs.moaDiagonalSwap(ctx))
     }
 
     // ---- 조합 (엔진)

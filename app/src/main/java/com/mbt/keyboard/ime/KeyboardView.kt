@@ -117,6 +117,9 @@ class KeyboardView(context: Context) : View(context) {
             invalidate()
         }
 
+    /** 모아키: true면 대각선 ㅡ·ㅣ 방향을 서로 바꾼다 (기본: ↖ ㅡ, ↘ ㅣ) */
+    var moaDiagonalSwap: Boolean = false
+
     /** 꾹 누르기로 인식하는 시간 (설정 화면에서 변경) */
     var longPressMs: Long = Timing.LONG_PRESS_DEFAULT_MS
 
@@ -283,7 +286,8 @@ class KeyboardView(context: Context) : View(context) {
      */
     private fun keyBodyPx(r: Int): Float {
         val base = (keyHeightPx - LEGACY_GAP_DP * density).coerceAtLeast(1f)
-        val scale = if (isNumberRow(r)) frame.numberRowScale else (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
+        // 모아키는 숫자 줄을 포함해 모든 줄의 키 높이가 같다
+        val scale = if (isNumberRow(r) && keyboardLayout?.moaki != true) frame.numberRowScale else (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
         return base * scale
     }
 
@@ -461,15 +465,58 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
         for (i in 0 until pointers.size()) pointers.valueAt(i).popup?.let { drawPopup(canvas, it) }
-        for (i in 0 until pointers.size()) drawMoaPreview(canvas, pointers.valueAt(i))
+        for (i in 0 until pointers.size()) {
+            val p = pointers.valueAt(i)
+            drawMoaGuide(canvas, p)
+            drawMoaPreview(canvas, p)
+        }
         message?.let { drawMessage(canvas, it) }
         if (undoMark) drawUndoMark(canvas)
     }
+
+    /**
+     * 모아키: 자음을 누르면 바로 모음 안내가 키 둘레에 뜬다 (위 ㅗ, 아래 ㅜ, 오른쪽 ㅏ, 왼쪽 ㅓ, 대각선 ㅡ·ㅣ).
+     * 미는 방향의 칸은 강조색으로 바뀌고 완성될 글자(예: "가")를 보여준다. 기호 말풍선이 열리면 숨긴다.
+     */
+    private fun drawMoaGuide(canvas: Canvas, p: Pointer) {
+        val c = p.cell ?: return
+        if (keyboardLayout?.moaki != true || !isMoaConsonant(c.key) || p.popup != null || p.ignore || p.cursorDrag) return
+        val cons = c.key.output[0]
+        val d = keyHeightPx * 0.78f                       // 안내 칸 크기
+        val rad = max(c.rect.width(), keyHeightPx) * 1.05f // 키 중심에서 안내 칸까지 거리
+        val iV = if (moaDiagonalSwap) 'ㅡ' else 'ㅣ'
+        val eV = if (moaDiagonalSwap) 'ㅣ' else 'ㅡ'
+        val spots = listOf(          // (각도°, 모음)
+            0f to 'ㅏ', 180f to 'ㅓ', -90f to 'ㅗ', 90f to 'ㅜ', -135f to eV, 45f to iV,
+        )
+        val cx = c.rect.centerX(); val cy = c.rect.centerY()
+        for ((deg, v) in spots) {
+            val rad2 = Math.toRadians(deg.toDouble())
+            val x = (cx + rad * kotlin.math.cos(rad2)).toFloat().coerceIn(d / 2f, width - d / 2f)
+            val y = (cy + rad * kotlin.math.sin(rad2)).toFloat().coerceAtLeast(d / 2f)
+            val box = RectF(x - d / 2f, y - d / 2f, x + d / 2f, y + d / 2f)
+            val chosen = p.moaVowel == v
+            paint.style = Paint.Style.FILL
+            paint.color = if (chosen) theme.accent else theme.solid(theme.key)
+            canvas.drawRoundRect(box, d * 0.3f, d * 0.3f, paint)
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 1.5f * density
+            paint.color = theme.solid(theme.keyPressed)
+            canvas.drawRoundRect(box, d * 0.3f, d * 0.3f, paint)
+            paint.style = Paint.Style.FILL
+            paint.color = if (chosen) theme.onAccent else theme.text
+            paint.textSize = d * (if (chosen) 0.62f else 0.5f)
+            val label = if (chosen) com.mbt.keyboard.hangul.HangulComposer().let { it.input(cons); it.input(v); it.composing } else v.toString()
+            drawCentered(canvas, label, box)
+        }
+    }
+
 
     /** 모아키: 미는 동안 완성될 글자(예: ㄱ→ㅏ 이면 "가")를 키 위에 크게 미리 보여준다 */
     private fun drawMoaPreview(canvas: Canvas, p: Pointer) {
         val c = p.cell ?: return
         val v = p.moaVowel ?: return
+        if (c.key.type != KeyType.MOA_VOWEL) return          // 자음은 주변 안내 칸에서 강조로 보여준다
         val text = if (c.key.type == KeyType.MOA_VOWEL) v.toString() else {
             val comp = com.mbt.keyboard.hangul.HangulComposer()
             comp.input(c.key.output[0]); comp.input(v); comp.composing
@@ -733,6 +780,21 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
+    /** 자음에서 밀 때 각도(화면 기준, 아래가 +90°) → 모음. 대각선 ↖·↘ 는 ㅡ·ㅣ */
+    private fun moaVowelByAngle(dx: Float, dy: Float, long: Boolean): Char {
+        val deg = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+        val iVowel = if (moaDiagonalSwap) 'ㅡ' else 'ㅣ'     // ↘
+        val euVowel = if (moaDiagonalSwap) 'ㅣ' else 'ㅡ'    // ↖
+        return when {
+            deg in 25f..65f -> iVowel
+            deg in -155f..-115f -> euVowel
+            abs(deg) <= 45f -> if (long) 'ㅑ' else 'ㅏ'
+            deg in 45f..135f -> if (long) 'ㅠ' else 'ㅜ'
+            abs(deg) >= 135f -> if (long) 'ㅕ' else 'ㅓ'
+            else -> if (long) 'ㅛ' else 'ㅗ'
+        }
+    }
+
     private fun moaVowelFor(key: Key, dx: Float, dy: Float, long: Boolean): Char {
         val horizontal = abs(dx) >= abs(dy)
         return if (key.type == KeyType.MOA_VOWEL) {
@@ -743,12 +805,7 @@ class KeyboardView(context: Context) : View(context) {
                 else -> 'ㅜ'
             }
         } else {
-            when {
-                horizontal && dx > 0 -> if (long) 'ㅑ' else 'ㅏ'
-                horizontal -> if (long) 'ㅕ' else 'ㅓ'
-                dy < 0 -> if (long) 'ㅛ' else 'ㅗ'
-                else -> if (long) 'ㅠ' else 'ㅜ'
-            }
+            moaVowelByAngle(dx, dy, long)
         }
     }
 
