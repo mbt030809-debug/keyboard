@@ -295,7 +295,8 @@ class KeyboardView(context: Context) : View(context) {
         if (keyboardLayout?.moaki == true) {
             // 모아키는 5줄(숫자는 왼쪽 띠라 줄에 없음)이 키보드 전체 높이를 단모음과 똑같이 채운다:
             // 줄 5개 + 여백 5칸 = (숫자 줄 + 글자 줄 4개) + 여백(숫자 아래 여백 포함, 4칸)
-            val single = base * frame.numberRowScale + 4f * base + frame.numberGapDp * density + 4f * frame.rowGapDp * density
+            // (숫자 줄 높이 설정은 모아키에서 가로 길이로 쓰이므로 높이 계산에는 기본값 80%를 쓴다)
+            val single = base * DEFAULT_NUMBER_ROW_SCALE + 4f * base + frame.numberGapDp * density + 4f * frame.rowGapDp * density
             return ((single - 5f * frame.rowGapDp * density) / 5f).coerceAtLeast(1f)
         }
         val scale = if (isNumberRow(r)) frame.numberRowScale else (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
@@ -336,7 +337,8 @@ class KeyboardView(context: Context) : View(context) {
         val rows = ArrayList<List<Cell>>()
         val usableW = width - padL - padR
         val hasSide = layout.sideKeys.isNotEmpty()
-        stripPx = if (hasSide) usableW * SIDE_STRIP_FRACTION else 0f
+        // 모아키는 "숫자 줄 높이" 설정이 숫자 띠의 가로 길이가 된다 (기본 80%일 때 줄 폭의 19%)
+        stripPx = if (hasSide) usableW * (SIDE_STRIP_FRACTION * frame.numberRowScale / 0.8f).coerceIn(0.05f, 0.30f) else 0f
         sideCells = emptyList()
         rowTops = FloatArray(layout.rows.size)
         var top = padT
@@ -1008,7 +1010,8 @@ class KeyboardView(context: Context) : View(context) {
     private companion object {
         /** 갈라진 자판의 복제 키 가로 비중 (원래 키는 1) */
         /** 왼쪽 세로 띠(숫자 2열)가 줄 폭에서 차지하는 비율 */
-        const val SIDE_STRIP_FRACTION = 0.15f
+        const val SIDE_STRIP_FRACTION = 0.19f
+        const val DEFAULT_NUMBER_ROW_SCALE = 0.8f
         const val UNDO_MARK_DP = 52f
         const val UNDO_MARK_MS = 900L
         const val DUPLICATE_WEIGHT = 0.85f

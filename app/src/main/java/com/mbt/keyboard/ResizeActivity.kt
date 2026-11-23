@@ -121,7 +121,9 @@ class ResizeActivity : AppCompatActivity() {
             { geometry.hit2Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit2Dp < KeyboardGeometry.HIT_MAX })
         addStepper(R.string.resize_hit3, { geometry = geometry.hit3By(it) }, { signedDp(geometry.hit3Dp) },
             { geometry.hit3Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit3Dp < KeyboardGeometry.HIT_MAX })
-        addStepper(R.string.resize_num_height, { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
+        // 모아키는 숫자가 왼쪽 띠라서 "숫자 줄 높이"가 "숫자 띠 가로 길이"가 된다
+        val moaki = Prefs.koreanLayout(this) == com.mbt.keyboard.layout.Layouts.MOA
+        addStepper(if (moaki) R.string.resize_num_width else R.string.resize_num_height, { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
             { geometry.numHeightPct > KeyboardGeometry.NUM_HEIGHT_MIN }, { geometry.numHeightPct < KeyboardGeometry.NUM_HEIGHT_MAX })
 
         findViewById<MaterialButton>(R.id.resetButton).setOnClickListener {

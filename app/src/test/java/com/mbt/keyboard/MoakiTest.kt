@@ -97,14 +97,11 @@ class MoakiTest {
         assertTrue(rect("전체").left < digits.minOf { it.right })
     }
 
-    @Test fun sideDigitStripIsNarrowerNowAndConsonantsGetTheRoom() {
+    @Test fun sideDigitStripDefaultWidthIsNineteenPercent() {
         val digits = view.keyRects().filter { it.first.label in "1234567890".map { c -> c.toString() } }.map { it.second }
         val stripW = digits.maxOf { it.right } - digits.minOf { it.left }
         val usable = view.width - 2 * 4 * density
-        assertEquals(0.15f, stripW / usable, 0.01f)                           // 줄 폭의 15% (예전 19%)
-        // 자음 키 한 칸은 (남은 폭 / 6): 예전보다 넓다
-        val cons = rect("ㅂ").width()
-        assertTrue(cons > (usable * 0.81f) / 6f)
+        assertEquals(0.19f, stripW / usable, 0.01f)                           // 기본 크기: 줄 폭의 19%
     }
 
     @Test fun rowTouchZoneShiftAlsoWorksOnMoaki() {
@@ -135,6 +132,22 @@ class MoakiTest {
     private fun relayout() {
         view.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
         view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+    }
+
+    @Test fun numberRowHeightSettingBecomesTheDigitStripWidthOnMoaki() {
+        val usable = view.width - 2 * 4 * density
+        fun stripFraction(scale: Float): Float {
+            view.frame = com.mbt.keyboard.ime.KeyboardFrame(numberRowScale = scale); relayout()
+            val d = view.keyRects().filter { it.first.label in "1234567890".map { c -> c.toString() } }.map { it.second }
+            return (d.maxOf { it.right } - d.minOf { it.left }) / usable
+        }
+        assertEquals(0.19f, stripFraction(0.8f), 0.01f)       // 기본 80% = 줄 폭의 19% (처음 크기 그대로)
+        assertEquals(0.285f, stripFraction(1.2f), 0.01f)      // 120%면 더 넓게
+        assertEquals(0.095f, stripFraction(0.4f), 0.01f)      // 40%면 더 좁게
+        // 키보드 높이는 이 설정과 상관없다
+        val h1 = measuredHeightWith(Layouts.moaki, com.mbt.keyboard.ime.KeyboardFrame(numberRowScale = 0.4f))
+        val h2 = measuredHeightWith(Layouts.moaki, com.mbt.keyboard.ime.KeyboardFrame(numberRowScale = 1.2f))
+        assertEquals(h1.toDouble(), h2.toDouble(), 1.0)
     }
 
     @Test fun tappingASideDigitTypesIt() {
@@ -332,7 +345,7 @@ class MoakiTest {
         listOf(
             com.mbt.keyboard.ime.KeyboardFrame(),
             com.mbt.keyboard.ime.KeyboardFrame(rowGapDp = 0, numberGapDp = 0),
-            com.mbt.keyboard.ime.KeyboardFrame(rowGapDp = 14, numberGapDp = 3, numberRowScale = 1.1f),
+            com.mbt.keyboard.ime.KeyboardFrame(rowGapDp = 14, numberGapDp = 3),
             com.mbt.keyboard.ime.KeyboardFrame(topDp = 10, bottomDp = 2, keyGapDp = 2),
         ).forEach { f ->
             val single = measuredHeightWith(Layouts.koreanSingle, f)
