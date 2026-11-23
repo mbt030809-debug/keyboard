@@ -325,20 +325,6 @@
                 </RadioGroup>
 
                 <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchNumberLeft"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/number_left_switch" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/number_left_desc"
-                    android:textSize="12sp"
-                    android:alpha="0.7" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switchSwipeDouble"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -771,6 +757,36 @@
             android:textAppearance="?attr/textAppearanceLabelLarge"
             android:textColor="?attr/colorPrimary"
             android:textStyle="bold" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="?attr/materialCardViewFilledStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchNumberLeft"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="0dp"
+                    android:text="@string/number_left_switch" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/number_left_desc"
+                    android:textSize="12sp"
+                    android:alpha="0.7" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
 
         <com.google.android.material.card.MaterialCardView
             style="?attr/materialCardViewFilledStyle"

@@ -95,7 +95,7 @@ class SettingsActivityTest {
                 assertEquals(1, parentSection(R.id.sliderPause)); assertEquals(1, parentSection(R.id.sliderRepeat))
                 assertEquals(1, parentSection(R.id.switchHaptic)); assertEquals(1, parentSection(R.id.switchClipboard))
                 assertEquals(1, parentSection(R.id.editPhrases))
-                assertEquals(2, parentSection(R.id.themeList)); assertEquals(2, parentSection(R.id.btnResize))
+                assertEquals(2, parentSection(R.id.switchNumberLeft)); assertEquals(2, parentSection(R.id.themeList)); assertEquals(2, parentSection(R.id.btnResize))
                 assertEquals(2, parentSection(R.id.switchSplit)); assertEquals(2, parentSection(R.id.switchSplitDup))
                 assertEquals(3, parentSection(R.id.versionText))
             }
