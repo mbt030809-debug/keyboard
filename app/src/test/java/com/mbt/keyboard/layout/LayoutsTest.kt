@@ -44,22 +44,101 @@ class LayoutsTest {
         }
     }
 
-    @Test fun numberRowIsDigits() {
+    @Test fun topRowIsEditKeysThenDigitsAllSameWidth() {
         Layouts.all.forEach { l ->
-            assertEquals((1..9).map { it.toString() } + "0", l.rows[1].map { it.output })
+            val top = l.rows[0]
+            assertEquals(13, top.size)
+            assertEquals(
+                listOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE),
+                top.take(3).map { it.type },
+            )
+            assertEquals(listOf("전체", "복사", "붙임"), top.take(3).map { it.label })
+            assertEquals((1..9).map { it.toString() } + "0", top.drop(3).map { it.output })
+            assertTrue("13칸 모두 같은 폭", top.all { it.weight == 1f })
         }
     }
 
-    @Test fun toolbarRowHasVoiceEditSpellAndSymbolKeys() {
+    @Test fun oldToolbarRowIsGone() {
         Layouts.all.forEach { l ->
-            val types = l.rows[0].map { it.type }
-            assertEquals(KeyType.VOICE, types.first())
-            assertTrue(KeyType.SELECT_ALL in types && KeyType.COPY in types && KeyType.PASTE in types)
-            assertTrue(KeyType.SPELL in types)
-            // 좌우 화살표 키는 없다
-            assertEquals(10, l.rows[0].size)
-            assertEquals(listOf("-", "❤\uFE0F", "@", "?", "!"), l.rows[0].filter { it.type == KeyType.CHAR }.map { it.output })
+            assertEquals("맨 윗줄 + 글자 3줄 + 하단 = 5줄", 5, l.rows.size)
+            val all = l.rows.flatten()
+            // 예전 상단 줄 키들은 일반 키로 남아 있지 않다
+            assertTrue(all.none { it.type == KeyType.CHAR && it.output in listOf("-", "@", "?", "!", "❤\uFE0F") })
+            assertEquals(1, all.count { it.type == KeyType.VOICE })
         }
+    }
+
+    @Test fun voiceKeyIsRightNextToTheSpaceBar() {
+        Layouts.all.forEach { l ->
+            val bottom = l.rows.last()
+            val types = bottom.map { it.type }
+            assertEquals(
+                listOf(KeyType.EMOJI, KeyType.CHAR, KeyType.SPACE, KeyType.VOICE, KeyType.CHAR, KeyType.ENTER), types,
+            )
+            assertEquals(listOf(",", "", "🎤", "."), bottom.filter { it.type != KeyType.EMOJI && it.type != KeyType.ENTER }.map { it.label })
+            assertEquals(10.0, bottom.sumOf { it.weight.toDouble() }, 0.001)
+        }
+    }
+
+    // ---- 기호 재배치
+
+    private fun allHints(l: KeyboardLayout) = l.rows.flatten().flatMap { it.hints }
+
+    private fun keyWithHint(l: KeyboardLayout, hint: String) = l.rows.flatten().first { hint in it.hints }
+
+    @Test fun starCircleAndReferenceMarkAreRemoved() {
+        Layouts.all.forEach { l ->
+            val hints = allHints(l)
+            assertTrue("★" !in hints && "○" !in hints && "※" !in hints)
+        }
+        // 비슷한 기호 중 요청하지 않은 것(☆ ♡ ●)은 그대로
+        assertTrue(allHints(Layouts.koreanSingle).containsAll(listOf("☆", "♡", "●")))
+    }
+
+    @Test fun middleDotIsUnderThePeriodKey() {
+        Layouts.all.forEach { l ->
+            assertEquals(listOf("…", ".com", "·"), keyWithHint(l, ".com").hints)
+            assertEquals(1, l.rows.flatten().count { "·" in it.hints })       // 다른 키에는 없다
+        }
+    }
+
+    @Test fun pipeAndBackslashAreUnderTheSlashKey() {
+        Layouts.all.forEach { l ->
+            val slash = keyWithHint(l, "/")
+            assertEquals(listOf("/", "|", "\\"), slash.hints)
+            assertEquals(1, l.rows.flatten().count { "|" in it.hints })
+            assertEquals(1, l.rows.flatten().count { "\\" in it.hints })
+        }
+    }
+
+    @Test fun hyphenIsUnderTheUnderscoreKey() {
+        Layouts.all.forEach { l ->
+            val underscore = keyWithHint(l, "_")
+            assertEquals(listOf("_", "-", "—"), underscore.hints)
+            assertEquals(1, l.rows.flatten().count { "-" in it.hints })
+        }
+    }
+
+    @Test fun heartAtQuestionExclamationEachGetTheirOwnFreeKey() {
+        Layouts.all.forEach { l ->
+            val keys = listOf("!", "@", "?", "❤\uFE0F").map { keyWithHint(l, it) }
+            assertEquals("네 기호가 서로 다른 키에", 4, keys.toSet().size)
+            // 숫자 1, 2 (PC 키보드의 Shift+1, Shift+2)
+            assertEquals(listOf("!"), l.rows[0].first { it.output == "1" }.hints)
+            assertEquals(listOf("@"), l.rows[0].first { it.output == "2" }.hints)
+            // ? 와 ❤️ 는 비워진 글자 키
+            assertEquals(listOf("?"), keyWithHint(l, "?").hints)
+            assertEquals(listOf("❤\uFE0F"), keyWithHint(l, "❤\uFE0F").hints)
+            // 한 번만 존재
+            listOf("!", "@", "?", "❤\uFE0F").forEach { sym -> assertEquals(sym, 1, allHints(l).count { it == sym }) }
+        }
+    }
+
+    @Test fun noSymbolIsOnTwoKeysExceptIntentionalDuplicates() {
+        // 글자 키 묶음 안에서는 같은 기호가 중복되지 않는다
+        val flat = Layouts.SYMBOL_GROUPS.flatten()
+        assertEquals(flat.size, flat.toSet().size)
+        assertTrue(flat.none { it in listOf("★", "○", "※", "·") })
     }
 
     @Test fun rowHeightsMatchRows() {
@@ -97,7 +176,8 @@ class LayoutsTest {
 
     @Test fun everyTwoCharHintIsADeclaredPair() {
         Layouts.all.forEach { l ->
-            l.rows.flatten().flatMap { it.hints }.filter { it.length == 2 }
+            // ❤️ 는 하트 + 이모지 표시 문자라 길이는 2지만 쌍 기호가 아니다
+            l.rows.flatten().flatMap { it.hints }.filter { it.length == 2 && it != "❤\uFE0F" }
                 .forEach { assertTrue("${l.id}:$it", it in Layouts.PAIRS) }
         }
         // 선언된 쌍은 모두 어딘가에 배치돼 있어야 한다
@@ -110,16 +190,6 @@ class LayoutsTest {
         assertEquals(flat.size, flat.toSet().size)
         assertTrue(Layouts.SYMBOL_GROUPS.size >= 26)
         assertTrue(Layouts.SYMBOL_GROUPS.all { it.isNotEmpty() })
-    }
-
-    @Test fun voiceKeyIsOnTopAndEmojiKeyIsAtBottom() {
-        Layouts.all.forEach { l ->
-            assertEquals(1, l.rows.flatten().count { it.type == KeyType.VOICE })
-            assertEquals(1, l.rows.flatten().count { it.type == KeyType.EMOJI })
-            val bottom = l.rows.last()
-            assertTrue(KeyType.EMOJI in bottom.take(2).map { it.type })
-            assertTrue(KeyType.SPACE in bottom.map { it.type })
-        }
     }
 
     @Test fun singleLayoutShiftIsOnTheRowAboveBottomRowAtTheLeftEnd() {
@@ -160,7 +230,7 @@ class LayoutsTest {
     @Test fun periodKeyLongPressGivesEllipsisAndDotCom() {
         Layouts.all.forEach { l ->
             val period = l.rows.last().first { it.label == "." }
-            assertEquals(listOf("…", ".com"), period.hints)
+            assertEquals(listOf("…", ".com", "·"), period.hints)
         }
     }
 

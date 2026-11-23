@@ -2,8 +2,8 @@ package com.mbt.keyboard.layout
 
 enum class KeyType {
     CHAR, SHIFT, BACKSPACE, ENTER, SPACE, VOICE, SPACER,
-    /** 상단 줄: 전체선택, 복사, 붙여넣기, 맞춤법 검사 */
-    SELECT_ALL, COPY, PASTE, SPELL,
+    /** 맨 윗줄: 전체선택, 복사, 붙여넣기 */
+    SELECT_ALL, COPY, PASTE,
     /** 이모티콘·이모지 패널 열기 */
     EMOJI,
 }

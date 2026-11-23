@@ -680,7 +680,7 @@ class KeyboardView(context: Context) : View(context) {
         val REPEAT_TYPES = setOf(KeyType.BACKSPACE)
         /** 상단 편집 줄: 일반 키 색, 작은 글씨 */
         val TOOLBAR_ACTION_TYPES =
-            setOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE, KeyType.SPELL, KeyType.VOICE)
+            setOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE, KeyType.VOICE)
         /** 일반 키 배경색을 쓰는 키 */
         val NORMAL_STYLE_TYPES = TOOLBAR_ACTION_TYPES + setOf(KeyType.CHAR, KeyType.SPACE)
     }

@@ -37,33 +37,33 @@ class SplitTest {
 
     @Test fun englishFollowsHandsOnQwerty() {
         val en = Layouts.english
-        assertEquals("qwert", halves(en, 2).leftLabels().joinToString(""))
-        assertEquals("yuiop", halves(en, 2).rightLabels().joinToString(""))
-        assertEquals("asdfg", halves(en, 3).leftLabels().filter { it.isNotEmpty() }.joinToString(""))
-        assertEquals("hjkl", halves(en, 3).rightLabels().filter { it.isNotEmpty() }.joinToString(""))
+        assertEquals("qwert", halves(en, 1).leftLabels().joinToString(""))
+        assertEquals("yuiop", halves(en, 1).rightLabels().joinToString(""))
+        assertEquals("asdfg", halves(en, 2).leftLabels().filter { it.isNotEmpty() }.joinToString(""))
+        assertEquals("hjkl", halves(en, 2).rightLabels().filter { it.isNotEmpty() }.joinToString(""))
         // b는 왼손, n은 오른손
-        assertEquals(listOf("⇧", "z", "x", "c", "v", "b"), halves(en, 4).leftLabels())
-        assertEquals(listOf("n", "m", "⌫"), halves(en, 4).rightLabels())
+        assertEquals(listOf("⇧", "z", "x", "c", "v", "b"), halves(en, 3).leftLabels())
+        assertEquals(listOf("n", "m", "⌫"), halves(en, 3).rightLabels())
     }
 
     @Test fun dubeolsikSplitsConsonantsLeftAndVowelsRight() {
         val ko = Layouts.korean
-        assertEquals("ㅂㅈㄷㄱㅅ", halves(ko, 2).leftLabels().joinToString(""))
-        assertEquals("ㅛㅕㅑㅐㅔ", halves(ko, 2).rightLabels().joinToString(""))
-        assertEquals("ㅁㄴㅇㄹㅎ", halves(ko, 3).leftLabels().filter { it.isNotEmpty() }.joinToString(""))
-        assertEquals("ㅗㅓㅏㅣ", halves(ko, 3).rightLabels().filter { it.isNotEmpty() }.joinToString(""))
-        assertEquals(listOf("⇧", "ㅋ", "ㅌ", "ㅊ", "ㅍ"), halves(ko, 4).leftLabels())
-        assertEquals(listOf("ㅠ", "ㅜ", "ㅡ", "⌫"), halves(ko, 4).rightLabels())
+        assertEquals("ㅂㅈㄷㄱㅅ", halves(ko, 1).leftLabels().joinToString(""))
+        assertEquals("ㅛㅕㅑㅐㅔ", halves(ko, 1).rightLabels().joinToString(""))
+        assertEquals("ㅁㄴㅇㄹㅎ", halves(ko, 2).leftLabels().filter { it.isNotEmpty() }.joinToString(""))
+        assertEquals("ㅗㅓㅏㅣ", halves(ko, 2).rightLabels().filter { it.isNotEmpty() }.joinToString(""))
+        assertEquals(listOf("⇧", "ㅋ", "ㅌ", "ㅊ", "ㅍ"), halves(ko, 3).leftLabels())
+        assertEquals(listOf("ㅠ", "ㅜ", "ㅡ", "⌫"), halves(ko, 3).rightLabels())
     }
 
     @Test fun singleVowelSplitsConsonantsLeftAndVowelsRight() {
         val s = Layouts.koreanSingle
-        assertEquals("ㅂㅈㄷㄱㅅ", halves(s, 2).leftLabels().joinToString(""))
-        assertEquals("ㅗㅐㅔ", halves(s, 2).rightLabels().joinToString(""))
-        assertEquals("ㅁㄴㅇㄹㅎ", halves(s, 3).leftLabels().joinToString(""))
-        assertEquals("ㅓㅏㅣ", halves(s, 3).rightLabels().joinToString(""))
-        assertEquals(listOf("⇧", "ㅋ", "ㅌ", "ㅊ", "ㅍ"), halves(s, 4).leftLabels())
-        assertEquals(listOf("ㅜ", "ㅡ", "⌫"), halves(s, 4).rightLabels())
+        assertEquals("ㅂㅈㄷㄱㅅ", halves(s, 1).leftLabels().joinToString(""))
+        assertEquals("ㅗㅐㅔ", halves(s, 1).rightLabels().joinToString(""))
+        assertEquals("ㅁㄴㅇㄹㅎ", halves(s, 2).leftLabels().joinToString(""))
+        assertEquals("ㅓㅏㅣ", halves(s, 2).rightLabels().joinToString(""))
+        assertEquals(listOf("⇧", "ㅋ", "ㅌ", "ㅊ", "ㅍ"), halves(s, 3).leftLabels())
+        assertEquals(listOf("ㅜ", "ㅡ", "⌫"), halves(s, 3).rightLabels())
     }
 
     @Test fun koreanLayoutsNeverMixJamoKindsAcrossHalves() {
@@ -78,10 +78,17 @@ class SplitTest {
         }
     }
 
-    @Test fun toolbarAndNumberRowsSplitFiveAndFive() {
-        Layouts.all.forEach { l ->
-            assertEquals(5, halves(l, 0).left.size)
-            assertEquals(5, halves(l, 1).left.size)
+    @Test fun topRowSplitsDigitsFiveAndFiveOnSingleVowelLayout() {
+        val h = halves(Layouts.koreanSingle, 0)
+        assertEquals(listOf("전체", "복사", "붙임", "1", "2", "3", "4", "5"), h.leftLabels())
+        assertEquals(listOf("6", "7", "8", "9", "0"), h.rightLabels())
+    }
+
+    @Test fun topRowAutoSplitKeepsAllThirteenKeysOnOtherLayouts() {
+        listOf(Layouts.korean, Layouts.english).forEach { l ->
+            val h = halves(l, 0)
+            assertEquals(13, h.left.size + h.right.size)
+            assertTrue(h.left.isNotEmpty() && h.right.isNotEmpty())
         }
     }
 
@@ -108,7 +115,7 @@ class SplitTest {
     @Test fun singleVowelVowelKeysAreSameSizeAsConsonantKeys() {
         // 모음 키만 커지지 않는다: 같은 줄의 자음 키와 모음 키 너비가 같다
         val s = Layouts.koreanSingle
-        listOf(2, 3).forEach { r ->
+        listOf(1, 2).forEach { r ->
             val widths = placements(s, r).filter { it.part.key.type == KeyType.CHAR }.map { it.right - it.left }
             assertTrue("row $r", widths.all { kotlin.math.abs(it - widths[0]) < 0.01f })
         }
@@ -130,13 +137,13 @@ class SplitTest {
 
     @Test fun consonantSideMayCrossTheCenterLine() {
         // 5|3 로 나뉘는 줄: 자음 5개가 가운데(500)를 넘어간다. 이를 허용한다.
-        val pls = placements(Layouts.koreanSingle, 2)
+        val pls = placements(Layouts.koreanSingle, 1)
         val lastConsonantRight = pls.take(5).maxOf { it.right }
         assertTrue(lastConsonantRight > 500f)
     }
 
     @Test fun unsplitPlacementFillsTheRowWithoutGap() {
-        val row = Layouts.english.rows[2]
+        val row = Layouts.english.rows[1]
         val pls = Split.place(Split.Halves(row.map { Split.Part(it, it.weight) }, emptyList()), 10f, 1000f, 0f)
         assertEquals(10f, pls.first().left, 0.01f)
         assertEquals(1010f, pls.last().right, 0.01f)
