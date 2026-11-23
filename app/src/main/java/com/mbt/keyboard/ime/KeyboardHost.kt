@@ -38,6 +38,9 @@ object KeyboardHost {
         // 탭 버튼이 숫자 띠와 같은 선에 오도록: 탭 바탕이 여백만큼 왼쪽으로 나온다 (화면 밖이면 거기까지만)
         val tabLeft = (hostLp.leftMargin + keyboard.fnTabAnchorPx() - keyboard.fnTabPadPx()).toInt().coerceAtLeast(0)
         if (tabLp.leftMargin != tabLeft) { tabLp.leftMargin = tabLeft; tab.layoutParams = tabLp }
+        // 글래스 테마: 탭을 판 위에 이어 붙여 한 장의 유리로 그린다 (탭 왼쪽 위치를 키보드에 알려 줌)
+        keyboard.frostTabLeftPx = (tabLeft - hostLp.leftMargin).toFloat()
+        keyboard.frostTabAttached = on && keyboardVisible && keyboard.theme.frost
         tab.visibility = when {
             !on -> View.GONE
             keyboardVisible -> View.VISIBLE

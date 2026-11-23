@@ -29,6 +29,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
 
     private var pressed = -1
     private val plate = Path()
+    private val rim = Path()
     private val d = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
 
@@ -72,9 +73,33 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val bp = src.fnTabPadBottomPx()
         val rlb = radius + minOf(bp, src.fnTabLeftPx() + gx, 10 * d)
         val rrb = radius + minOf(bp, src.fnTabRightPx() + gx, 10 * d)
-        plate.addRoundRect(RectF(plateLeft, 0f, width.toFloat(), height.toFloat()),
-            floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)         // 모든 테마: 네 모서리 모두 둥글게
-        canvas.drawPath(plate, paint)
+        val attached = theme.frost && src.frostTabAttached
+        if (attached) {
+            // 글래스 테마: 탭이 키보드 판 위에 딱 붙어 한 장의 유리처럼 이어진다 (위쪽 모서리만 둥글고 아래는 판으로 이어짐)
+            val w = width.toFloat(); val h = height.toFloat()
+            plate.addRoundRect(RectF(plateLeft, 0f, w, h), floatArrayOf(rl, rl, rr, rr, 0f, 0f, 0f, 0f), Path.Direction.CW)
+            canvas.save()
+            canvas.clipPath(plate)
+            src.drawFrostTabSurface(canvas, w, h, (alphaPercent * 255 / 100).coerceIn(0, 255))
+            canvas.restore()
+            // 림: 위·양옆만 (아래는 판과 이어지므로 선 없음)
+            rim.rewind()
+            rim.moveTo(0f, h); rim.lineTo(0f, rl)
+            rim.arcTo(RectF(0f, 0f, 2 * rl, 2 * rl), 180f, 90f)
+            rim.lineTo(w - rr, 0f)
+            rim.arcTo(RectF(w - 2 * rr, 0f, w, 2 * rr), 270f, 90f)
+            rim.lineTo(w, h)
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 2 * d
+            paint.shader = src.frostRimShader(w, h)
+            canvas.drawPath(rim, paint)
+            paint.shader = null
+            paint.style = Paint.Style.FILL
+        } else {
+            plate.addRoundRect(RectF(plateLeft, 0f, width.toFloat(), height.toFloat()),
+                floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)         // 네 모서리 모두 둥글게
+            canvas.drawPath(plate, paint)
+        }
         keys.forEachIndexed { i, k ->
             val cl = keyLeft(i)
             val l = cl + gx

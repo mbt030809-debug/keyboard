@@ -314,6 +314,7 @@ class FrostThemeTest {
             var bitmaps = 0; var rounds = 0; var paths = 0
             val canvas = object : android.graphics.Canvas() {
                 override fun drawBitmap(b: android.graphics.Bitmap, l: Float, t: Float, p: android.graphics.Paint?) { bitmaps++ }
+                override fun drawBitmap(b: android.graphics.Bitmap, s: android.graphics.Rect?, dst: android.graphics.RectF, p: android.graphics.Paint?) { bitmaps++ }
                 override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { rounds++ }
                 override fun drawRoundRect(r: android.graphics.RectF, rx: Float, ry: Float, p: android.graphics.Paint) { rounds++ }
                 override fun drawPath(path: android.graphics.Path, p: android.graphics.Paint) { paths++ }
@@ -463,5 +464,76 @@ class FrostFadeTest {
             override fun saveLayer(l: Float, t: Float, r: Float, b: Float, p: android.graphics.Paint?): Int { layers++; return 1 }
         })
         assertEquals(1, layers)                                         // 판을 한 겹으로 그린 뒤 위 띠를 페이드 마스크
+    }
+}
+
+/** 글래스 테마: 전복붙 탭이 키보드 판 위에 딱 붙어 한 장의 유리로 이어진다 */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class FrostTabJoinTest {
+    private val ctx get() = ApplicationProvider.getApplicationContext<Context>()
+    private val d get() = ctx.resources.displayMetrics.density
+
+    private fun setup(themeId: String): Triple<KeyboardView, FnTab, FrameLayout> {
+        val theme = com.mbt.keyboard.ime.KeyboardThemes.byId(themeId)!!.theme
+        val v = KeyboardView(ctx).also { it.theme = theme; it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english }
+        val host = FrameLayout(ctx).also { it.addView(v, FrameLayout.LayoutParams(-1, -2)) }
+        val tab = FnTab(ctx, v).also { it.theme = theme }
+        FrameLayout(ctx).also { it.addView(host, FrameLayout.LayoutParams(1000, -2)); it.addView(tab, FrameLayout.LayoutParams(-2, -2)) }
+        com.mbt.keyboard.ime.KeyboardHost.applyFnTab(host, tab, v, true)
+        host.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        host.layout(0, 0, host.measuredWidth, host.measuredHeight)
+        tab.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        tab.layout(0, 0, tab.measuredWidth, tab.measuredHeight)
+        return Triple(v, tab, host)
+    }
+
+    @Test fun glassThemeTabSitsFlushOnThePlateWithNoGap() {
+        val (v, tab, host) = setup("iosglass_holo")
+        assertEquals(0f, v.fnTabGapPx(), 0.01f)
+        assertEquals(tab.height, (host.layoutParams as FrameLayout.LayoutParams).topMargin)   // 탭 바로 아래가 판 맨 위
+        assertTrue(v.frostTabAttached)
+    }
+
+    @Test fun otherThemesKeepTheirTwoDpGapAndAreNotAttached() {
+        val (v, tab, host) = setup("charcoal")
+        assertEquals(2 * d, v.fnTabGapPx(), 0.01f)
+        assertEquals(tab.height + (2 * d).toInt(), (host.layoutParams as FrameLayout.LayoutParams).topMargin)
+        assertTrue(!v.frostTabAttached)
+    }
+
+    @Test fun plateSkipsItsTopRimAndCornerUnderTheTabAndTabDrawsTheSameSurface() {
+        val (v, tab, _) = setup("iosglass_holo")
+        // 판: 탭이 닿은 위쪽 구간의 림을 건너뛴다 (clipOutRect)
+        var clipOuts = 0; var layerAlphas = 0
+        v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+        v.draw(object : android.graphics.Canvas() {
+            override fun saveLayer(l: Float, t: Float, r: Float, b: Float, p: android.graphics.Paint?): Int = save()
+            override fun clipOutRect(l: Float, t: Float, r: Float, b: Float): Boolean { clipOuts++; return true }
+            override fun clipPath(path: android.graphics.Path): Boolean = true
+        })
+        assertEquals(1, clipOuts)
+        // 탭: 판과 같은 표면을 알파 레이어로 (뒤 앱이 비치게)
+        tab.alphaPercent = 50
+        tab.draw(object : android.graphics.Canvas() {
+            override fun saveLayerAlpha(l: Float, t: Float, r: Float, b: Float, a: Int): Int { layerAlphas++; assertEquals(127, a); return save() }
+            override fun clipPath(path: android.graphics.Path): Boolean = true
+        })
+        assertEquals(1, layerAlphas)
+    }
+
+    @Test fun backdropCoversTheTabAreaToo() {
+        val (v, _, _) = setup("iosglass_holo")
+        v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+        val sizes = ArrayList<Int>()
+        v.draw(object : android.graphics.Canvas() {
+            override fun saveLayer(l: Float, t: Float, r: Float, b: Float, p: android.graphics.Paint?): Int = save()
+            override fun clipPath(path: android.graphics.Path): Boolean = true
+            override fun drawBitmap(b: android.graphics.Bitmap, s: android.graphics.Rect?, dst: android.graphics.RectF, p: android.graphics.Paint?) { sizes += b.height }
+        })
+        assertTrue(sizes.isNotEmpty())
+        assertTrue("판 높이 + 탭 높이: ${sizes.first()} vs ${v.measuredHeight}", sizes.first() > v.measuredHeight)
     }
 }

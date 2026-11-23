@@ -460,8 +460,8 @@ class KeyboardView(context: Context) : View(context) {
     /** 숫자 띠의 왼쪽 끝 x(키보드 기준): 탭 버튼이 이 선에 맞도록 탭을 놓는다 */
     fun fnTabAnchorPx(): Float = padL
 
-    /** 탭과 키보드 사이의 작은 틈 (둘이 딱 붙어 보이지 않게 약 2dp) */
-    fun fnTabGapPx(): Float = FN_TAB_GAP_DP * density
+    /** 탭과 키보드 사이의 작은 틈 (약 2dp). 글래스 테마는 탭이 판에 이어 붙으므로 0 */
+    fun fnTabGapPx(): Float = if (theme.frost) 0f else FN_TAB_GAP_DP * density
 
     /** 탭 전체 높이 = 위 바탕 + 버튼 + 아래 바탕 */
     fun fnTabHeightPx(): Float = fnTabPadPx() + fnKeyHeightPx() + fnTabPadBottomPx()
@@ -620,10 +620,12 @@ class KeyboardView(context: Context) : View(context) {
 
     /** 유리판에 비치는 "흐린 뒷배경". 크기·테마가 바뀔 때만 다시 만든다 (작게 줄였다 늘리면 부드럽게 흐려진다) */
     private fun ensureFrostBitmaps() {
-        val key = Triple(width, height, theme)
+        // 탭이 판에 이어 붙으면 탭 자리(판 위쪽)까지 한 장으로 번짐 배경을 만들어 탭과 판의 재질이 끊기지 않게 한다
+        val total = height + frostExtraTopPx().toInt()
+        val key = Triple(width, total, theme)
         if (frostKey == key && frostBlur != null) return
         frostBlur?.recycle()
-        val sharp = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
+        val sharp = Bitmap.createBitmap(max(width, 1), max(total, 1), Bitmap.Config.ARGB_8888)
         drawFrostBackdrop(Canvas(sharp), sharp.width.toFloat(), sharp.height.toFloat())
         val small = Bitmap.createScaledBitmap(sharp, max(sharp.width / FROST_BLUR_DIV, 1), max(sharp.height / FROST_BLUR_DIV, 1), true)
         val blur = Bitmap.createScaledBitmap(small, sharp.width, sharp.height, true)
@@ -663,38 +665,87 @@ class KeyboardView(context: Context) : View(context) {
 
     private val fadeMaskPaint = Paint().apply { xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN) }
 
+    /** 글래스 테마에서 전복붙 탭이 판 위에 딱 붙어 이어지는가 (탭이 켜져 있고 보일 때. [KeyboardHost]가 정한다) */
+    var frostTabAttached: Boolean = false
+        set(v) { if (field != v) { field = v; invalidate() } }
+
+    /** 이어 붙은 탭의 왼쪽 x (키보드 기준, 키보드 밖이면 음수). [KeyboardHost]가 정한다 */
+    var frostTabLeftPx: Float = 0f
+        set(v) { if (field != v) { field = v; invalidate() } }
+
+    /** 탭 전체 폭 (탭 뷰의 onMeasure와 같은 식) */
+    fun fnTabWidthPx(): Float = fnTabLeftPx() + 3 * fnKeyWidthPx() + fnTabRightPx()
+
+    /** 판 위쪽에 이어 붙은 탭 높이(px). 이어 붙지 않으면 0 */
+    private fun frostExtraTopPx(): Float = if (frostTabAttached && fnTab && theme.frost) fnTabHeightPx() else 0f
+
+    /**
+     * 유리 표면(흐린 번짐 배경 + 투명 흰색 + 위쪽 빛 + 비스듬한 빛띠)을 판 좌표계의 [l,t,r,b] 칸에 그린다.
+     * 판과 이어 붙은 탭이 같은 함수로 그리므로 둘이 한 장의 유리처럼 이어진다 (판 좌표: 왼쪽 위가 (0,0), 탭은 y < 0).
+     */
+    private fun drawFrostSurface(canvas: Canvas, l: Float, t: Float, r: Float, b: Float) {
+        val w = width.toFloat(); val h = height.toFloat()
+        val extra = frostExtraTopPx()
+        val bmp = frostBlur
+        if (bmp != null) {
+            val sl = l.coerceIn(0f, bmp.width.toFloat()); val sr = r.coerceIn(0f, bmp.width.toFloat())
+            val st = (t + extra).coerceIn(0f, bmp.height.toFloat()); val sb = (b + extra).coerceIn(0f, bmp.height.toFloat())
+            if (sr > sl && sb > st) canvas.drawBitmap(bmp, Rect(sl.toInt(), st.toInt(), sr.toInt(), sb.toInt()), RectF(sl, st - extra, sr, sb - extra), null)
+        }
+        glassPaint.style = Paint.Style.FILL
+        glassPaint.shader = null
+        glassPaint.color = theme.frostTint
+        canvas.drawRect(l, t, r, b, glassPaint)
+        // 위쪽에서 내려오는 은은한 빛 (탭 맨 위에서 시작해 판 안쪽까지 한 번에 이어진다)
+        glassPaint.shader = LinearGradient(0f, -extra, 0f, h * 0.45f, intArrayOf(0x5CFFFFFF, 0x1FFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+        canvas.drawRect(l, t, r, b, glassPaint)
+        // 비스듬히 가로지르는 빛띠들
+        glassPaint.shader = LinearGradient(0f, -extra, w * 0.62f, h * 1.9f, GLASS_BAND_COLORS, GLASS_BAND_STOPS, Shader.TileMode.CLAMP)
+        canvas.drawRect(l, t, r, b, glassPaint)
+        glassPaint.shader = null
+    }
+
+    /**
+     * 이어 붙은 전복붙 탭의 유리 바탕. 판과 같은 표면을 [alpha](0~255)만큼 투명하게 그린다.
+     * 호출하는 쪽이 탭 모양으로 clip한 뒤 부른다. (탭 좌표 → 판 좌표로 옮겨 그림)
+     */
+    fun drawFrostTabSurface(canvas: Canvas, tabW: Float, tabH: Float, alpha: Int) {
+        ensureFrostBitmaps()
+        val layer = canvas.saveLayerAlpha(0f, 0f, tabW, tabH, alpha)
+        canvas.translate(-frostTabLeftPx, tabH)
+        drawFrostSurface(canvas, frostTabLeftPx, -tabH, frostTabLeftPx + tabW, 0f)
+        canvas.restoreToCount(layer)
+    }
+
+    /** 가장자리 림 그라데이션 (판·탭이 같은 색을 쓴다) */
+    fun frostRimShader(w: Float, h: Float): Shader = LinearGradient(0f, 0f, w, h, edgeColors, edgeStops, Shader.TileMode.CLAMP)
+
     private fun drawFrostPlate(canvas: Canvas) {
         ensureFrostBitmaps()
         val w = width.toFloat(); val h = height.toFloat()
+        val extra = frostExtraTopPx()
         val layer = canvas.saveLayer(0f, 0f, w, h, null)
-        val (rl, rr) = frostPlateRadiiPx()
+        var (rl, rr) = frostPlateRadiiPx()
+        // 탭이 맞닿은 모서리는 둥글리지 않는다 (탭과 한 덩어리로 이어지도록)
+        val tabL = frostTabLeftPx; val tabR = frostTabLeftPx + fnTabWidthPx()
+        if (extra > 0f && tabL <= 1f) rl = 0f
+        if (extra > 0f && tabR >= w - 1f) rr = 0f
         glassPath.rewind()
         glassPath.addRoundRect(RectF(0f, 0f, w, h), floatArrayOf(rl, rl, rr, rr, 0f, 0f, 0f, 0f), Path.Direction.CW)
         canvas.save()
         canvas.clipPath(glassPath)
-        frostBlur?.let { canvas.drawBitmap(it, 0f, 0f, null) }
-        glassPaint.style = Paint.Style.FILL
-        glassPaint.shader = null
-        glassPaint.color = theme.frostTint
-        canvas.drawRect(0f, 0f, w, h, glassPaint)
-        // 위쪽에서 내려오는 은은한 빛
-        glassPaint.shader = LinearGradient(0f, 0f, 0f, h * 0.45f, intArrayOf(0x5CFFFFFF, 0x1FFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-        canvas.drawRect(0f, 0f, w, h, glassPaint)
-        // 비스듬히 가로지르는 엷은 빛띠들 (유리 표면에 빛이 반사되는 느낌): 넓고 옅은 띠 + 좁고 밝은 띠가 번갈아
-        glassPaint.shader = LinearGradient(
-            0f, 0f, w * 0.62f, h * 1.9f, GLASS_BAND_COLORS, GLASS_BAND_STOPS, Shader.TileMode.CLAMP,
-        )
-        canvas.drawRect(0f, 0f, w, h, glassPaint)
-        glassPaint.shader = null
+        drawFrostSurface(canvas, 0f, 0f, w, h)
         canvas.restore()
         // 맨 위 띠는 반투명(뒤 앱이 비침) → 아래로 부드럽게 불투명해져 판과 이어진다
         fadeMaskPaint.shader = LinearGradient(0f, 0f, 0f, frostFadePx(), ((frostFadeAlpha * 255f).toInt().coerceIn(0, 255) shl 24) or 0x00FFFFFF, 0xFFFFFFFF.toInt(), Shader.TileMode.CLAMP)
         canvas.drawRect(0f, 0f, w, h, fadeMaskPaint)
         canvas.restoreToCount(layer)
-        // 림: 밝은 가장자리 선 (2dp) + 안쪽 가는 선
+        // 림: 밝은 가장자리 선 (2dp) + 안쪽 가는 선. 탭이 붙은 위쪽 구간은 선을 긋지 않는다 (탭과 한 덩어리로 보이게)
+        canvas.save()
+        if (extra > 0f) canvas.clipOutRect(tabL, -1f, tabR, 6 * density)
         glassPaint.style = Paint.Style.STROKE
         glassPaint.strokeWidth = 2 * density
-        glassPaint.shader = LinearGradient(0f, 0f, w, h, edgeColors, edgeStops, Shader.TileMode.CLAMP)
+        glassPaint.shader = frostRimShader(w, h)
         canvas.drawPath(glassPath, glassPaint)
         glassPaint.strokeWidth = density
         glassPaint.shader = null
@@ -703,6 +754,7 @@ class KeyboardView(context: Context) : View(context) {
         canvas.translate(3 * density, 3 * density)
         canvas.scale((w - 6 * density) / w, (h - 6 * density) / h)
         canvas.drawPath(glassPath, glassPaint)
+        canvas.restore()
         canvas.restore()
         glassPaint.style = Paint.Style.FILL
     }
