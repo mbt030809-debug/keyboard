@@ -36,9 +36,9 @@ data class KeyboardFrame(
     val rightDp: Int = 4,
     val bottomDp: Int = 4,
     val keyGapDp: Int = 6,
-    /** 맨 윗줄(전체·복사·붙임·숫자)의 키 사이 간격 */
-    val numberKeyGapDp: Int = 6,
-    /** 맨 윗줄 높이: 일반 키 높이 대비 배율 (기본 0.8) */
+    /** 줄과 줄 사이 세로 여백. 넓혀도 키 크기는 그대로고 키보드가 그만큼 세로로 길어진다 */
+    val rowGapDp: Int = 6,
+    /** 맨 윗줄(전체·복사·붙임·숫자) 키 높이: 일반 키 높이 대비 배율 (기본 0.8) */
     val numberRowScale: Float = 0.8f,
 )
 
@@ -246,9 +246,18 @@ class KeyboardView(context: Context) : View(context) {
     /** 맨 윗줄이 전체·복사·붙임 + 숫자 줄인가 (글자 자판만. 키패드는 해당 없음) */
     private fun isNumberRow(r: Int) = r == 0 && keyboardLayout?.rows?.getOrNull(0)?.any { it.type == KeyType.SELECT_ALL } == true
 
-    private fun rowHeightPx(r: Int) =
-        if (isNumberRow(r)) keyHeightPx * frame.numberRowScale
-        else keyHeightPx * (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
+    /**
+     * 키 자체의 높이. 일반 키는 (키 높이 − 옛 고정 간격 6dp)이고, 줄마다 배율을 곱한다.
+     * 숫자 줄은 사용자가 정한 배율(일반 키 대비)을 쓴다. 세로 여백과 무관하므로 여백을 넓혀도 키는 커지거나 작아지지 않는다.
+     */
+    private fun keyBodyPx(r: Int): Float {
+        val base = (keyHeightPx - LEGACY_GAP_DP * density).coerceAtLeast(1f)
+        val scale = if (isNumberRow(r)) frame.numberRowScale else (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
+        return base * scale
+    }
+
+    /** 한 줄이 차지하는 세로 길이 = 키 높이 + 줄 사이 세로 여백 */
+    private fun rowHeightPx(r: Int) = keyBodyPx(r) + frame.rowGapDp * density
 
     private fun contentHeight() = (0 until rowCount).sumOf { rowHeightPx(it).toDouble() }.toFloat()
 
@@ -273,8 +282,9 @@ class KeyboardView(context: Context) : View(context) {
         var top = padT
         layout.rows.forEachIndexed { r, row ->
             val rowH = rowHeightPx(r)
-            // 키마다 사방으로 이만큼 비운다 = 키 사이 간격의 절반 (숫자 줄은 따로 정한 간격)
-            val gap = (if (isNumberRow(r)) frame.numberKeyGapDp else frame.keyGapDp) / 2f * density
+            // 가로: 키 사이 간격의 절반씩 / 세로: 줄 사이 여백의 절반씩 비운다
+            val gapX = frame.keyGapDp / 2f * density
+            val gapY = frame.rowGapDp / 2f * density
             rowTops[r] = top
             val rowList = ArrayList<Cell>()
             // 나눠쓰기 아닐 때는 틈 0인 한 묶음, 나눠쓰기일 때는 두 묶음 + 가운데 틈. 키 크기 비율은 항상 원래 레이아웃 그대로
@@ -296,7 +306,7 @@ class KeyboardView(context: Context) : View(context) {
             for (pl in Split.place(halves, padL, usableW, gapW)) {
                 if (pl.part.key.type == KeyType.SPACER) continue
                 val rect = RectF(pl.left, top, pl.right, top + rowH)
-                val cell = Cell(pl.part.key, rect, RectF(rect).apply { inset(gap, gap) }, pl.part in dups)
+                val cell = Cell(pl.part.key, rect, RectF(rect).apply { inset(gapX, gapY) }, pl.part in dups)
                 out += cell
                 rowList += cell
             }
@@ -720,6 +730,8 @@ class KeyboardView(context: Context) : View(context) {
     private companion object {
         /** 갈라진 자판의 복제 키 가로 비중 (원래 키는 1) */
         const val DUPLICATE_WEIGHT = 0.85f
+        /** 옛 고정 간격(키 높이에서 빼던 값) */
+        const val LEGACY_GAP_DP = 6f
         const val REPEAT_DELAY_MS = 400L
         const val REPEAT_INTERVAL_MS = 45L
         const val SWIPE_THRESHOLD_DP = 40f

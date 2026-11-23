@@ -108,8 +108,8 @@ class ResizeActivity : AppCompatActivity() {
             { geometry.padRightDp > KeyboardGeometry.PAD_MIN }, { geometry.padRightDp < KeyboardGeometry.PAD_MAX })
         addStepper(R.string.resize_key_gap, { geometry = geometry.keyGapBy(it) }, { "${geometry.keyGapDp}dp" },
             { geometry.keyGapDp > KeyboardGeometry.KEY_GAP_MIN }, { geometry.keyGapDp < KeyboardGeometry.KEY_GAP_MAX })
-        addStepper(R.string.resize_num_gap, { geometry = geometry.numGapBy(it) }, { "${geometry.numGapDp}dp" },
-            { geometry.numGapDp > KeyboardGeometry.KEY_GAP_MIN }, { geometry.numGapDp < KeyboardGeometry.KEY_GAP_MAX })
+        addStepper(R.string.resize_row_gap, { geometry = geometry.rowGapBy(it) }, { "${geometry.rowGapDp}dp" },
+            { geometry.rowGapDp > KeyboardGeometry.ROW_GAP_MIN }, { geometry.rowGapDp < KeyboardGeometry.ROW_GAP_MAX })
         addStepper(R.string.resize_num_height, { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
             { geometry.numHeightPct > KeyboardGeometry.NUM_HEIGHT_MIN }, { geometry.numHeightPct < KeyboardGeometry.NUM_HEIGHT_MAX })
 
@@ -181,7 +181,7 @@ class ResizeActivity : AppCompatActivity() {
         keyboard.split = splitActive && (large || geometry.gapPct > 0)
         keyboard.frame = KeyboardFrame(
             geometry.padLeftDp, geometry.padTopDp, geometry.padRightDp, geometry.padBottomDp, geometry.keyGapDp,
-            geometry.numGapDp, geometry.numHeightScale,
+            geometry.rowGapDp, geometry.numHeightScale,
         )
         steppers.forEach {
             it.value.text = it.text()

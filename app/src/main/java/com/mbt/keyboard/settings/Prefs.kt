@@ -87,7 +87,7 @@ object Prefs {
             p.getInt(geoKey(large, "pr"), KeyboardGeometry.PAD_DEFAULT),
             p.getInt(geoKey(large, "pb"), KeyboardGeometry.PAD_DEFAULT),
             p.getInt(geoKey(large, "kg"), KeyboardGeometry.KEY_GAP_DEFAULT),
-            p.getInt(geoKey(large, "ng"), KeyboardGeometry.KEY_GAP_DEFAULT),
+            p.getInt(geoKey(large, "rg"), KeyboardGeometry.ROW_GAP_DEFAULT),
             p.getInt(geoKey(large, "nh"), KeyboardGeometry.NUM_HEIGHT_DEFAULT),
         ).clamped()
     }
@@ -105,7 +105,7 @@ object Prefs {
             .putInt(geoKey(large, "pr"), c.padRightDp)
             .putInt(geoKey(large, "pb"), c.padBottomDp)
             .putInt(geoKey(large, "kg"), c.keyGapDp)
-            .putInt(geoKey(large, "ng"), c.numGapDp)
+            .putInt(geoKey(large, "rg"), c.rowGapDp)
             .putInt(geoKey(large, "nh"), c.numHeightPct)
             .apply()
     }

@@ -51,9 +51,9 @@ class SplitProfileTest {
     }
 
     @Test fun numberRowSettingsAreSavedAndLoaded() {
-        Prefs.setGeometry(ctx, large = false, KeyboardGeometry(keyGapDp = 3, numGapDp = 9, numHeightPct = 110))
+        Prefs.setGeometry(ctx, large = false, KeyboardGeometry(keyGapDp = 3, rowGapDp = 9, numHeightPct = 110))
         val g = Prefs.geometry(ctx, large = false)
-        assertEquals(3, g.keyGapDp); assertEquals(9, g.numGapDp); assertEquals(110, g.numHeightPct)
+        assertEquals(3, g.keyGapDp); assertEquals(9, g.rowGapDp); assertEquals(110, g.numHeightPct)
         assertEquals(80, Prefs.geometry(ctx, large = true).numHeightPct)     // 펼침 화면은 따로
     }
 

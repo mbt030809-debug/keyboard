@@ -152,11 +152,11 @@ class KeyboardGeometryTest {
 class NumberRowGeometryTest {
     @Test fun defaultsAndLimits() {
         val g = KeyboardGeometry()
-        assertEquals(6, g.numGapDp)
+        assertEquals(6, g.rowGapDp)
         assertEquals(80, g.numHeightPct)
         assertEquals(0.8f, g.numHeightScale, 0.0001f)
-        assertEquals(0, g.numGapBy(-99).numGapDp)
-        assertEquals(16, g.numGapBy(99).numGapDp)
+        assertEquals(0, g.rowGapBy(-99).rowGapDp)
+        assertEquals(24, g.rowGapBy(99).rowGapDp)
         assertEquals(40, g.numHeightBy(-99).numHeightPct)
         assertEquals(120, g.numHeightBy(99).numHeightPct)
         assertEquals(85, g.numHeightBy(1).numHeightPct)            // 5%씩
