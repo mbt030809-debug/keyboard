@@ -29,7 +29,6 @@ class MoakiTest {
     private val ctx get() = ApplicationProvider.getApplicationContext<Context>()
     private val density get() = view.resources.displayMetrics.density
     private val moa = ArrayList<Pair<String, Char>>()
-    private val vowels = ArrayList<Char>()
     private val keys = ArrayList<String>()
     private var downTime = 0L
 
@@ -45,7 +44,6 @@ class MoakiTest {
             override fun onShiftPress(down: Boolean) = Unit
             override fun onEnterLongPress() = Unit
             override fun onMoaki(key: Key, vowel: Char) { moa += key.label to vowel }
-            override fun onMoaVowel(vowel: Char) { vowels += vowel }
         }
         view.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
         view.layout(0, 0, view.measuredWidth, view.measuredHeight)
@@ -65,16 +63,50 @@ class MoakiTest {
         view.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, ex, ey))
     }
 
-    @Test fun layoutMatchesTheSamsungMoakiArrangement() {
+    @Test fun layoutHasFiveRowsSideDigitsAndNoVowelKey() {
         fun row(i: Int) = Layouts.moaki.rows[i].map { it.label }
-        assertEquals(listOf("~", "ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅆ", "!"), row(1))
-        assertEquals(listOf("^", "ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "?"), row(2))
-        assertEquals(listOf(";", "ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "."), row(3))
-        assertEquals(listOf("*", "ㅋ", "ㅌ", "ㅊ", "ㅍ", "⌫"), row(4))
-        assertEquals(2f, Layouts.moaki.rows[4].last().weight, 0.0001f)                  // 지우기는 두 칸 폭
-        assertEquals(listOf(KeyType.VOICE, KeyType.EMOJI, KeyType.CHAR, KeyType.SPACE, KeyType.MOA_VOWEL, KeyType.ENTER), Layouts.moaki.rows[5].map { it.type })
-        // 숫자는 맨 윗줄 (전체·복사·붙임 + 1~0)
-        assertEquals(listOf("전체", "복사", "붙임") + "1234567890".map { it.toString() }, row(0))
+        assertEquals(5, Layouts.moaki.rows.size)
+        assertEquals(listOf("ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅆ", "!"), row(0))
+        assertEquals(listOf("ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "?"), row(1))
+        assertEquals(listOf("ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "."), row(2))
+        assertEquals(listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "⌫"), row(3))
+        assertEquals(2f, Layouts.moaki.rows[3].last().weight, 0.0001f)
+        assertEquals(listOf("전체", "복사", "붙임", "🎤", "😊", ",", "", "⏎"), row(4))
+        // 숫자는 왼쪽 띠 (2열): 1 2 / 3 4 / 5 6 / 7 8 / 9 0
+        assertEquals("1234567890".map { it.toString() }, Layouts.moaki.sideKeys.map { it.label })
+        // ~ ^ ; : 는 쌍자음 키를 꾹 누르면 나온다
+        val dbl = Layouts.moaki.rows[0].take(4).associate { it.label to it.hints }
+        assertEquals(mapOf("ㅃ" to listOf("~"), "ㅉ" to listOf("^"), "ㄸ" to listOf(";"), "ㄲ" to listOf(":")), dbl)
+        // ㅡㅣ 모음 키는 없다
+        assertTrue(Layouts.moaki.rows.flatten().none { it.label == "ㅡㅣ" })
+    }
+
+    @Test fun sideDigitsSitLeftOfTheConsonantsAndSpanFourRowHeights() {
+        val digits = view.keyRects().filter { it.first.label in "1234567890".map { c -> c.toString() } }.map { it.second }
+        val firstConsonant = rect("ㅂ")
+        assertEquals(10, digits.size)
+        digits.forEach { assertTrue(it.right <= firstConsonant.left + 1f) }                 // 모두 자음 키 왼쪽
+        val top = rect("ㅃ").top; val bottom = rect("전체").top                              // 글자 4줄이 차지하는 높이
+        assertEquals(top, digits.minOf { it.top }, 1f)
+        assertEquals(bottom, digits.maxOf { it.bottom }, 1f)
+        // 같은 높이를 5칸으로 나눈다
+        val h = digits.map { it.height() }
+        h.forEach { assertEquals(h[0], it, 0.5f) }
+        assertEquals((bottom - top) / 5f, h[0], 1f)
+        // 하단 줄은 띠 아래에서 화면 전체 폭
+        assertTrue(rect("전체").left < digits.minOf { it.right })
+    }
+
+    @Test fun tappingASideDigitTypesIt() {
+        fun tapKey(label: String) {
+            downTime = SystemClock.uptimeMillis()
+            val r = rect(label)
+            view.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, r.centerX(), r.centerY(), 0))
+            view.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime + 10, MotionEvent.ACTION_UP, r.centerX(), r.centerY(), 0))
+        }
+        keys.clear()
+        "1572089".forEach { tapKey(it.toString()) }
+        assertEquals("1572089".map { it.toString() }, keys)
     }
 
     @Test fun consonantSymbolHintsMatchTheSingleVowelLayout() {
@@ -192,18 +224,9 @@ class MoakiTest {
         assertTrue("cursor" !in keys)
     }
 
-    @Test fun vowelKeyTapIsIAndSwipesGiveOtherVowels() {
-        drag("ㅡㅣ"); assertEquals('ㅣ', vowels.last())
-        drag("ㅡㅣ", dxKeys = -0.5f); assertEquals('ㅡ', vowels.last())
-        drag("ㅡㅣ", dxKeys = -1.5f); assertEquals('ㅓ', vowels.last())
-        drag("ㅡㅣ", dxKeys = 0.5f); assertEquals('ㅏ', vowels.last())
-        drag("ㅡㅣ", dyKeys = -0.5f); assertEquals('ㅗ', vowels.last())
-        drag("ㅡㅣ", dyKeys = 0.5f); assertEquals('ㅜ', vowels.last())
-    }
-
     @Test fun sideSymbolKeysAreOrdinaryKeys() {
-        drag("!"); drag("?"); drag("~")
-        assertEquals(listOf("!", "?", "~"), keys)
+        drag("!"); drag("?"); drag(".")
+        assertEquals(listOf("!", "?", "."), keys)
     }
 
     // ---- 모음 안내 팝업 / 키 높이
@@ -265,7 +288,7 @@ class MoakiTest {
         val c = HangulComposer(); val sb = StringBuilder()
         for (s in steps) {
             val out = when (s) {
-                is Char -> if (s == 'ㅣ') (c.combineWithI() ?: c.input(s)) else c.input(s)
+                is Char -> c.input(s)
                 else -> error("bad")
             }
             sb.append(out.committed)
@@ -288,24 +311,6 @@ class MoakiTest {
         assertEquals("가", typeMoa('ㄱ', 'ㅏ'))
         assertEquals("한글", typeMoa('ㅎ', 'ㅏ', 'ㄴ', 'ㄱ', 'ㅡ', 'ㄹ'))
         assertEquals("가나", typeMoa('ㄱ', 'ㅏ', 'ㄴ', 'ㅏ'))                 // 받침이 다음 글자 초성으로
-    }
-
-    @Test fun iAfterAVowelMakesAeEAndCompounds() {
-        assertEquals("개", typeMoa('ㄱ', 'ㅏ', 'ㅣ'))
-        assertEquals("게", typeMoa('ㄱ', 'ㅓ', 'ㅣ'))
-        assertEquals("걔", typeMoa('ㄱ', 'ㅑ', 'ㅣ'))
-        assertEquals("계", typeMoa('ㄱ', 'ㅕ', 'ㅣ'))
-        assertEquals("괘", typeMoa('ㄱ', 'ㅗ', 'ㅏ', 'ㅣ'))                  // ㅘ + ㅣ → ㅙ
-        assertEquals("괴", typeMoa('ㄱ', 'ㅗ', 'ㅣ'))
-        assertEquals("기", typeMoa('ㄱ', 'ㅣ'))
-        assertEquals("의", typeMoa('ㅇ', 'ㅡ', 'ㅣ'))
-    }
-
-    @Test fun combineWithINeedsAVowelToCombine() {
-        val c = HangulComposer()
-        assertNull(c.combineWithI())                                         // 비어 있음
-        c.input('ㄱ'); assertNull(c.combineWithI())                          // 자음뿐
-        c.input('ㅗ'); assertNull(c.combineWithI())                          // ㅗ는 따로 ㅣ를 입력(ㅚ)
     }
 
     // ---- 선택 / 저장

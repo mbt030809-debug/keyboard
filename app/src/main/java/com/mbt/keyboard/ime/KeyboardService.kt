@@ -379,7 +379,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             KeyType.SELECT_ALL -> editAction(android.R.id.selectAll)
             KeyType.COPY -> editAction(android.R.id.copy)
             KeyType.PASTE -> editAction(android.R.id.paste)
-            KeyType.SPACER, KeyType.MOA_VOWEL -> Unit      // 모아키 모음 키는 onMoaVowel로 처리
+            KeyType.SPACER -> Unit
         }
     }
 
@@ -574,16 +574,6 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         ic.endBatchEdit()
         consumeShift()
         refreshAutoCaps()
-    }
-
-    /** 모아키 모음 키: 탭 ㅣ, 밀기 ㅡ ㅏ ㅗ ㅜ ㅓ. ㅣ는 앞 모음과 합쳐질 수 있다 (ㅏ+ㅣ → ㅐ) */
-    override fun onMoaVowel(vowel: Char) {
-        lastEditTime = SystemClock.uptimeMillis()
-        abortVoice()
-        endDeletionRun()
-        doubleTap.reset()
-        val combined = if (vowel == 'ㅣ') composer.combineWithI() else null
-        applyOutput(combined ?: composer.input(vowel))
     }
 
     override fun onUndoDelete() {

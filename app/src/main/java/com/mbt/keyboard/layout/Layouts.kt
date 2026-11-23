@@ -237,33 +237,39 @@ object Layouts {
     private fun moaConsonant(c: String) =
         Key(c, hints = koreanSingle.rows.flatten().firstOrNull { it.label == c && it.type == KeyType.CHAR }?.hints.orEmpty())
 
+    /** 모아키 쌍자음 키: ~ ^ ; : 는 꾹 누르면 나온다 (왼쪽 기호 줄을 없앤 대신) */
+    private fun moaDouble(c: String, hint: String) = Key(c, hints = listOf(hint))
+
     /**
-     * 한글 모아키. 삼성 모아키 배열: 윗줄 쌍자음(ㅃㅉㄸㄲㅆ), 그 아래 ㅂㅈㄷㄱㅅ / ㅁㄴㅇㄹㅎ / ㅋㅌㅊㅍ,
-     * 양옆에 기호 키(~ ^ ; * / ! ? .). 숫자는 맨 윗줄에 둔다.
-     * 자음 키를 누른 채 밀면: → ㅏ, ← ㅓ, ↑ ㅗ, ↓ ㅜ (길게 밀면 ㅑ ㅕ ㅛ ㅠ). ㅡ·ㅣ·겹모음은 오른쪽 아래 모음 키.
+     * 한글 모아키. 삼성 모아키 배열: 윗줄 쌍자음(ㅃㅉㄸㄲㅆ), 그 아래 ㅂㅈㄷㄱㅅ / ㅁㄴㅇㄹㅎ / ㅋㅌㅊㅍ, 오른쪽에 ! ? .
+     * 왼쪽 세로 띠에 숫자 2열(1 2 / 3 4 / … / 9 0), 맨 아래 가로줄에 전체·복사·붙임·🎤·😊·,·스페이스·⏎.
+     * ~ ^ ; : 는 쌍자음 키(ㅃ ㅉ ㄸ ㄲ)를 꾹 누르면 나온다.
+     * 자음 키를 누른 채 긋기: → ㅏ, ← ㅓ, ↑ ㅗ, ↓ ㅜ, 위 대각선 ㅣ, 아래 대각선 ㅡ, 꺾어 긋기로 겹모음 ([MoakiGesture]).
      */
     val moaki: KeyboardLayout by lazy {
         KeyboardLayout(
             MOA, "모아키",
             listOf(
-                numberRow,
-                listOf(moaSymbol("~")) + "ㅃㅉㄸㄲㅆ".map { Key(it.toString()) } + moaSymbol("!"),
-                listOf(moaSymbol("^")) + "ㅂㅈㄷㄱㅅ".map { moaConsonant(it.toString()) } + moaSymbol("?"),
-                listOf(moaSymbol(";")) + "ㅁㄴㅇㄹㅎ".map { moaConsonant(it.toString()) } + moaSymbol(".", listOf("…", ".com", "·")),
-                listOf(moaSymbol("*")) + "ㅋㅌㅊㅍ".map { moaConsonant(it.toString()) } + Key("⌫", KeyType.BACKSPACE, weight = 2f),
+                listOf(moaDouble("ㅃ", "~"), moaDouble("ㅉ", "^"), moaDouble("ㄸ", ";"), moaDouble("ㄲ", ":"), Key("ㅆ")) + moaSymbol("!"),
+                "ㅂㅈㄷㄱㅅ".map { moaConsonant(it.toString()) } + moaSymbol("?"),
+                "ㅁㄴㅇㄹㅎ".map { moaConsonant(it.toString()) } + moaSymbol(".", listOf("…", ".com", "·")),
+                "ㅋㅌㅊㅍ".map { moaConsonant(it.toString()) } + Key("⌫", KeyType.BACKSPACE, weight = 2f),
                 listOf(
-                    Key("🎤", KeyType.VOICE, weight = 1.0f),
-                    Key("😊", KeyType.EMOJI, weight = 1.3f),
+                    Key("전체", KeyType.SELECT_ALL),
+                    Key("복사", KeyType.COPY),
+                    Key("붙임", KeyType.PASTE),
+                    Key("🎤", KeyType.VOICE),
+                    Key("😊", KeyType.EMOJI),
                     Key(",", hints = listOf("'", "\"")),
-                    Key("", KeyType.SPACE, output = " ", weight = 3.4f),
-                    Key("ㅡㅣ", KeyType.MOA_VOWEL, weight = 1.0f),
+                    Key("", KeyType.SPACE, output = " ", weight = 2.6f),
                     Key("⏎", KeyType.ENTER, weight = 1.3f),
                 ),
             ),
-            List(6) { 1f },
+            List(5) { 1f },
             hangul = true,
             splittable = false,
             moaki = true,
+            sideKeys = "1234567890".map { Key(it.toString()) },
         )
     }
 

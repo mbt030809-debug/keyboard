@@ -79,8 +79,6 @@ class KeyboardView(context: Context) : View(context) {
         fun onUndoDelete() {}
         /** 모아키: 자음 [key]를 누른 채 모음 [vowel] 방향으로 밀었다 */
         fun onMoaki(key: Key, vowel: Char) {}
-        /** 모아키 모음 키: 탭(ㅣ) 또는 밀기(ㅡ ㅏ ㅗ ㅜ ㅓ) */
-        fun onMoaVowel(vowel: Char) {}
     }
 
     var listener: Listener? = null
@@ -248,6 +246,11 @@ class KeyboardView(context: Context) : View(context) {
     private val pointers = SparseArray<Pointer>()
     private var rowTops = FloatArray(0)
 
+    /** 왼쪽 세로 띠(모아키 숫자)의 폭과 키들, 띠가 끝나는 y (맨 아래 줄의 윗경계) */
+    private var stripPx = 0f
+    private var sideCells: List<Cell> = emptyList()
+    private var sideBottomPx = 0f
+
     /** 터치가 어느 줄인지 가를 때 쓰는 줄 윗경계. 줄별 인식 영역 이동이 반영된다 (눈에 보이는 위치는 [rowTops]) */
     private var hitTops = FloatArray(0)
 
@@ -289,10 +292,11 @@ class KeyboardView(context: Context) : View(context) {
      */
     private fun keyBodyPx(r: Int): Float {
         val base = (keyHeightPx - LEGACY_GAP_DP * density).coerceAtLeast(1f)
-        if (keyboardLayout?.moaki == true && !isNumberRow(r)) {
-            // 모아키는 글자 줄이 5줄이라, 키보드 전체 높이가 단모음(글자 4줄)과 똑같도록 줄을 낮춘다:
-            // 줄 5개 + 여백 5칸 = 줄 4개 + 여백 4칸
-            return ((4f * base - frame.rowGapDp * density) / 5f).coerceAtLeast(1f)
+        if (keyboardLayout?.moaki == true) {
+            // 모아키는 5줄(숫자는 왼쪽 띠라 줄에 없음)이 키보드 전체 높이를 단모음과 똑같이 채운다:
+            // 줄 5개 + 여백 5칸 = (숫자 줄 + 글자 줄 4개) + 여백(숫자 아래 여백 포함, 4칸)
+            val single = base * frame.numberRowScale + 4f * base + frame.numberGapDp * density + 4f * frame.rowGapDp * density
+            return ((single - 5f * frame.rowGapDp * density) / 5f).coerceAtLeast(1f)
         }
         val scale = if (isNumberRow(r)) frame.numberRowScale else (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
         return base * scale
@@ -331,6 +335,9 @@ class KeyboardView(context: Context) : View(context) {
         val out = ArrayList<Cell>()
         val rows = ArrayList<List<Cell>>()
         val usableW = width - padL - padR
+        val hasSide = layout.sideKeys.isNotEmpty()
+        stripPx = if (hasSide) usableW * SIDE_STRIP_FRACTION else 0f
+        sideCells = emptyList()
         rowTops = FloatArray(layout.rows.size)
         var top = padT
         layout.rows.forEachIndexed { r, row ->
@@ -356,8 +363,12 @@ class KeyboardView(context: Context) : View(context) {
                     halves = Split.Halves(halves.left + dl, listOf(dr) + halves.right)
                 }
             }
-            val gapW = if (doSplit) usableW * splitGapFraction else 0f
-            for (pl in Split.place(halves, padL, usableW, gapW)) {
+            // 왼쪽 세로 띠(숫자)가 있으면 맨 아래 줄을 뺀 줄들은 그 오른쪽에서 시작한다
+            val inStrip = hasSide && r < layout.rows.size - 1
+            val rowStartX = if (inStrip) padL + stripPx else padL
+            val rowUsableW = if (inStrip) usableW - stripPx else usableW
+            val gapW = if (doSplit) rowUsableW * splitGapFraction else 0f
+            for (pl in Split.place(halves, rowStartX, rowUsableW, gapW)) {
                 if (pl.part.key.type == KeyType.SPACER) continue
                 val rect = RectF(pl.left, top, pl.right, top + rowH)
                 val cell = Cell(pl.part.key, rect, RectF(rect.left + gapX, rect.top + gapTop, rect.right - gapX, rect.bottom - gapBottom), pl.part in dups)
@@ -366,6 +377,25 @@ class KeyboardView(context: Context) : View(context) {
             }
             rows += rowList
             top += rowH
+        }
+        if (hasSide) {
+            // 왼쪽 띠: 맨 아래 줄 위까지의 높이를 숫자 줄 수로 똑같이 나눠 2열로 놓는다
+            val sideTop = rowTops[0]
+            val sideBottom = rowTops[layout.rows.size - 1]
+            val n = layout.sideKeys.size / 2
+            val cellH = (sideBottom - sideTop) / n
+            val colW = stripPx / 2f
+            val gx = frame.keyGapDp / 2f * density
+            val gy = frame.rowGapDp / 2f * density
+            val side = ArrayList<Cell>()
+            layout.sideKeys.forEachIndexed { i, k ->
+                val row = i / 2; val col = i % 2
+                val rect = RectF(padL + col * colW, sideTop + row * cellH, padL + (col + 1) * colW, sideTop + (row + 1) * cellH)
+                side += Cell(k, rect, RectF(rect.left + gx, rect.top + gy, rect.right - gx, rect.bottom - gy))
+            }
+            sideCells = side
+            sideBottomPx = sideBottom
+            out += side
         }
         cells = out
         rowCells = rows
@@ -472,11 +502,7 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
         for (i in 0 until pointers.size()) pointers.valueAt(i).popup?.let { drawPopup(canvas, it) }
-        for (i in 0 until pointers.size()) {
-            val p = pointers.valueAt(i)
-            drawMoaGuide(canvas, p)
-            drawMoaPreview(canvas, p)
-        }
+        for (i in 0 until pointers.size()) drawMoaGuide(canvas, pointers.valueAt(i))
         message?.let { drawMessage(canvas, it) }
         if (undoMark) drawUndoMark(canvas)
     }
@@ -529,28 +555,6 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
-
-    /** 모아키: 미는 동안 완성될 글자(예: ㄱ→ㅏ 이면 "가")를 키 위에 크게 미리 보여준다 */
-    private fun drawMoaPreview(canvas: Canvas, p: Pointer) {
-        val c = p.cell ?: return
-        val v = p.moaVowel ?: return
-        if (c.key.type != KeyType.MOA_VOWEL) return          // 자음은 주변 안내 칸에서 강조로 보여준다
-        val text = if (c.key.type == KeyType.MOA_VOWEL) v.toString() else {
-            val comp = com.mbt.keyboard.hangul.HangulComposer()
-            comp.input(c.key.output[0]); comp.input(v); comp.composing
-        }
-        val h = keyHeightPx * 1.05f
-        val w = h * 1.1f
-        val cx = c.rect.centerX().coerceIn(w / 2f + padL, width - padR - w / 2f)
-        val top = (c.rect.top - h - 6 * density).coerceAtLeast(0f)
-        val r = RectF(cx - w / 2f, top, cx + w / 2f, top + h)
-        paint.style = Paint.Style.FILL
-        paint.color = theme.accent
-        canvas.drawRoundRect(r, 12 * density, 12 * density, paint)
-        paint.color = theme.onAccent
-        paint.textSize = h * 0.62f
-        drawCentered(canvas, text, r)
-    }
 
     /** 키보드 위쪽 가운데의 둥근 ↶ 표시. 완전히 불투명하고 글자는 없다 */
     private fun drawUndoMark(canvas: Canvas) {
@@ -763,10 +767,6 @@ class KeyboardView(context: Context) : View(context) {
                 trackMoaStrokes(p, c, x, y)
                 return
             }
-            if (c != null && c.key.type == KeyType.MOA_VOWEL) {
-                handleMoaDrag(p, c, x, y)
-                return
-            }
         }
         // 글자 키 위에서 좌우로 밀면 커서 이동
         if (p.cursorDrag || startsCursorDrag(p, x, y)) {
@@ -834,51 +834,6 @@ class KeyboardView(context: Context) : View(context) {
     private fun degOf(dx: Float, dy: Float) =
         Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
 
-    /** 모아키 모음 키 밀기 방향·거리 → 모음. 키 폭의 30% 미만은 그냥 탭, 125% 이상은 "길게"(ㅑㅕㅛㅠ) */
-    private fun handleMoaDrag(p: Pointer, c: Cell, x: Float, y: Float) {
-        val dx = x - p.downX
-        val dy = y - p.downY
-        val kw = c.rect.width()
-        val dist = kotlin.math.hypot(dx, dy)
-        val shortPx = max(kw * 0.30f, 12 * density)
-        val longPx = kw * 1.25f
-        val v: Char? = if (dist < shortPx) null else moaVowelFor(c.key, dx, dy, dist >= longPx)
-        p.moaDeg = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
-        if (v != p.moaVowel) {
-            p.moaVowel = v
-            if (v != null) { p.cancelTimers(); haptics?.tick() }   // 밀기 시작하면 꾹 누르기(기호 말풍선)는 취소
-            invalidate()
-        }
-    }
-
-    /** 자음에서 밀 때 각도(화면 기준, 아래가 +90°) → 모음. 대각선 ↖·↘ 는 ㅡ·ㅣ */
-    private fun moaVowelByAngle(dx: Float, dy: Float, long: Boolean): Char {
-        val deg = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
-        // 시계 방향: 11시·1시(위쪽 대각선) = ㅣ, 5시·7시(아래쪽 대각선) = ㅡ. 나머지 4방향은 45° 칸의 가운데
-        return when {
-            deg in -157.5f..-112.5f || deg in -67.5f..-22.5f -> 'ㅣ'
-            deg in 22.5f..67.5f || deg in 112.5f..157.5f -> 'ㅡ'
-            abs(deg) <= 22.5f -> if (long) 'ㅑ' else 'ㅏ'
-            deg in 67.5f..112.5f -> if (long) 'ㅠ' else 'ㅜ'
-            abs(deg) >= 157.5f -> if (long) 'ㅕ' else 'ㅓ'
-            else -> if (long) 'ㅛ' else 'ㅗ'
-        }
-    }
-
-    private fun moaVowelFor(key: Key, dx: Float, dy: Float, long: Boolean): Char {
-        val horizontal = abs(dx) >= abs(dy)
-        return if (key.type == KeyType.MOA_VOWEL) {
-            when {
-                horizontal && dx > 0 -> 'ㅏ'
-                horizontal -> if (long) 'ㅓ' else 'ㅡ'
-                dy < 0 -> 'ㅗ'
-                else -> 'ㅜ'
-            }
-        } else {
-            moaVowelByAngle(dx, dy, long)
-        }
-    }
-
     private fun startsCursorDrag(p: Pointer, x: Float, y: Float): Boolean {
         if (p.cell?.key?.type != KeyType.CHAR) return false
         val dx = x - p.downX
@@ -935,7 +890,6 @@ class KeyboardView(context: Context) : View(context) {
                 }
                 cell != null && keyboardLayout?.moaki == true && isMoaConsonant(cell.key) && p.moaVowel != null ->
                     listener?.onMoaki(cell.key, p.moaVowel!!)
-                cell != null && cell.key.type == KeyType.MOA_VOWEL -> listener?.onMoaVowel(p.moaVowel ?: 'ㅣ')
                 cell != null && cell.key.type !in REPEAT_TYPES -> listener?.onKey(cell.key)
             }
         }
@@ -1019,6 +973,16 @@ class KeyboardView(context: Context) : View(context) {
     /** 정확히 맞는 키가 없으면 같은 행에서 가장 가까운 키 (키 사이 틈 터치 보정) */
     private fun hit(x: Float, y: Float): Cell? {
         if (rowCells.isEmpty()) return null
+        if (sideCells.isNotEmpty() && x < padL + stripPx && y < sideBottomPx) {
+            // 왼쪽 띠: 가로 2열·세로 N칸 중 터치가 속한 칸 (줄 경계와 상관없이 띠 안에서 직접 찾는다)
+            val colW = stripPx / 2f
+            val col = ((x - padL) / colW).toInt().coerceIn(0, 1)
+            val n = sideCells.size / 2
+            val top = sideCells.first().rect.top
+            val cellH = (sideBottomPx - top) / n
+            val row = ((y - top) / cellH).toInt().coerceIn(0, n - 1)
+            return sideCells[row * 2 + col]
+        }
         var row = hitTops.indexOfLast { it <= y }
         if (row < 0) row = 0
         var best: Cell? = null
@@ -1038,6 +1002,8 @@ class KeyboardView(context: Context) : View(context) {
 
     private companion object {
         /** 갈라진 자판의 복제 키 가로 비중 (원래 키는 1) */
+        /** 왼쪽 세로 띠(숫자 2열)가 줄 폭에서 차지하는 비율 */
+        const val SIDE_STRIP_FRACTION = 0.19f
         const val UNDO_MARK_DP = 52f
         const val UNDO_MARK_MS = 900L
         const val DUPLICATE_WEIGHT = 0.85f

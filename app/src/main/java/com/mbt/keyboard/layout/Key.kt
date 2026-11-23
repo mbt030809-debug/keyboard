@@ -8,8 +8,6 @@ enum class KeyType {
     EMOJI,
     /** 숫자 키패드에서 글자 자판으로 돌아가기 */
     LETTERS,
-    /** 모아키의 모음 키: 탭 ㅣ, 밀기 ㅡ·ㅏ·ㅗ·ㅜ (ㅓ는 왼쪽 길게) */
-    MOA_VOWEL,
 }
 
 /**
@@ -46,4 +44,9 @@ data class KeyboardLayout(
     val splittable: Boolean = true,
     /** 모아키: 자음 키를 누른 채 모음 방향으로 밀면 자음+모음이 한 번에 입력된다 */
     val moaki: Boolean = false,
+    /**
+     * 왼쪽 세로 띠에 2열로 놓는 키 (왼쪽→오른쪽, 위→아래 순서). 맨 아래 줄을 뺀 모든 줄의 높이에 걸쳐
+     * 같은 간격으로 나눠 놓는다 (줄 수와 키 줄 수가 달라도 된다). 모아키의 숫자 키가 쓴다
+     */
+    val sideKeys: List<Key> = emptyList(),
 )
