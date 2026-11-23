@@ -677,7 +677,7 @@ class KeyboardView(context: Context) : View(context) {
         glassPaint.color = theme.frostTint
         canvas.drawRect(0f, 0f, w, h, glassPaint)
         // 위쪽에서 내려오는 은은한 빛
-        glassPaint.shader = LinearGradient(0f, 0f, 0f, h * 0.45f, intArrayOf(0x38FFFFFF, 0x0FFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+        glassPaint.shader = LinearGradient(0f, 0f, 0f, h * 0.45f, intArrayOf(0x5CFFFFFF, 0x1FFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
         canvas.drawRect(0f, 0f, w, h, glassPaint)
         // 비스듬히 가로지르는 엷은 빛띠들 (유리 표면에 빛이 반사되는 느낌): 넓고 옅은 띠 + 좁고 밝은 띠가 번갈아
         glassPaint.shader = LinearGradient(
@@ -1364,12 +1364,12 @@ class KeyboardView(context: Context) : View(context) {
         const val LABEL_WIDTH_FACTOR = 1.35f
         const val FROST_BLUR_DIV = 10
         const val FROST_KEY_RADIUS_SCALE = 1.15f
-        const val FROST_FADE_DP = 6f
+        const val FROST_FADE_DP = 10f
         const val FN_TAB_GAP_DP = 2f
 
         /** 유리판 위 빛띠: (투명 → 옅은 넓은 띠 → 좁고 밝은 띠 → …) 비스듬한 방향 */
         private val GLASS_BAND_COLORS = intArrayOf(
-            0x00FFFFFF, 0x2EFFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x20FFFFFF, 0x4DFFFFFF, 0x20FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x1AFFFFFF, 0x00FFFFFF,
+            0x00FFFFFF, 0x52FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x38FFFFFF, 0x8CFFFFFF.toInt(), 0x38FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x38FFFFFF, 0x00FFFFFF,
         )
         private val GLASS_BAND_STOPS = floatArrayOf(0.00f, 0.10f, 0.20f, 0.36f, 0.43f, 0.455f, 0.48f, 0.56f, 0.72f, 0.80f, 0.90f)
 
