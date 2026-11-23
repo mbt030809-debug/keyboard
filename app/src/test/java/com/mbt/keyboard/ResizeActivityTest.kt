@@ -136,4 +136,43 @@ class ResizeActivityTest {
             }
         }
     }
+
+    private fun stepperButton(a: ResizeActivity, row: Int, plus: Boolean): Int {
+        val container = a.findViewById<android.view.ViewGroup>(R.id.frameControls)
+        val v = container.getChildAt(row).findViewById<View>(if (plus) R.id.stepPlus else R.id.stepMinus)
+        val t = android.os.SystemClock.uptimeMillis()
+        v.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, 1f, 1f, 0))
+        v.dispatchTouchEvent(MotionEvent.obtain(t, t + 10, MotionEvent.ACTION_UP, 1f, 1f, 0))
+        return row
+    }
+
+    @Test fun frameAndKeyGapControlsWorkAndAreSaved() {
+        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                val container = a.findViewById<android.view.ViewGroup>(R.id.frameControls)
+                assertEquals(5, container.childCount)            // 위·아래·왼쪽·오른쪽·키 간격
+                stepperButton(a, 0, plus = true); stepperButton(a, 0, plus = true)   // 위쪽 +2
+                stepperButton(a, 1, plus = false)                                      // 아래쪽 -1
+                stepperButton(a, 2, plus = true)                                       // 왼쪽 +1
+                stepperButton(a, 3, plus = false); stepperButton(a, 3, plus = false)  // 오른쪽 -2
+                stepperButton(a, 4, plus = true)                                       // 키 간격 +1
+                val g = Prefs.geometry(a, large = false)
+                // 위쪽 4+2, 아래쪽 4-1, 왼쪽 4+1, 오른쪽 4-2, 키 간격 6+1
+                assertEquals(6, g.padTopDp); assertEquals(3, g.padBottomDp)
+                assertEquals(5, g.padLeftDp); assertEquals(2, g.padRightDp); assertEquals(7, g.keyGapDp)
+                // 표시도 갱신
+                assertEquals("6dp", container.getChildAt(0).findViewById<android.widget.TextView>(R.id.stepValue).text)
+            }
+        }
+    }
+
+    @Test fun resetRestoresFrameDefaults() {
+        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                stepperButton(a, 0, plus = true); stepperButton(a, 4, plus = true)
+                a.findViewById<View>(R.id.resetButton).performClick()
+                assertEquals(KeyboardGeometry(), Prefs.geometry(a, large = false))
+            }
+        }
+    }
 }

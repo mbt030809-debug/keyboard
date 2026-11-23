@@ -246,6 +246,27 @@
                 android:textSize="12sp"
                 android:alpha="0.7" />
 
+            <!-- 키 둘레 여백(키보드 바깥 프레임)과 키 사이 간격 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/resize_frame_title"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/resize_frame_desc"
+                android:textSize="12sp"
+                android:alpha="0.7" />
+
+            <LinearLayout
+                android:id="@+id/frameControls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

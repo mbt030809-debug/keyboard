@@ -12,6 +12,11 @@ import kotlin.math.roundToInt
  * @param xDp 좌우 위치: 가운데에서 얼마나 옮겼는지(dp, 음수=왼쪽, 양수=오른쪽). 화면 밖으로는 못 나간다
  * @param raiseDp 상하 위치: 화면 바닥에서 위로 띄운 높이 (0~200dp)
  * @param gapPct 갈라진 정도: 나눠쓰기 때 두 묶음 사이 틈이 키보드 가로폭에서 차지하는 % (6~40)
+ * @param padLeftDp 키 둘레 여백(키보드 바깥 프레임): 왼쪽 (0~40dp)
+ * @param padTopDp 위쪽 여백
+ * @param padRightDp 오른쪽 여백
+ * @param padBottomDp 아래쪽 여백
+ * @param keyGapDp 키와 키 사이 간격 (0~16dp)
  */
 data class KeyboardGeometry(
     val widthPct: Int = WIDTH_DEFAULT,
@@ -19,6 +24,11 @@ data class KeyboardGeometry(
     val xDp: Int = X_DEFAULT,
     val raiseDp: Int = RAISE_DEFAULT,
     val gapPct: Int = GAP_DEFAULT,
+    val padLeftDp: Int = PAD_DEFAULT,
+    val padTopDp: Int = PAD_DEFAULT,
+    val padRightDp: Int = PAD_DEFAULT,
+    val padBottomDp: Int = PAD_DEFAULT,
+    val keyGapDp: Int = KEY_GAP_DEFAULT,
 ) {
     /** 범위를 벗어난 값을 허용 범위 안으로 */
     fun clamped() = KeyboardGeometry(
@@ -27,12 +37,23 @@ data class KeyboardGeometry(
         xDp.coerceIn(X_MIN, X_MAX),
         raiseDp.coerceIn(RAISE_MIN, RAISE_MAX),
         gapPct.coerceIn(GAP_MIN, GAP_MAX),
+        padLeftDp.coerceIn(PAD_MIN, PAD_MAX),
+        padTopDp.coerceIn(PAD_MIN, PAD_MAX),
+        padRightDp.coerceIn(PAD_MIN, PAD_MAX),
+        padBottomDp.coerceIn(PAD_MIN, PAD_MAX),
+        keyGapDp.coerceIn(KEY_GAP_MIN, KEY_GAP_MAX),
     )
 
     fun widerBy(steps: Int) = copy(widthPct = widthPct + steps * WIDTH_STEP).clamped()
     fun tallerBy(steps: Int) = copy(heightPct = heightPct + steps * HEIGHT_STEP).clamped()
     fun raisedBy(steps: Int) = copy(raiseDp = raiseDp + steps * RAISE_STEP).clamped()
     fun gapWiderBy(steps: Int) = copy(gapPct = gapPct + steps * GAP_STEP).clamped()
+
+    fun padLeftBy(steps: Int) = copy(padLeftDp = padLeftDp + steps * PAD_STEP).clamped()
+    fun padTopBy(steps: Int) = copy(padTopDp = padTopDp + steps * PAD_STEP).clamped()
+    fun padRightBy(steps: Int) = copy(padRightDp = padRightDp + steps * PAD_STEP).clamped()
+    fun padBottomBy(steps: Int) = copy(padBottomDp = padBottomDp + steps * PAD_STEP).clamped()
+    fun keyGapBy(steps: Int) = copy(keyGapDp = keyGapDp + steps * KEY_GAP_STEP).clamped()
 
     /** 틈의 비율 (0.18 = 키보드 가로폭의 18%) */
     val gapFraction: Float get() = gapPct / 100f
@@ -111,6 +132,16 @@ data class KeyboardGeometry(
         const val GAP_MAX = 40
         const val GAP_STEP = 1
         const val GAP_DEFAULT = 18
+
+        const val PAD_MIN = 0
+        const val PAD_MAX = 40
+        const val PAD_STEP = 1
+        const val PAD_DEFAULT = 4
+
+        const val KEY_GAP_MIN = 0
+        const val KEY_GAP_MAX = 16
+        const val KEY_GAP_STEP = 1
+        const val KEY_GAP_DEFAULT = 6
 
         /** 폴드 안쪽 화면·태블릿처럼 넓은 화면의 기준 (가장 짧은 변, dp) */
         const val LARGE_SCREEN_DP = 600

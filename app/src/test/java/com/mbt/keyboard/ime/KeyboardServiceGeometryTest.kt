@@ -72,4 +72,19 @@ class KeyboardServiceGeometryTest {
         assertEquals((30 * density).toInt(), lp.bottomMargin)
         assertTrue(lp.leftMargin in 1..199)                    // 가운데(200)보다 왼쪽
     }
+
+    @Test fun framePaddingsAndKeyGapReachTheRealKeyboardAndFollowLiveChanges() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        Prefs.setGeometry(ctx, large = false, KeyboardGeometry(padLeftDp = 12, padTopDp = 1, padRightDp = 20, padBottomDp = 3, keyGapDp = 2))
+        val service = Robolectric.buildService(KeyboardService::class.java).create().get()
+        val root = service.onCreateInputView() as FrameLayout
+        layoutRoot(root, 1000)
+        val keyboard = (root.getChildAt(0) as FrameLayout).getChildAt(0) as KeyboardView
+        assertEquals(KeyboardFrame(12, 1, 20, 3, 2), keyboard.frame)
+
+        Prefs.setGeometry(ctx, large = false, KeyboardGeometry(padLeftDp = 0, keyGapDp = 10))
+        layoutRoot(root, 1000)
+        assertEquals(0, keyboard.frame.leftDp)
+        assertEquals(10, keyboard.frame.keyGapDp)
+    }
 }

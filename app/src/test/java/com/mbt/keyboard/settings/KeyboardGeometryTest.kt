@@ -115,4 +115,27 @@ class KeyboardGeometryTest {
         assertFalse(ScreenProfile.isLarge(1080, 2316, 2.625f))       // 폴드 바깥(접힘)
         assertFalse(ScreenProfile.isLarge(2316, 1080, 2.625f))       // 폰 가로 모드
     }
+
+    @Test fun frameDefaultsMatchTheOldFixedValues() {
+        val g = KeyboardGeometry()
+        assertEquals(listOf(4, 4, 4, 4), listOf(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp))
+        assertEquals(6, g.keyGapDp)
+    }
+
+    @Test fun framePaddingsAreIndependentAndStepByOneDp() {
+        val g = KeyboardGeometry().padTopBy(3).padLeftBy(-2).padRightBy(10)
+        assertEquals(7, g.padTopDp); assertEquals(2, g.padLeftDp); assertEquals(14, g.padRightDp)
+        assertEquals(4, g.padBottomDp)                       // 건드리지 않은 쪽은 그대로
+        assertEquals(5, KeyboardGeometry().padBottomBy(1).padBottomDp)
+        assertEquals(7, KeyboardGeometry().keyGapBy(1).keyGapDp)
+    }
+
+    @Test fun frameValuesAreClamped() {
+        assertEquals(0, KeyboardGeometry().padTopBy(-99).padTopDp)
+        assertEquals(40, KeyboardGeometry().padLeftBy(999).padLeftDp)
+        assertEquals(0, KeyboardGeometry().keyGapBy(-99).keyGapDp)
+        assertEquals(16, KeyboardGeometry().keyGapBy(99).keyGapDp)
+        val c = KeyboardGeometry(padLeftDp = -5, padTopDp = 99, padRightDp = -1, padBottomDp = 41, keyGapDp = 99).clamped()
+        assertEquals(listOf(0, 40, 0, 40, 16), listOf(c.padLeftDp, c.padTopDp, c.padRightDp, c.padBottomDp, c.keyGapDp))
+    }
 }

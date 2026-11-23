@@ -23,6 +23,11 @@ object Prefs {
             p.getInt(geoKey(large, "xd"), KeyboardGeometry.X_DEFAULT),
             p.getInt(geoKey(large, "r"), KeyboardGeometry.RAISE_DEFAULT),
             p.getInt(geoKey(large, "g"), KeyboardGeometry.GAP_DEFAULT),
+            p.getInt(geoKey(large, "pl"), KeyboardGeometry.PAD_DEFAULT),
+            p.getInt(geoKey(large, "pt"), KeyboardGeometry.PAD_DEFAULT),
+            p.getInt(geoKey(large, "pr"), KeyboardGeometry.PAD_DEFAULT),
+            p.getInt(geoKey(large, "pb"), KeyboardGeometry.PAD_DEFAULT),
+            p.getInt(geoKey(large, "kg"), KeyboardGeometry.KEY_GAP_DEFAULT),
         ).clamped()
     }
 
@@ -34,6 +39,11 @@ object Prefs {
             .putInt(geoKey(large, "xd"), c.xDp)
             .putInt(geoKey(large, "r"), c.raiseDp)
             .putInt(geoKey(large, "g"), c.gapPct)
+            .putInt(geoKey(large, "pl"), c.padLeftDp)
+            .putInt(geoKey(large, "pt"), c.padTopDp)
+            .putInt(geoKey(large, "pr"), c.padRightDp)
+            .putInt(geoKey(large, "pb"), c.padBottomDp)
+            .putInt(geoKey(large, "kg"), c.keyGapDp)
             .apply()
     }
     private const val KEY_PAUSE_MS = "pause_split_ms"

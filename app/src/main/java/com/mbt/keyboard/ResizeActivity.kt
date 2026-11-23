@@ -6,12 +6,14 @@ import android.os.Handler
 import android.os.Looper
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
+import com.mbt.keyboard.ime.KeyboardFrame
 import com.mbt.keyboard.ime.KeyboardHost
 import com.mbt.keyboard.ime.KeyboardView
 import com.mbt.keyboard.layout.Layouts
@@ -34,6 +36,11 @@ class ResizeActivity : AppCompatActivity() {
 
     /** 갈라진 자판이 적용 중인가 (펼침 화면 + 설정 켬). 아닐 때는 "갈라진 정도" 행을 숨긴다 */
     private var splitActive = false
+
+    /** 키 둘레 여백·키 간격 조절 줄 (표시 갱신용) */
+    private class Stepper(val value: TextView, val minus: View, val plus: View, val text: () -> String,
+                          val canMinus: () -> Boolean, val canPlus: () -> Boolean)
+    private val steppers = ArrayList<Stepper>()
 
     /** 미리보기가 놓이는 실제 가로 폭(px). 측정되기 전에는 화면 폭으로 대신한다 */
     private var containerWidthPx = 0
@@ -88,6 +95,18 @@ class ResizeActivity : AppCompatActivity() {
         bind(R.id.moveUp) { geometry = geometry.raisedBy(1) }
         bind(R.id.moveDown) { geometry = geometry.raisedBy(-1) }
 
+        // 키 둘레 여백 4방향 + 키 사이 간격 (1dp씩)
+        addStepper(R.string.resize_pad_top, { geometry = geometry.padTopBy(it) }, { "${geometry.padTopDp}dp" },
+            { geometry.padTopDp > KeyboardGeometry.PAD_MIN }, { geometry.padTopDp < KeyboardGeometry.PAD_MAX })
+        addStepper(R.string.resize_pad_bottom, { geometry = geometry.padBottomBy(it) }, { "${geometry.padBottomDp}dp" },
+            { geometry.padBottomDp > KeyboardGeometry.PAD_MIN }, { geometry.padBottomDp < KeyboardGeometry.PAD_MAX })
+        addStepper(R.string.resize_pad_left, { geometry = geometry.padLeftBy(it) }, { "${geometry.padLeftDp}dp" },
+            { geometry.padLeftDp > KeyboardGeometry.PAD_MIN }, { geometry.padLeftDp < KeyboardGeometry.PAD_MAX })
+        addStepper(R.string.resize_pad_right, { geometry = geometry.padRightBy(it) }, { "${geometry.padRightDp}dp" },
+            { geometry.padRightDp > KeyboardGeometry.PAD_MIN }, { geometry.padRightDp < KeyboardGeometry.PAD_MAX })
+        addStepper(R.string.resize_key_gap, { geometry = geometry.keyGapBy(it) }, { "${geometry.keyGapDp}dp" },
+            { geometry.keyGapDp > KeyboardGeometry.KEY_GAP_MIN }, { geometry.keyGapDp < KeyboardGeometry.KEY_GAP_MAX })
+
         findViewById<MaterialButton>(R.id.resetButton).setOnClickListener {
             geometry = KeyboardGeometry()
             refresh()
@@ -97,10 +116,25 @@ class ResizeActivity : AppCompatActivity() {
         refresh()
     }
 
+    /** [－ 값 ＋] 한 줄을 만들어 "키 둘레 여백" 영역에 붙인다 */
+    private fun addStepper(
+        labelRes: Int, change: (Int) -> Unit, text: () -> String, canMinus: () -> Boolean, canPlus: () -> Boolean,
+    ) {
+        val row = layoutInflater.inflate(R.layout.row_stepper, findViewById<ViewGroup>(R.id.frameControls), false)
+        row.findViewById<TextView>(R.id.stepLabel).setText(labelRes)
+        val minus = row.findViewById<View>(R.id.stepMinus)
+        val plus = row.findViewById<View>(R.id.stepPlus)
+        findViewById<ViewGroup>(R.id.frameControls).addView(row)
+        bindButton(minus) { change(-1) }
+        bindButton(plus) { change(1) }
+        steppers += Stepper(row.findViewById(R.id.stepValue), minus, plus, text, canMinus, canPlus)
+    }
+
+    private fun bind(id: Int, change: () -> Unit) = bindButton(findViewById(id), change)
+
     /** 눌렀을 때 한 번, 계속 누르고 있으면 반복해서 [change]를 실행한다 */
     @SuppressLint("ClickableViewAccessibility")
-    private fun bind(id: Int, change: () -> Unit) {
-        val button = findViewById<MaterialButton>(id)
+    private fun bindButton(button: View, change: () -> Unit) {
         var ticks = 0
         val repeat = object : Runnable {
             override fun run() {
@@ -138,6 +172,14 @@ class ResizeActivity : AppCompatActivity() {
         KeyboardHost.apply(host, containerWidthPx, geometry, density)
         keyboard.heightScale = geometry.heightScale
         keyboard.splitGapFraction = geometry.gapFraction
+        keyboard.frame = KeyboardFrame(
+            geometry.padLeftDp, geometry.padTopDp, geometry.padRightDp, geometry.padBottomDp, geometry.keyGapDp,
+        )
+        steppers.forEach {
+            it.value.text = it.text()
+            it.minus.isEnabled = it.canMinus()
+            it.plus.isEnabled = it.canPlus()
+        }
 
         findViewById<TextView>(R.id.profileInfo).text =
             getString(if (large) R.string.resize_profile_large else R.string.resize_profile_normal)

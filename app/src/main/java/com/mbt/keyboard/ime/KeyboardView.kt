@@ -27,6 +27,18 @@ import kotlin.math.min
 enum class ShiftState { OFF, ON, LOCK }
 
 /**
+ * 키 둘레 여백(키보드 바깥 프레임)과 키 사이 간격. 단위 dp.
+ * 기본값은 예전 고정값(둘레 4dp, 키 사이 6dp)과 같다.
+ */
+data class KeyboardFrame(
+    val leftDp: Int = 4,
+    val topDp: Int = 4,
+    val rightDp: Int = 4,
+    val bottomDp: Int = 4,
+    val keyGapDp: Int = 6,
+)
+
+/**
  * 자판 데이터를 Canvas로 그리고 터치를 키 이벤트로 변환하는 뷰.
  *
  * 터치는 손가락(pointer)마다 독립적으로 처리한다. 앞 키를 떼기 전에 다음 키를 눌러도(양손·빠른 타자)
@@ -61,6 +73,16 @@ class KeyboardView(context: Context) : View(context) {
 
     /** 진동 피드백 (키 누를 때, 꾹 누르기, 스와이프) */
     var haptics: Haptics? = null
+
+    /** 키 둘레 여백·키 사이 간격 (크기 조정 설정) */
+    var frame: KeyboardFrame = KeyboardFrame()
+        set(v) {
+            if (field == v) return
+            field = v
+            computeCells()
+            requestLayout()
+            invalidate()
+        }
 
     /** 나눠쓰기 틈: 키보드 가로폭 대비 비율 (크기 조정 설정의 "갈라진 정도") */
     var splitGapFraction: Float = 0.18f
@@ -197,7 +219,10 @@ class KeyboardView(context: Context) : View(context) {
 
     private val rowCount get() = keyboardLayout?.rows?.size ?: 0
     private val keyHeightPx get() = theme.keyHeightDp * density * heightScale
-    private val padPx get() = 4 * density
+    private val padL get() = frame.leftDp * density
+    private val padT get() = frame.topDp * density
+    private val padR get() = frame.rightDp * density
+    private val padB get() = frame.bottomDp * density
 
     private fun rowHeightPx(r: Int) = keyHeightPx * (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
 
@@ -205,7 +230,7 @@ class KeyboardView(context: Context) : View(context) {
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
-        val h = (contentHeight() + 2 * padPx).toInt() + bottomInset
+        val h = (contentHeight() + padT + padB).toInt() + bottomInset
         setMeasuredDimension(w, h)
     }
 
@@ -219,10 +244,10 @@ class KeyboardView(context: Context) : View(context) {
         if (width == 0) return
         val out = ArrayList<Cell>()
         val rows = ArrayList<List<Cell>>()
-        val gap = 3 * density
-        val usableW = width - 2 * padPx
+        val gap = frame.keyGapDp / 2f * density          // 키마다 사방으로 이만큼 비운다 = 키 사이 간격의 절반
+        val usableW = width - padL - padR
         rowTops = FloatArray(layout.rows.size)
-        var top = padPx
+        var top = padT
         layout.rows.forEachIndexed { r, row ->
             val rowH = rowHeightPx(r)
             rowTops[r] = top
@@ -231,7 +256,7 @@ class KeyboardView(context: Context) : View(context) {
             val halves = if (split) Split.halves(row, layout.splitAt.getOrNull(r))
             else Split.Halves(row.map { Split.Part(it, it.weight) }, emptyList())
             val gapW = if (split) usableW * splitGapFraction else 0f
-            for (pl in Split.place(halves, padPx, usableW, gapW)) {
+            for (pl in Split.place(halves, padL, usableW, gapW)) {
                 if (pl.part.key.type == KeyType.SPACER) continue
                 val rect = RectF(pl.left, top, pl.right, top + rowH)
                 val cell = Cell(pl.part.key, rect, RectF(rect).apply { inset(gap, gap) })
@@ -312,7 +337,7 @@ class KeyboardView(context: Context) : View(context) {
 
     private fun drawMessage(canvas: Canvas, text: String) {
         val h = max(rowHeightPx(0), 40 * density)
-        val r = RectF(padPx + 3 * density, padPx + 3 * density, width - padPx - 3 * density, padPx + h)
+        val r = RectF(padL + 3 * density, padT + 3 * density, width - padR - 3 * density, padT + h)
         paint.color = theme.accent
         canvas.drawRoundRect(r, 8 * density, 8 * density, paint)
         paint.color = theme.onAccent
@@ -320,6 +345,12 @@ class KeyboardView(context: Context) : View(context) {
         val shown = TextUtils.ellipsize(text, TextPaint(paint), r.width() - 20 * density, TextUtils.TruncateAt.END)
         drawCentered(canvas, shown.toString(), r)
     }
+
+    /** 키 위치 확인용 (테스트) */
+    internal fun keyRects(): List<Pair<Key, RectF>> = cells.map { it.key to RectF(it.rect) }
+
+    /** 실제로 그려지는 키 영역(키 사이 간격을 뺀 것) (테스트) */
+    internal fun keyInnerRects(): List<Pair<Key, RectF>> = cells.map { it.key to RectF(it.inner) }
 
     private fun isPressed(cell: Cell): Boolean {
         for (i in 0 until pointers.size()) if (pointers.valueAt(i).cell === cell) return true
@@ -552,9 +583,9 @@ class KeyboardView(context: Context) : View(context) {
                 paint.textSize = keyHeightPx * 0.42f * theme.textScale
                 val widest = key.hints.maxOf { paint.measureText(it) } + 16 * density
                 var cellW = max(max(cell.rect.width(), 44 * density), widest)
-                cellW = min(cellW, (width - 2 * padPx) / n)
+                cellW = min(cellW, (width - padL - padR) / n)
                 val total = cellW * n
-                val left = cell.rect.left.coerceAtMost(width - padPx - total).coerceAtLeast(padPx)
+                val left = cell.rect.left.coerceAtMost(width - padR - total).coerceAtLeast(padL)
                 val top = (cell.rect.top - keyH).coerceAtLeast(0f)
                 val rects = List(n) { RectF(left + it * cellW, top, left + (it + 1) * cellW, top + keyH) }
                 Popup(key.hints, rects, selected = 0)
