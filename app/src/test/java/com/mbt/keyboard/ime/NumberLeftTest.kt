@@ -254,25 +254,15 @@ class NumberKeyShadeTest {
         assertTrue(lum(colorOf(m, "5")) < lum(colorOf(m, "ㅂ")))
     }
 
-    @Test fun numberKeyColorBlendsKeyFunctionKeyAndThemeBackgroundForEveryTheme() {
+    @Test fun numberKeyColorIsTheMidpointOfThemeBackgroundAndLetterKeyForEveryTheme() {
         KeyboardThemes.all.forEach { n ->
             val t = n.theme
             val nk = t.numberKey
-            fun ch(c: Int, sh: Int) = (c shr sh) and 0xFF
-            listOf(16, 8, 0).forEach { sh ->
-                val vals = listOf(ch(t.key, sh), ch(t.specialKey, sh), ch(t.background, sh))
-                assertTrue("${n.id} $sh", ch(nk, sh) in vals.min()..vals.max())
+            listOf(24, 16, 8, 0).forEach { sh ->
+                val expected = (((t.key shr sh) and 0xFF) + ((t.background shr sh) and 0xFF)) / 2f
+                assertEquals("${n.id} $sh", expected, ((nk shr sh) and 0xFF).toFloat(), 1f)
             }
         }
-    }
-
-    @Test fun navyThemeNumberKeysStayNavy() {
-        val t = KeyboardThemes.byId("navy")!!.theme
-        val nk = t.numberKey
-        val r = (nk shr 16) and 0xFF; val g = (nk shr 8) and 0xFF; val b = nk and 0xFF
-        assertTrue("r=$r g=$g b=$b", b > r + 15 && b > g + 8)           // 푸른 기운이 뚜렷
-        fun lum(c: Int) = ((c shr 16) and 0xFF) * 0.3f + ((c shr 8) and 0xFF) * 0.59f + (c and 0xFF) * 0.11f
-        assertTrue(lum(nk) < lum(t.key))                                 // 일반 키보다 어둡다
     }
 
     @Test fun numericKeypadDigitsAreUnchanged() {
