@@ -68,14 +68,14 @@ class LayoutsTest {
         }
     }
 
-    @Test fun voiceKeyIsRightNextToTheSpaceBar() {
+    @Test fun voiceKeyIsAtTheFarLeftNextToTheEmojiKey() {
         Layouts.all.forEach { l ->
             val bottom = l.rows.last()
             val types = bottom.map { it.type }
             assertEquals(
-                listOf(KeyType.EMOJI, KeyType.CHAR, KeyType.SPACE, KeyType.VOICE, KeyType.CHAR, KeyType.ENTER), types,
+                listOf(KeyType.VOICE, KeyType.EMOJI, KeyType.CHAR, KeyType.SPACE, KeyType.CHAR, KeyType.ENTER), types,
             )
-            assertEquals(listOf(",", "", "🎤", "."), bottom.filter { it.type != KeyType.EMOJI && it.type != KeyType.ENTER }.map { it.label })
+            assertEquals(listOf("🎤", ",", "", "."), bottom.filter { it.type != KeyType.EMOJI && it.type != KeyType.ENTER }.map { it.label })
             assertEquals(10.0, bottom.sumOf { it.weight.toDouble() }, 0.001)
             // 녹음 키와 마침표(와 쉼표)는 폭이 똑같다
             val voice = bottom.first { it.type == KeyType.VOICE }
