@@ -757,23 +757,50 @@ class KeyboardView(context: Context) : View(context) {
         glassPaint.style = Paint.Style.FILL
     }
 
+    private val keyPath = Path()
+
     /**
-     * 판 위의 키: 선명한 유리 버튼. 아래에 얇고 진한 선 + 부드러운 그림자, 윗면에 하이라이트.
-     * [tint]는 키 면의 ARGB 색(흰색에 가깝고 기능키는 더 투명하다).
+     * 판 위의 키: 뒤가 살짝 비치는 투명한 유리 버튼. [tint]는 키 면의 ARGB 색(알파가 있어 뒤 판이 비친다).
+     * ① 키 바깥에만 부드러운 그림자(투명한 키 안으로는 안 비치게 잘라냄) ② 색입힌 투명 면 ③ 위쪽 광택·아래쪽 빛 번짐
+     * ④ 왼쪽 위 모서리 반짝임 + 비스듬한 빛띠 ⑤ 왼쪽 위는 밝고 오른쪽 아래는 옅은 유리 테두리.
      */
     private fun drawFrostKey(canvas: Canvas, r: RectF, radius: Float, tint: Int, pressed: Boolean) {
+        keyPath.rewind()
+        keyPath.addRoundRect(r, radius, radius, Path.Direction.CW)
         glassPaint.shader = null
         glassPaint.style = Paint.Style.FILL
-        glassPaint.color = 0x14000000                    // 부드러운 아래 그림자
-        canvas.drawRoundRect(r.left, r.top + 2 * density, r.right, r.bottom + 3 * density, radius, radius, glassPaint)
-        glassPaint.color = 0x38000000                    // 얇고 진한 아랫선
-        canvas.drawRoundRect(r.left, r.top + density, r.right, r.bottom + density, radius, radius, glassPaint)
+        // ① 그림자: 키 모양을 잘라낸 바깥쪽에만
+        canvas.save()
+        canvas.clipOutPath(keyPath)
+        glassPaint.color = 0x16000000                    // 넓고 옅은 그림자
+        canvas.drawRoundRect(r.left - density, r.top + 2 * density, r.right + density, r.bottom + 4 * density, radius + density, radius + density, glassPaint)
+        glassPaint.color = 0x30000000                    // 가깝고 진한 아랫선
+        canvas.drawRoundRect(r.left, r.top + density, r.right, r.bottom + 1.5f * density, radius, radius, glassPaint)
+        canvas.restore()
+        // ② 색입힌 투명 면
         glassPaint.color = if (pressed) theme.keyPressed else tint
         canvas.drawRoundRect(r, radius, radius, glassPaint)
-        // 윗면 하이라이트 + 아래쪽 옅은 음영
-        glassPaint.shader = LinearGradient(0f, r.top, 0f, r.bottom, intArrayOf(0x66FFFFFF, 0x00FFFFFF, 0x00000000, 0x0F000000), floatArrayOf(0f, 0.18f, 0.7f, 1f), Shader.TileMode.CLAMP)
-        canvas.drawRoundRect(r, radius, radius, glassPaint)
+        // ③④ 면 위의 유리 빛
+        canvas.save()
+        canvas.clipPath(keyPath)
+        val h = r.height(); val w = r.width()
+        glassPaint.shader = LinearGradient(0f, r.top, 0f, r.bottom, intArrayOf(0x73FFFFFF, 0x1AFFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x3DFFFFFF), floatArrayOf(0f, 0.28f, 0.5f, 0.7f, 1f), Shader.TileMode.CLAMP)
+        canvas.drawRect(r, glassPaint)
+        glassPaint.shader = LinearGradient(r.left, r.top, r.left + w * 0.9f, r.top + h * 1.8f, intArrayOf(0x00FFFFFF, 0x40FFFFFF, 0x00FFFFFF, 0x00FFFFFF), floatArrayOf(0.20f, 0.30f, 0.42f, 1f), Shader.TileMode.CLAMP)
+        canvas.drawRect(r, glassPaint)
+        val sr = radius * 2.4f
+        glassPaint.shader = android.graphics.RadialGradient(r.left + radius * 0.9f, r.top + radius * 0.9f, sr, 0x8CFFFFFF.toInt(), 0x00FFFFFF, Shader.TileMode.CLAMP)
+        canvas.drawRect(r, glassPaint)
         glassPaint.shader = null
+        canvas.restore()
+        // ⑤ 유리 테두리
+        glassPaint.style = Paint.Style.STROKE
+        glassPaint.strokeWidth = density
+        glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, intArrayOf(0xF2FFFFFF.toInt(), 0x59FFFFFF, 0x26FFFFFF, 0xB3FFFFFF.toInt()), floatArrayOf(0f, 0.35f, 0.65f, 1f), Shader.TileMode.CLAMP)
+        val hh = density / 2f
+        canvas.drawRoundRect(r.left + hh, r.top + hh, r.right - hh, r.bottom - hh, radius, radius, glassPaint)
+        glassPaint.shader = null
+        glassPaint.style = Paint.Style.FILL
     }
 
     private fun drawBackground(canvas: Canvas) {

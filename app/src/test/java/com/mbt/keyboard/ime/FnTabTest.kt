@@ -372,7 +372,7 @@ class FrostThemeTest {
             val t = all.first { it.id == id }.theme
             assertTrue(t.hasGradient)
             assertEquals(3, t.backgroundStops.size)
-            assertTrue("$id 키는 거의 흰색", (t.key ushr 24) >= 0xC0 && ((t.key shr 16) and 0xFF) == 0xFF)
+            assertTrue("$id 키는 흰색 유리(뒤가 살짝 비침)", (t.key ushr 24) in 0xA0..0xE0 && ((t.key shr 16) and 0xFF) == 0xFF)
             assertTrue("$id 기능키는 키보다 투명", (t.specialKey ushr 24) < (t.key ushr 24))
         }
     }

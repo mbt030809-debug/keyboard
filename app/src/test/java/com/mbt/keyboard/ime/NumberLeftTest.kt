@@ -322,6 +322,14 @@ class NumberKeyShadeTest {
         }
     }
 
+    @Test fun glassThemeFunctionKeysAreTintedTranslucentGlassToo() {
+        KeyboardThemes.all.filter { it.theme.frost }.forEach { n ->
+            val t = n.theme
+            assertTrue("${n.id} 기능키(쉬프트·음성·이모지·지우기) 색입힌 유리", (t.specialKey ushr 24) in 0x80..0xC0)
+            assertTrue("${n.id} 흰색이 아니라 색이 들어 있다", (t.specialKey and 0xFFFFFF) != 0xFFFFFF)
+        }
+    }
+
     @Test fun voiceKeyUsesTheSameBackgroundAsShiftAndEmojiKeys() {
         for (id in listOf("charcoal", "iosglass_holo")) {
             val theme = KeyboardThemes.byId(id)!!.theme
