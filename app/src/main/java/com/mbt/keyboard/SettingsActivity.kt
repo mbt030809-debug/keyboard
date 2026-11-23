@@ -133,6 +133,11 @@ class SettingsActivity : AppCompatActivity() {
         split.isChecked = Prefs.splitOnLargeScreen(this)
         split.setOnCheckedChangeListener { _, on -> Prefs.setSplitOnLargeScreen(this, on) }
 
+        // 영어 갈라진 자판: 안쪽 키 복제 (켜고 끄는 즉시 저장)
+        val splitDup = findViewById<MaterialSwitch>(R.id.switchSplitDup)
+        splitDup.isChecked = Prefs.splitDuplicateKeys(this)
+        splitDup.setOnCheckedChangeListener { _, on -> Prefs.setSplitDuplicateKeys(this, on) }
+
         // 한글 자판 선택: 고르는 즉시 저장
         val radio = findViewById<RadioGroup>(R.id.radioLayout)
         radio.check(if (Prefs.koreanLayout(this) == Layouts.KO) R.id.radioDubeolsik else R.id.radioSingle)

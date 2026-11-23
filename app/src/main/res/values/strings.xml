@@ -61,6 +61,8 @@
     <string name="timing_long_desc">글자 키의 기호 말풍선, 엔터의 상용구가 열리기까지 누르고 있어야 하는 시간이에요</string>
     <string name="split_title">갈라진 자판</string>
     <string name="split_switch">폴드를 펼치면 자판 나눠쓰기</string>
+    <string name="split_dup_switch">영어: 안쪽 키 복제 (Gboard식)</string>
+    <string name="split_dup_desc">영어 갈라진 자판의 안쪽 가장자리에 반대편 첫 글자(t·y, g·h, b·n)를 한 개씩 더 보여줘요. 엄지가 닿기 쉬워져요</string>
     <string name="split_desc">화면이 넓을 때(폴드 안쪽 화면, 태블릿) 자판 가운데를 비우고 양손으로 나눠 쳐요</string>
     <string name="layout_title">한글 자판</string>
     <string name="layout_desc">한/영 전환 시 사용할 한글 자판이에요. 단모음은 같은 키를 연달아 두 번 치면 ㄱ→ㄲ, ㅏ→ㅑ로 바뀌어요</string>

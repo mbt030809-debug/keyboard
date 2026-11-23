@@ -125,6 +125,19 @@ class KeyboardView(context: Context) : View(context) {
             invalidate()
         }
 
+    /**
+     * 영어 갈라진 자판에서 안쪽 가장자리에 반대편 손의 첫 글자를 한 개씩 복제해 보여준다 (Gboard식).
+     * 엄지가 닿기 어려운 가운데 글자(t·y, g·h, b·n)를 양쪽에서 칠 수 있다. 한글 자판은 해당 없음.
+     */
+    var splitDuplicate: Boolean = false
+        set(v) {
+            if (field == v) return
+            field = v
+            dropGestures()
+            computeCells()
+            invalidate()
+        }
+
     /** 음성인식 듣는 중: 마이크 키를 강조색으로 표시 */
     var voiceListening: Boolean = false
         set(v) { field = v; invalidate() }
@@ -144,7 +157,7 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     /** [rect]는 터치 판정 영역, [inner]는 그려지는 영역(키 사이 틈 제외, 미리 계산해 그릴 때 객체를 만들지 않음) */
-    private class Cell(val key: Key, val rect: RectF, val inner: RectF)
+    private class Cell(val key: Key, val rect: RectF, val inner: RectF, val duplicate: Boolean = false)
 
     /** 꾹 누르기 팝업(후보 가로 나열). [rects]는 항목별 영역 */
     private class Popup(
@@ -254,13 +267,24 @@ class KeyboardView(context: Context) : View(context) {
             val rowList = ArrayList<Cell>()
             // 나눠쓰기 아닐 때는 틈 0인 한 묶음, 나눠쓰기일 때는 두 묶음 + 가운데 틈. 키 크기 비율은 항상 원래 레이아웃 그대로
             val doSplit = split && layout.splittable
-            val halves = if (doSplit) Split.halves(row, layout.splitAt.getOrNull(r))
+            var halves = if (doSplit) Split.halves(row, layout.splitAt.getOrNull(r))
             else Split.Halves(row.map { Split.Part(it, it.weight) }, emptyList())
+            val dups = HashSet<Split.Part>()
+            if (doSplit && splitDuplicate && !layout.hangul) {
+                val l = halves.left.lastOrNull()
+                val rt = halves.right.firstOrNull()
+                if (l != null && rt != null && l.key.type == KeyType.CHAR && rt.key.type == KeyType.CHAR) {
+                    val dl = Split.Part(rt.key, DUPLICATE_WEIGHT)
+                    val dr = Split.Part(l.key, DUPLICATE_WEIGHT)
+                    dups += dl; dups += dr
+                    halves = Split.Halves(halves.left + dl, listOf(dr) + halves.right)
+                }
+            }
             val gapW = if (doSplit) usableW * splitGapFraction else 0f
             for (pl in Split.place(halves, padL, usableW, gapW)) {
                 if (pl.part.key.type == KeyType.SPACER) continue
                 val rect = RectF(pl.left, top, pl.right, top + rowH)
-                val cell = Cell(pl.part.key, rect, RectF(rect).apply { inset(gap, gap) })
+                val cell = Cell(pl.part.key, rect, RectF(rect).apply { inset(gap, gap) }, pl.part in dups)
                 out += cell
                 rowList += cell
             }
@@ -296,7 +320,7 @@ class KeyboardView(context: Context) : View(context) {
                 isPressed(cell) -> theme.keyPressed
                 key.type == KeyType.VOICE && voiceListening -> theme.accent
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
-                isSpecial -> theme.specialKey
+                isSpecial || cell.duplicate -> theme.specialKey      // 복제 키는 기능키 색으로 살짝 구분
                 else -> theme.key
             }
             val r = cell.inner
@@ -321,7 +345,7 @@ class KeyboardView(context: Context) : View(context) {
             }
             paint.textSize = cell.rect.height() * size * theme.textScale
             if (key.type == KeyType.VOICE) paint.textSize -= ICON_SHRINK_DP * density
-            if (key.type == KeyType.SPACE) paint.alpha = 140
+            if (key.type == KeyType.SPACE || cell.duplicate) paint.alpha = 140
             drawCentered(canvas, label, r)
             paint.alpha = 255
 
@@ -671,6 +695,8 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     private companion object {
+        /** 갈라진 자판의 복제 키 가로 비중 (원래 키는 1) */
+        const val DUPLICATE_WEIGHT = 0.85f
         const val REPEAT_DELAY_MS = 400L
         const val REPEAT_INTERVAL_MS = 45L
         const val SWIPE_THRESHOLD_DP = 40f

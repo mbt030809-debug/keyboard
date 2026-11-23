@@ -189,3 +189,78 @@ class KeyboardFrameTest {
         }
     }
 }
+
+/** 영어 갈라진 자판의 안쪽 키 복제 (Gboard식) */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class SplitDuplicateTest {
+    private lateinit var view: KeyboardView
+    private val widthPx = 1400
+
+    @Before fun setUp() {
+        view = KeyboardView(ApplicationProvider.getApplicationContext<Context>())
+        view.keyboardLayout = Layouts.english
+        view.split = true
+        relayout()
+    }
+
+    private fun relayout() {
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+    }
+
+    private fun count(label: String) = view.keyRects().count { it.first.label == label }
+
+    @Test fun offByDefaultNoKeyIsDuplicated() {
+        "qwertyuiopasdfghjklzxcvbnm".forEach { assertEquals("$it", 1, count(it.toString())) }
+    }
+
+    @Test fun onShowsTheOtherHandsFirstKeyAtEachInnerEdge() {
+        view.splitDuplicate = true; relayout()
+        // 왼쪽 안쪽: y h n / 오른쪽 안쪽: t g b
+        "ythgnb".forEach { assertEquals("$it", 2, count(it.toString())) }
+        "qwerasdfzxcvuiopjklm".forEach { assertEquals("$it", 1, count(it.toString())) }
+        val mid = widthPx / 2f
+        val y = view.keyRects().filter { it.first.label == "y" }.map { it.second.centerX() }
+        assertTrue(y.min() < mid && y.max() > mid)                 // 하나는 왼쪽 묶음, 하나는 오른쪽 묶음
+    }
+
+    @Test fun duplicatedKeyTypesTheSameLetter() {
+        view.splitDuplicate = true; relayout()
+        val fired = ArrayList<String>()
+        view.listener = object : KeyboardView.Listener {
+            override fun onKey(key: com.mbt.keyboard.layout.Key) { fired += key.output }
+            override fun onText(text: String) = Unit
+            override fun onSwipeSpace() = Unit
+            override fun onCursorMove(steps: Int) = Unit
+            override fun onCursorMoveEnd() = Unit
+            override fun onShiftPress(down: Boolean) = Unit
+            override fun onEnterLongPress() = Unit
+        }
+        val leftY = view.keyRects().filter { it.first.label == "y" }.minBy { it.second.centerX() }.second
+        val t = android.os.SystemClock.uptimeMillis()
+        view.dispatchTouchEvent(android.view.MotionEvent.obtain(t, t, android.view.MotionEvent.ACTION_DOWN, leftY.centerX(), leftY.centerY(), 0))
+        view.dispatchTouchEvent(android.view.MotionEvent.obtain(t, t + 10, android.view.MotionEvent.ACTION_UP, leftY.centerX(), leftY.centerY(), 0))
+        assertEquals(listOf("y"), fired)
+    }
+
+    @Test fun neverAppliesToKoreanOrUnsplitKeyboards() {
+        view.splitDuplicate = true
+        view.keyboardLayout = Layouts.koreanSingle; relayout()
+        assertEquals(1, count("ㅂ"))
+        view.keyboardLayout = Layouts.english; view.split = false; relayout()
+        assertEquals(1, count("y"))
+    }
+
+    @Test fun duplicateKeysAreInsideTheScreenAndDoNotOverlap() {
+        view.splitDuplicate = true; relayout()
+        view.keyRects().groupBy { it.second.top }.values.forEach { row ->
+            val sorted = row.map { it.second }.sortedBy { it.left }
+            sorted.zipWithNext { a, b -> assertTrue(a.right <= b.left + 0.5f) }
+            assertTrue(sorted.first().left >= 0f && sorted.last().right <= widthPx)
+        }
+    }
+}

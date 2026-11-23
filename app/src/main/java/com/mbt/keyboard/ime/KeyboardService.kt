@@ -77,7 +77,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (::host.isInitialized && key == Prefs.KEY_THEME) applyTheme()
-        if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen")) {
+        if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen" || key == Prefs.KEY_SPLIT_DUP)) {
             updateSplit(resources.configuration)
             applyGeometry(resources.configuration)
         }
@@ -221,6 +221,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** 가장 짧은 변이 600dp 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
     private fun updateSplit(config: Configuration) {
         view.split = Prefs.splitOnLargeScreen(this) && ScreenProfile.isLarge(this)
+        view.splitDuplicate = Prefs.splitDuplicateKeys(this)
     }
 
     private val emojiListener = object : EmojiPanel.Listener {

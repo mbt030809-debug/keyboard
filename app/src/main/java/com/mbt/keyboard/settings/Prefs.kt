@@ -16,6 +16,14 @@ object Prefs {
     private const val KEY_CLIPBOARD_ON = "clipboard_history_enabled"
     private const val KEY_QUICK_TAB = "quick_panel_tab"
     const val KEY_THEME = "keyboard_theme"
+    const val KEY_SPLIT_DUP = "split_duplicate_keys"
+
+    /** 영어 갈라진 자판에서 안쪽 가장자리에 반대편 키를 복제해 보일지 (기본: 끔) */
+    fun splitDuplicateKeys(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_SPLIT_DUP, false)
+
+    fun setSplitDuplicateKeys(context: Context, on: Boolean) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_SPLIT_DUP, on).apply()
 
     /** 선택한 키보드 테마 id (기본: 시스템 모드 따라가기) */
     fun themeId(context: Context): String =
