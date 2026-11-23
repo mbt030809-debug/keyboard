@@ -155,7 +155,7 @@ class MoakiTest {
         listOf("전체", "복사", "붙임").forEach { label ->
             val k = view.keyInnerRects().first { it.first.label == label }.second
             assertEquals("$label 가로", digit.width(), k.width(), 1.0f)
-            assertEquals("$label 세로", digit.height(), k.height(), 1.0f)
+            assertEquals("$label 세로(스페이스바와 같게)", view.keyInnerRects().first { it.first.type == KeyType.SPACE }.second.height(), k.height(), 1.0f)
         }
         // 숫자 띠 폭을 바꿔도 따라간다
         view.frame = com.mbt.keyboard.ime.KeyboardFrame(numberRowScale = 1.2f); relayout()

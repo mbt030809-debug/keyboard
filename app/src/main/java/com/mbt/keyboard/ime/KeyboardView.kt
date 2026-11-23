@@ -441,12 +441,6 @@ class KeyboardView(context: Context) : View(context) {
                 val rect = RectF(padL + col * colW, sideTop + row * cellH, padL + (col + 1) * colW, sideTop + (row + 1) * cellH)
                 side += Cell(k, rect, RectF(rect.left + gx, rect.top + gy, rect.right - gx, rect.bottom - gy))
             }
-            // 맨 아래 줄의 전체·복사·붙임 키는 높이도 숫자 키와 같게 (줄 가운데에 맞춰 그린다)
-            val nbh = side.first().inner.height()
-            rows.last().filter { it.key.type in FN_TYPES }.forEach {
-                val cy = it.rect.centerY()
-                it.inner.set(it.inner.left, cy - nbh / 2f, it.inner.right, cy + nbh / 2f)
-            }
             sideCells = side
             sideBottomPx = sideBottom
             out += side
@@ -540,7 +534,8 @@ class KeyboardView(context: Context) : View(context) {
                 isSpecial -> 0.30f
                 else -> 0.40f
             }
-            paint.textSize = cell.rect.height() * size * theme.textScale
+            // 글자 크기는 키 높이를 따르되, 줄이 높아진 자판(숫자 왼쪽·모아키)에서 글자가 너무 커지지 않게 기본 키 높이까지만
+            paint.textSize = min(cell.rect.height(), keyHeightPx) * size * theme.textScale
             if (key.type == KeyType.VOICE) paint.textSize -= ICON_SHRINK_DP * density
             if (key.type == KeyType.SPACE || cell.duplicate) paint.alpha = 140
             drawCentered(canvas, label, r)
@@ -550,7 +545,7 @@ class KeyboardView(context: Context) : View(context) {
             if (key.type == KeyType.CHAR && key.hints.isNotEmpty() && key.hints[0].length <= 2) {
                 paint.color = theme.text
                 paint.alpha = 110
-                paint.textSize = cell.rect.height() * 0.22f
+                paint.textSize = min(cell.rect.height(), keyHeightPx) * 0.22f
                 paint.textAlign = Paint.Align.RIGHT
                 canvas.drawText(key.hints[0], r.right - 4 * density, r.top + paint.textSize + 2 * density, paint)
                 paint.textAlign = Paint.Align.CENTER

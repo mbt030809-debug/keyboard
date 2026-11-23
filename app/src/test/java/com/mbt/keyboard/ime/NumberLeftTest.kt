@@ -82,9 +82,27 @@ class NumberLeftTest {
                 val r = rect(label)
                 assertEquals("${layout.id} $label 줄", space.top, r.top, 1f)                        // 맨 아래 줄
                 assertEquals("${layout.id} $label 가로", digit.width(), inner(label).width(), 1f)
-                assertEquals("${layout.id} $label 세로", digit.height(), inner(label).height(), 1f)
+                assertEquals("${layout.id} $label 세로(스페이스바와 같게)", view.keyInnerRects().first { it.first.type == KeyType.SPACE }.second.height(), inner(label).height(), 1f)
             }
         }
+    }
+
+    private class SizeRec : android.graphics.Canvas() {
+        val sizes = HashMap<String, Float>()
+        override fun drawText(text: String, x: Float, y: Float, paint: android.graphics.Paint) { sizes[text] = paint.textSize }
+    }
+
+    private fun letterTextSize(label: String): Float = SizeRec().also { view.draw(it) }.sizes.getValue(label)
+
+    @Test fun letterTextDoesNotGrowWhenTheRowsGetTaller() {
+        for ((layout, label) in listOf(Layouts.koreanSingle to "ㅂ", Layouts.korean to "ㅂ", Layouts.english to "q")) {
+            show(layout, numberLeft = false); val before = letterTextSize(label)
+            show(layout, numberLeft = true); val after = letterTextSize(label)
+            assertEquals("${layout.id} 글자 크기", before, after, 0.6f)
+        }
+        // 전체·복사·붙임 글자도 예전 숫자 줄 크기 안쪽
+        show(Layouts.english, numberLeft = true)
+        assertTrue(letterTextSize("전체") <= 0.34f * view.keyRects().first { it.first.label == "전체" }.second.height() + 0.5f)
     }
 
     @Test fun totalHeightStaysTheSameAsWithTheNumberRowOnTop() {
