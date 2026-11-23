@@ -55,11 +55,9 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private val shift = ShiftController()
 
     /** 설정 화면에서 바꾸는 입력 타이밍 */
-    private var pauseSplitMs = Timing.PAUSE_DEFAULT_MS
 
     /** 연타 변환 판정용: 직전에 친 자모 키와 시각 */
-    private var lastJamoKey: String? = null
-    private var lastJamoTime = 0L
+    private val doubleTap = DoubleTapDetector(Timing.DOUBLE_TAP_DEFAULT_MS)
 
     private val layout get() = Layouts.byId(layoutId)
 
@@ -77,6 +75,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (::host.isInitialized && key == Prefs.KEY_THEME) applyTheme()
+        if (::view.isInitialized && key == "double_tap_ms") loadTimings()
         if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen" || key == Prefs.KEY_SPLIT_DUP)) {
             updateSplit(resources.configuration)
             applyGeometry(resources.configuration)
@@ -184,7 +183,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /** 설정 화면에서 바꾼 입력 타이밍(멈춤 기준, 꾹 누르기 시간)을 반영 */
     private fun loadTimings() {
-        pauseSplitMs = Prefs.pauseSplitMs(this)
+        doubleTap.windowMs = Prefs.doubleTapMs(this)
         view.longPressMs = Prefs.longPressMs(this)
     }
 
@@ -324,7 +323,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     override fun onFinishInput() {
         composer.reset()
-        lastJamoKey = null
+        doubleTap.reset()
         voice.cancel()
         super.onFinishInput()
     }
@@ -353,7 +352,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     override fun onKey(key: Key) {
         lastEditTime = SystemClock.uptimeMillis()
         if (key.type != KeyType.VOICE) abortVoice()
-        if (key.type != KeyType.CHAR) lastJamoKey = null
+        if (key.type != KeyType.CHAR) doubleTap.reset()
         when (key.type) {
             KeyType.CHAR -> onChar(key)
             KeyType.SPACE -> { flushComposing(); commit(" "); refreshAutoCaps() }
@@ -374,7 +373,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     override fun onText(text: String) {
         lastEditTime = SystemClock.uptimeMillis()
         abortVoice()
-        lastJamoKey = null
+        doubleTap.reset()
         val ic = currentInputConnection ?: return
         if (layout.hangul && text.length == 1 && Jamo.isJamo(text[0])) {
             // 꾹 누르기로 고른 쌍자음 등은 한글 조합에 참여
@@ -483,20 +482,13 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         if (layout.hangul && text.length == 1 && Jamo.isJamo(text[0])) {
             val jamo = text[0]
             if (layout.doubleTap) {
-                val now = SystemClock.uptimeMillis()
-                val paused = now - lastJamoTime >= pauseSplitMs        // 직전 입력 뒤 잠시 멈췄는가
-                when {
-                    tryDoubleTap(text, now) -> Unit                    // 연타 변환 완료
-                    // 모음으로 끝난 글자 뒤에서 잠시 멈췄다 친 자음은 받침이 아니라 다음 글자 초성 (어 … ㄷ → 어 + ㄷ)
-                    paused && Jamo.isConsonant(jamo) && composer.isOpenSyllable() ->
-                        applyOutput(composer.startNewSyllable(jamo))
-                    else -> commitJamo(jamo)
-                }
+                // 연타 기준 시간 안에 같은 키를 다시 치면 변환(ㄱ→ㄲ), 지난 뒤면 변환 없이 따로 입력(ㄱ + ㄱ)
+                if (!tryDoubleTap(text, SystemClock.uptimeMillis())) commitJamo(jamo)
             } else {
                 commitJamo(jamo)
             }
         } else {
-            lastJamoKey = null
+            doubleTap.reset()
             flushComposing()
             currentInputConnection?.commitText(text, 1)
         }
@@ -504,22 +496,20 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     /**
-     * 단모음 자판: 같은 키를 [DOUBLE_TAP_MS] 안에 다시 치면 마지막 자모를 변환 (ㄱ→ㄲ, ㅏ→ㅑ).
+     * 단모음 자판: 같은 키를 [DoubleTapDetector.windowMs](설정) 안에 다시 치면 마지막 자모를 변환 (ㄱ→ㄲ, ㅏ→ㅑ).
      * 변환 후 같은 키를 또 치면 새 글자로 취급 (3연타는 변환 연쇄 없음).
      * @return 변환했으면 true
      */
     private fun tryDoubleTap(text: String, now: Long): Boolean {
-        val isDouble = text == lastJamoKey && now - lastJamoTime <= DOUBLE_TAP_MS
-        if (isDouble) {
+        if (doubleTap.isDouble(text, now)) {
             val out = composer.doubleTap(text[0])
             if (out != null) {
                 applyOutput(out)
-                lastJamoKey = null
+                doubleTap.reset()
                 return true
             }
         }
-        lastJamoKey = text
-        lastJamoTime = now
+        doubleTap.record(text, now)
         return false
     }
 
@@ -606,7 +596,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private fun setLayout(id: String) {
         flushComposing()
-        lastJamoKey = null
+        doubleTap.reset()
         layoutId = id
         view.keyboardLayout = Layouts.byId(id)
         shift.reset(); syncShift()
@@ -623,7 +613,6 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     private companion object {
-        const val DOUBLE_TAP_MS = 350L
 
         val LATIN_VARIATIONS = setOf(
             InputType.TYPE_TEXT_VARIATION_PASSWORD,

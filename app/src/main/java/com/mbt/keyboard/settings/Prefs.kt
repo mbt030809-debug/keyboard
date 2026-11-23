@@ -105,18 +105,18 @@ object Prefs {
             .putInt(geoKey(large, "kg"), c.keyGapDp)
             .apply()
     }
-    private const val KEY_PAUSE_MS = "pause_split_ms"
+    private const val KEY_DOUBLE_TAP_MS = "double_tap_ms"
     private const val KEY_LONG_PRESS_MS = "long_press_ms"
 
-    /** 단모음: 이 시간 이상 멈췄다 친 자음은 다음 글자 초성 (기본 0.7초) */
-    fun pauseSplitMs(context: Context): Long =
-        Timing.snapPause(
-            context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getLong(KEY_PAUSE_MS, Timing.PAUSE_DEFAULT_MS),
+    /** 단모음 연타 기준: 이 시간 안에 같은 키를 다시 치면 쌍자음·쌍모음 (기본 0.35초) */
+    fun doubleTapMs(context: Context): Long =
+        Timing.snapDoubleTap(
+            context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getLong(KEY_DOUBLE_TAP_MS, Timing.DOUBLE_TAP_DEFAULT_MS),
         )
 
-    fun setPauseSplitMs(context: Context, ms: Long) =
+    fun setDoubleTapMs(context: Context, ms: Long) =
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-            .putLong(KEY_PAUSE_MS, Timing.snapPause(ms)).apply()
+            .putLong(KEY_DOUBLE_TAP_MS, Timing.snapDoubleTap(ms)).apply()
 
     /** 꾹 누르기 인식 시간 (기본 0.35초) */
     fun longPressMs(context: Context): Long =

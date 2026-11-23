@@ -335,8 +335,8 @@
                     android:id="@+id/sliderPause"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:valueFrom="3"
-                    android:valueTo="30"
+                    android:valueFrom="2"
+                    android:valueTo="20"
                     android:stepSize="1" />
 
                 <TextView

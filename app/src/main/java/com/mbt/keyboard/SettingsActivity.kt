@@ -93,14 +93,14 @@ class SettingsActivity : AppCompatActivity() {
         val valuePause = findViewById<TextView>(R.id.valuePause)
         val sliderLong = findViewById<Slider>(R.id.sliderLong)
         val valueLong = findViewById<TextView>(R.id.valueLong)
-        val pauseUnit = Timing.PAUSE_STEP_MS
+        val pauseUnit = Timing.DOUBLE_TAP_STEP_MS
         val longUnit = Timing.LONG_PRESS_STEP_MS
-        sliderPause.value = (Prefs.pauseSplitMs(this) / pauseUnit).toFloat()
-        valuePause.text = Timing.seconds(Prefs.pauseSplitMs(this))
+        sliderPause.value = (Prefs.doubleTapMs(this) / pauseUnit).toFloat()
+        valuePause.text = Timing.seconds(Prefs.doubleTapMs(this))
         sliderPause.addOnChangeListener { _, value, fromUser ->
             val ms = value.toLong() * pauseUnit
             valuePause.text = Timing.seconds(ms)
-            if (fromUser) Prefs.setPauseSplitMs(this, ms)
+            if (fromUser) Prefs.setDoubleTapMs(this, ms)
         }
         sliderLong.value = (Prefs.longPressMs(this) / longUnit).toFloat()
         valueLong.text = Timing.seconds(Prefs.longPressMs(this))
