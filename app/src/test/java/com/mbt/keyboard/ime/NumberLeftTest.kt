@@ -186,6 +186,16 @@ class NumberLeftTest {
         assertTrue(d.all { it.bottom <= rect("q").top + 1f })                                      // 글자 줄 위
     }
 
+    @Test fun stripColumnsReadOneToFiveThenSixToZero() {
+        show(Layouts.english, numberLeft = true)
+        val left = "12345".map { rect(it.toString()) }
+        val right = "67890".map { rect(it.toString()) }
+        assertTrue(left.all { it.left == left[0].left } && right.all { it.left == right[0].left })
+        assertTrue(right[0].left > left[0].left)
+        assertTrue((0 until 4).all { left[it].top < left[it + 1].top && right[it].top < right[it + 1].top })
+        assertEquals(left[0].top, right[0].top, 0.5f)                 // 1과 6은 같은 높이
+    }
+
     @Test fun tappingStripDigitsAndLettersStillWork() {
         keys.clear()
         fun tap(label: String) {

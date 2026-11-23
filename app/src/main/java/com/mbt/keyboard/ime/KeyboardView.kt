@@ -444,7 +444,7 @@ class KeyboardView(context: Context) : View(context) {
             val gy = frame.rowGapDp / 2f * density
             val side = ArrayList<Cell>()
             layout.sideKeys.forEachIndexed { i, k ->
-                val row = i / 2; val col = i % 2
+                val row = i % n; val col = i / n        // 왼쪽 열 1~5, 오른쪽 열 6~0
                 val rect = RectF(padL + col * colW, sideTop + row * cellH, padL + (col + 1) * colW, sideTop + (row + 1) * cellH)
                 side += Cell(k, rect, RectF(rect.left + gx, rect.top + gy, rect.right - gx, rect.bottom - gy))
             }
@@ -1093,7 +1093,7 @@ class KeyboardView(context: Context) : View(context) {
             val top = sideCells.first().rect.top
             val cellH = (sideBottomPx - top) / n
             val row = ((y - top) / cellH).toInt().coerceIn(0, n - 1)
-            return sideCells[row * 2 + col]
+            return sideCells[col * n + row]
         }
         var row = hitTops.indexOfLast { it <= y }
         if (row < 0) row = 0
