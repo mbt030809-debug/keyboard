@@ -331,6 +331,25 @@ class FrostThemeTest {
         assertEquals(1, paths)
     }
 
+    @Test fun plateCornersAreConcentricWithTheKeysSoNothingSticksOut() {
+        val theme = com.mbt.keyboard.ime.KeyboardThemes.byId("iosglass_holo")!!.theme
+        for (f in listOf(KeyboardFrame(), KeyboardFrame(leftDp = 0, topDp = 0, rightDp = 0), KeyboardFrame(leftDp = 9, topDp = 6, rightDp = 2))) {
+            val v = KeyboardView(ctx).also { it.theme = theme; it.keyboardLayout = Layouts.english; it.frame = f }
+            v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            val d = ctx.resources.displayMetrics.density
+            val (rl, rr) = v.frostPlateRadiiPx()
+            val k = v.frostKeyRadiusPx()
+            assertEquals(k + minOf(f.leftDp, f.topDp, 10) * d, rl, 0.01f)      // 판 모서리 = 키 모서리 + 여백
+            assertEquals(k + minOf(f.rightDp, f.topDp, 10) * d, rr, 0.01f)
+            // 모서리 키 바깥 꼭짓점이 판 곡선 안쪽에 있다: 판 곡선 중심에서 키 모서리 곡선까지 거리 <= 판 반지름
+            val padL = f.leftDp * d; val padT = f.topDp * d
+            val cx = rl; val cy = rl                       // 판 왼쪽 위 곡선의 중심
+            val kcx = padL + k; val kcy = padT + k          // 키 왼쪽 위 곡선의 중심
+            val far = Math.hypot((kcx - cx).toDouble(), (kcy - cy).toDouble()) + k   // 키 곡선에서 판 중심까지 가장 먼 거리
+            assertTrue("$f: $far <= $rl", far <= rl + 0.01)
+        }
+    }
+
     @Test fun threeThemesAreListedFirstWithWhiteKeysOnAGlassPlate() {
         val all = com.mbt.keyboard.ime.KeyboardThemes.all
         assertEquals(ids, all.filter { it.theme.frost }.map { it.id })

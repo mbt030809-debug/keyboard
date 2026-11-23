@@ -633,6 +633,19 @@ class KeyboardView(context: Context) : View(context) {
     private val edgeColors = intArrayOf(0xF2FFFFFF.toInt(), 0x2EFFFFFF, 0x0FFFFFFF, 0x33FFFFFF, 0xCCFFFFFF.toInt())
     private val edgeStops = floatArrayOf(0f, 0.22f, 0.5f, 0.78f, 1f)
 
+    /** 글래스 테마의 키 모서리 반지름 (판 모서리와 동심원을 이루도록 한곳에서 정한다) */
+    fun frostKeyRadiusPx(): Float = 7 * density * FROST_KEY_RADIUS_SCALE
+
+    /**
+     * 유리판 위쪽 두 모서리 반지름(왼쪽·오른쪽) = 키 모서리 + 키가 판 가장자리에서 떨어진 거리.
+     * 같은 중심의 곡선이라 모서리의 키가 판 밖으로 삐져나오지 않고, 여백이 0이면 키 모서리와 딱 맞는다.
+     */
+    fun frostPlateRadiiPx(): Pair<Float, Float> {
+        val k = frostKeyRadiusPx()
+        val cap = 10 * density
+        return (k + minOf(padL, padT, cap)) to (k + minOf(padR, padT, cap))
+    }
+
     /**
      * 키보드 판 전체가 한 장의 두꺼운 유리: ① 뒷배경을 흐리게 비춤 ② 투명한 흰색 ③ 왼쪽 위 비스듬한 빛과 가는 빛줄
      * ④ 가장자리 림(왼쪽 위·오른쪽 아래가 밝음) ⑤ 안쪽 가는 이중 테두리. 위쪽 모서리만 둥글다.
@@ -640,9 +653,9 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawFrostPlate(canvas: Canvas) {
         ensureFrostBitmaps()
         val w = width.toFloat(); val h = height.toFloat()
-        val r = FROST_PLATE_RADIUS_DP * density
+        val (rl, rr) = frostPlateRadiiPx()
         glassPath.rewind()
-        glassPath.addRoundRect(RectF(0f, 0f, w, h), floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f), Path.Direction.CW)
+        glassPath.addRoundRect(RectF(0f, 0f, w, h), floatArrayOf(rl, rl, rr, rr, 0f, 0f, 0f, 0f), Path.Direction.CW)
         canvas.save()
         canvas.clipPath(glassPath)
         frostBlur?.let { canvas.drawBitmap(it, 0f, 0f, null) }
@@ -720,7 +733,7 @@ class KeyboardView(context: Context) : View(context) {
             }
             val r = cell.inner
             if (theme.frost) {
-                drawFrostKey(canvas, r, radius * 1.15f, if (key.type == KeyType.ENTER) theme.accent else paint.color, isPressed(cell))
+                drawFrostKey(canvas, r, frostKeyRadiusPx(), if (key.type == KeyType.ENTER) theme.accent else paint.color, isPressed(cell))
             } else if (theme.keyShadow) {
                 val keep = paint.color
                 paint.color = 0x26000000
@@ -1328,7 +1341,7 @@ class KeyboardView(context: Context) : View(context) {
         const val DEFAULT_NUMBER_ROW_SCALE = 0.8f
         const val LABEL_WIDTH_FACTOR = 1.35f
         const val FROST_BLUR_DIV = 10
-        const val FROST_PLATE_RADIUS_DP = 22f
+        const val FROST_KEY_RADIUS_SCALE = 1.15f
 
         /** 번짐 배경 한 덩어리: (가로 위치, 세로 위치, 반지름 비율, 색) */
         private data class Blob(val fx: Float, val fy: Float, val r: Float, val color: Int)

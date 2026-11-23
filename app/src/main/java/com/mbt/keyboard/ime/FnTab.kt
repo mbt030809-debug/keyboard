@@ -33,8 +33,6 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
 
     companion object {
-        /** 글래스 테마 탭 바탕의 불투명도 % (키보드 판과 비슷하게 거의 불투명) */
-        const val FROST_TAB_ALPHA = 92
 
         /** 바탕 모서리 반지름(좌상·우상·우하·좌하, x·y 순): 위쪽만 둥글고 아래쪽은 사각 */
         fun plateRadii(left: Float, right: Float = left, bottom: Boolean = false) =
@@ -61,18 +59,22 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val pad = src.fnTabPadPx()
         val top = pad
         val kh = height - src.fnTabPadBottomPx()          // 버튼 아래 끝
-        val radius = 7 * d
+        val radius = if (theme.frost) src.frostKeyRadiusPx() else 7 * d
         // 키보드 바탕: 버튼 상하좌우로 같은 폭만큼, 버튼과 똑같이 반투명
         val plateLeft = 0f
-        // 글래스 테마: 키보드 판과 같은 재질 (판 아래에는 앱이 비치지 않으므로 탭도 거의 불투명한 번짐 색)
-        paint.color = if (theme.frost) withAlpha(theme.backgroundMid, FROST_TAB_ALPHA) else withAlpha(theme.background, alphaPercent)
+        // 탭 뒤에는 앱 화면이 있으므로 글래스 테마도 불투명도 슬라이더만큼 비치게 한다 (색은 판의 번짐색)
+        paint.color = withAlpha(if (theme.frost) theme.backgroundMid else theme.background, alphaPercent)
         // 위쪽 모서리만 둥글게, 아래쪽(키보드와 맞닿는 쪽)은 사각
         // 모서리는 버튼 모서리와 같은 중심(동심원): 여백이 0이면 버튼 모서리와 똑같이 맞물려 빈틈이 남지 않는다
         val gx = src.fnTabInsetPx()
         val rl = radius + minOf(pad, src.fnTabLeftPx() + gx, 10 * d)
         val rr = radius + minOf(pad, src.fnTabRightPx() + gx, 10 * d)
         plate.rewind()
-        plate.addRoundRect(RectF(plateLeft, 0f, width.toFloat(), height.toFloat()), plateRadii(rl, rr, bottom = theme.frost), Path.Direction.CW)
+        val bp = src.fnTabPadBottomPx()
+        val rlb = radius + minOf(bp, src.fnTabLeftPx() + gx, 10 * d)
+        val rrb = radius + minOf(bp, src.fnTabRightPx() + gx, 10 * d)
+        plate.addRoundRect(RectF(plateLeft, 0f, width.toFloat(), height.toFloat()),
+            if (theme.frost) floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb) else plateRadii(rl, rr), Path.Direction.CW)
         canvas.drawPath(plate, paint)
         keys.forEachIndexed { i, k ->
             val cl = keyLeft(i)
