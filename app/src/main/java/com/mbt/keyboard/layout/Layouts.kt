@@ -44,20 +44,20 @@ object Layouts {
         listOf("❤\uFE0F", "♡", "💕", "💖", "💙", "💔"),   // 하트 6개 (한 줄 말풍선)
         listOf("$", "₩", "€", "£", "¥"),   // 금액 단위는 $ 의 하위 후보
         listOf("`"),
-        listOf("@"),                       // ☆ 키를 없애고 한 칸씩 당김: ● 가 있던 자리에 골뱅이
+        listOf("@", "@naver.com", "@gmail.com"),   // 이메일 주소 뒷부분 (예: id@naver.com)
         listOf("_", "-", "—"),            // - 는 _ 의 하위 후보
         listOf("?"),
         listOf("!"),
-        // 이하 4개는 두벌식·영어(글자 키 26개)의 가운데 보조 키에만 놓는다 (단모음은 * 와 ~ 의 하위 후보로 들어 있음)
-        listOf("★"),
-        listOf("☆"),
+        // 이하 4개는 두벌식·영어(글자 키 26개)의 가운데 보조 키에만 놓는다 (단모음은 비슷한 키의 하위 후보로 들어 있음)
+        listOf("★", "☆"),
+        listOf("■", "□", "◆", "◇", "▶"),   // 문서 글머리 기호
         listOf("※"),
-        listOf("♪"),
+        listOf("♪", "♩", "♫", "♬", "🎵", "🎶"),   // 음표
     )
 
     /**
-     * 줄별 기호 묶음. 단모음(8·8·6키)을 기준으로 정하고, 두벌식·영어(10·9·7키)는 **같은 묶음을 가운데에서 갈라**
-     * 왼쪽 절반은 왼쪽 끝에서부터, 오른쪽 절반은 오른쪽 끝에서부터 똑같이 놓는다. 그래서 양 끝(특히 지우기 옆)은
+     * 줄별 기호 묶음. 단모음(8·8·6키)을 기준으로 정하고, 두벌식·영어(10·9·7키)는 **같은 묶음 사이에 보조 키를 끼워**
+     * 왼쪽은 왼쪽 끝에서부터, 오른쪽은 오른쪽 끝에서부터 똑같이 놓는다. 그래서 양 끝(특히 지우기 옆)은
      * 어느 자판이든 같은 기호이고, 가운데 보조 키([EXTRA_GROUPS])에만 자판별 차이가 있다.
      */
     private val ROW1_GROUPS = SYMBOL_GROUPS.subList(0, 8)
@@ -65,16 +65,23 @@ object Layouts {
     private val ROW3_GROUPS = SYMBOL_GROUPS.subList(16, 22)
     private val EXTRA_GROUPS = SYMBOL_GROUPS.subList(22, 26)
 
-    /** 단모음에는 가운데 보조 키가 없으니 그 기호들을 비슷한 키의 하위 후보로 넣는다: * → ※ ★ ☆, ~ → ♪ */
-    private val singleRow1Groups = ROW1_GROUPS.map { if (it[0] == "~") it + EXTRA_GROUPS[3] else it }
-    private val singleRow2Groups = ROW2_GROUPS.map { if (it[0] == "*") it + EXTRA_GROUPS[2] + EXTRA_GROUPS[0] + EXTRA_GROUPS[1] else it }
+    /**
+     * 단모음에는 가운데 보조 키가 없으니 그 기호들을 비슷한 키의 하위 후보로 넣는다:
+     * ~ → 음표, ^ → 글머리 기호(■ □ ◆ ◇ ▶), * → ※ ★ ☆
+     */
+    private val singleRow1Groups = ROW1_GROUPS.map {
+        when (it[0]) { "~" -> it + EXTRA_GROUPS[3]; "^" -> it + EXTRA_GROUPS[1]; else -> it }
+    }
+    private val singleRow2Groups = ROW2_GROUPS.map { if (it[0] == "*") it + EXTRA_GROUPS[2] + EXTRA_GROUPS[0] else it }
 
-    private fun <T> splitMiddle(base: List<T>, extra: List<T>) =
-        base.take(base.size / 2) + extra + base.drop(base.size / 2)
+    /** [base]의 앞 [at]개 뒤에 [extra]를 끼운다 */
+    private fun <T> insertAt(base: List<T>, at: Int, extra: List<T>) = base.take(at) + extra + base.drop(at)
 
-    private val wideRow1Groups = splitMiddle(ROW1_GROUPS, EXTRA_GROUPS.subList(0, 2))   // 10키: 가운데 2키 ★ ☆
-    private val wideRow2Groups = splitMiddle(ROW2_GROUPS, EXTRA_GROUPS.subList(2, 3))   // 9키: 가운데 1키 ※
-    private val wideRow3Groups = splitMiddle(ROW3_GROUPS, EXTRA_GROUPS.subList(3, 4))   // 7키: 가운데 1키 ♪
+    // 양 끝(지우기 옆)은 단모음과 똑같이 두고, 가운데 보조 키만 끼운다.
+    // 윗줄은 " ^ 가 <> 바로 오른쪽에 붙도록 ^ 뒤에 끼운다: ( [ { <> "" ^ | 보조 2키 | ~ →
+    private val wideRow1Groups = insertAt(ROW1_GROUPS, 6, EXTRA_GROUPS.subList(0, 2))   // 10키
+    private val wideRow2Groups = insertAt(ROW2_GROUPS, 4, EXTRA_GROUPS.subList(2, 3))   // 9키: 가운데 1키
+    private val wideRow3Groups = insertAt(ROW3_GROUPS, 3, EXTRA_GROUPS.subList(3, 4))   // 7키: 가운데 1키 ♪
 
     private fun spacer(w: Float) = Key(label = "", type = KeyType.SPACER, weight = w)
 

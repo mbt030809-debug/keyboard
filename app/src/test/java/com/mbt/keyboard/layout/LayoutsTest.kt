@@ -152,7 +152,7 @@ class LayoutsTest {
         Layouts.all.forEach { l ->
             val keys = listOf("@", "?", "!").map { keyWithHint(l, it) }
             assertEquals(3, keys.toSet().size)
-            assertEquals(listOf("@"), keyWithHint(l, "@").hints)
+            assertEquals(listOf("@", "@naver.com", "@gmail.com"), keyWithHint(l, "@").hints)
             assertEquals(listOf("?"), keyWithHint(l, "?").hints)
             assertEquals(listOf("!"), keyWithHint(l, "!").hints)
             listOf("@", "?", "!").forEach { sym -> assertEquals(sym, 1, allHints(l).count { it == sym }) }
@@ -163,11 +163,11 @@ class LayoutsTest {
         // ☆ 키를 없애고 한 칸씩 당긴 결과 (단모음 기준)
         val m = Layouts.koreanSingle.rows.flatten().filter { it.type == KeyType.CHAR }.associate { it.label to it.hints }
         assertEquals(listOf("→", "←", "↑", "↓"), m["ㅔ"])      // ? 와 → 가 자리를 바꿈
-        assertEquals(listOf("@"), m["ㅊ"])                     // ● 가 있던 자리에 골뱅이
+        assertEquals(listOf("@", "@naver.com", "@gmail.com"), m["ㅊ"])   // 골뱅이 + 이메일 뒷부분
         assertEquals(listOf("_", "-", "—"), m["ㅍ"])           // 한 칸 당겨짐
         assertEquals(listOf("?"), m["ㅜ"])
         assertEquals(listOf("!"), m["ㅡ"])                     // 비워진 마지막 키에 느낌표
-        assertEquals(listOf("~", "♪"), m["ㅐ"])                // ♪ 는 ~ 의 하위 후보
+        assertEquals(listOf("~", "♪", "♩", "♫", "♬", "🎵", "🎶"), m["ㅐ"])   // 음표는 ~ 의 하위 후보
     }
 
     @Test fun questionAndExclamationSitOnNeighbouringKeys() {
@@ -343,7 +343,7 @@ class LayoutsTest {
     private fun letterRowChars(l: KeyboardLayout, row: Int) = l.rows[row].filter { it.type == KeyType.CHAR }
 
     /** 두벌식·영어의 가운데 보조 키 위치 (줄 번호 → 글자 키 순번들) */
-    private val centerIdx = mapOf(1 to listOf(4, 5), 2 to listOf(4), 3 to listOf(3))
+    private val centerIdx = mapOf(1 to listOf(6, 7), 2 to listOf(4), 3 to listOf(3))
 
     @Test fun wideLayoutsAreTheSingleLayoutSplitInTheMiddleSoBothEndsMatch() {
         for (r in Layouts.LETTER_ROW_START until Layouts.LETTER_ROW_START + 3) {
@@ -413,5 +413,37 @@ class LayoutsTest {
             }
             assertEquals("$sym 의 줄", 1, rows.toSet().size)
         }
+    }
+}
+
+class LayoutsRequestedTweaksTest {
+    private fun keys(l: KeyboardLayout) = l.rows.flatten().filter { it.type == KeyType.CHAR }
+
+    @Test fun quotesAndCaretSitRightNextToAngleBracketsOnEveryLayout() {
+        Layouts.all.forEach { l ->
+            val row = keys(l).filter { k -> k.hints.isNotEmpty() && k.hints[0] in listOf("<>", "\"\"", "^") }
+            val all = Layouts.english.rows[1].filter { it.type == KeyType.CHAR }
+            val idx = { h: String -> keys(l).indexOfFirst { it.hints.firstOrNull() == h } }
+            assertEquals("${l.id}: <> 바로 오른쪽이 \"\"", idx("<>") + 1, idx("\"\""))
+            assertEquals("${l.id}: \"\" 바로 오른쪽이 ^", idx("\"\"") + 1, idx("^"))
+            assertTrue(row.size == 3 && all.isNotEmpty())
+        }
+    }
+
+    @Test fun emailSuffixesLiveUnderAt() {
+        Layouts.all.forEach { l ->
+            val at = keys(l).first { it.hints.firstOrNull() == "@" }
+            assertEquals(listOf("@", "@naver.com", "@gmail.com"), at.hints)
+        }
+    }
+
+    @Test fun starsAreOneKeyWithHollowStarAsSubCandidate() {
+        assertTrue(Layouts.SYMBOL_GROUPS.contains(listOf("★", "☆")))
+        assertTrue(Layouts.SYMBOL_GROUPS.none { it == listOf("★") || it == listOf("☆") })
+    }
+
+    @Test fun noteKeyHasSeveralNotes() {
+        val notes = Layouts.SYMBOL_GROUPS.first { it[0] == "♪" }
+        assertTrue(notes.size >= 5 && notes.containsAll(listOf("♩", "♫", "♬")))
     }
 }
