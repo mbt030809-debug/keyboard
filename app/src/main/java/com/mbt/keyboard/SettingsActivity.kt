@@ -125,6 +125,23 @@ class SettingsActivity : AppCompatActivity() {
             if (fromUser) Prefs.setRepeatCps(this, value.toInt())
         }
 
+        // 전체·복사·붙임 반투명 탭
+        val swFnTab = findViewById<MaterialSwitch>(R.id.switchFnTab)
+        val sliderFnAlpha = findViewById<Slider>(R.id.sliderFnTabAlpha)
+        val valueFnAlpha = findViewById<TextView>(R.id.valueFnTabAlpha)
+        swFnTab.isChecked = Prefs.fnTabEnabled(this)
+        sliderFnAlpha.isEnabled = swFnTab.isChecked
+        sliderFnAlpha.value = Prefs.fnTabAlphaPercent(this).toFloat()
+        valueFnAlpha.text = getString(R.string.fn_tab_alpha_value, Prefs.fnTabAlphaPercent(this))
+        swFnTab.setOnCheckedChangeListener { _, on ->
+            Prefs.setFnTabEnabled(this, on)
+            sliderFnAlpha.isEnabled = on
+        }
+        sliderFnAlpha.addOnChangeListener { _, value, fromUser ->
+            valueFnAlpha.text = getString(R.string.fn_tab_alpha_value, value.toInt())
+            if (fromUser) Prefs.setFnTabAlphaPercent(this, value.toInt())
+        }
+
         // 키 글자 크기 배율
         val sliderFont = findViewById<Slider>(R.id.sliderFontScale)
         val valueFont = findViewById<TextView>(R.id.valueFontScale)

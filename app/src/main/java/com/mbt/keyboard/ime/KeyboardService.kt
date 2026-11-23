@@ -36,6 +36,7 @@ import com.mbt.keyboard.settings.Timing
 class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     private lateinit var root: FrameLayout
+    private lateinit var fnTab: FnTab
     private lateinit var host: FrameLayout
 
     /** 키보드 틀이 실제로 놓이는 가로 폭(px). 화면 크기를 추측하지 않고 실제 측정값을 쓴다 */
@@ -81,7 +82,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (::host.isInitialized && key == Prefs.KEY_THEME) applyTheme()
-        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE || key == Prefs.KEY_NUMBER_LEFT || key == Prefs.KEY_FONT_SCALE)) loadTimings()
+        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE || key == Prefs.KEY_NUMBER_LEFT || key == Prefs.KEY_FONT_SCALE || key == Prefs.KEY_FN_TAB || key == Prefs.KEY_FN_TAB_ALPHA)) loadTimings()
         if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen" || key == Prefs.KEY_SPLIT_DUP)) {
             updateSplit(resources.configuration)
             applyGeometry(resources.configuration)
@@ -156,8 +157,16 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
             addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             addView(quickPanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
+        fnTab = FnTab(this, view).also {
+            it.haptics = haptics
+            it.theme = theme
+            it.visibility = View.GONE
+            it.onKey = { key -> onKey(key) }
+        }
         root = FrameLayout(this).apply {
             addView(host, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            // 전체·복사·붙임 반투명 탭: 키보드 맨 위 왼쪽에 겹쳐 띄운다 (자리는 host 위쪽 여백으로 확보)
+            addView(fnTab, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP or android.view.Gravity.START))
             // 실제 가로 폭이 정해지거나 바뀌면(폴드 펼침/접힘, 회전, 분할 화면) 그 폭으로 다시 계산
             addOnLayoutChangeListener { _, l, _, r, _, _, _, _, _ ->
                 val w = r - l
@@ -180,6 +189,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         val theme = KeyboardTheme.current(this)
         view.theme = theme
         view.invalidate()
+        fnTab.theme = theme
         host.removeView(panel)
         host.removeView(quickPanel)
         panel = EmojiPanel(this, emojiListener, theme).also { it.visibility = View.GONE }
@@ -187,6 +197,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         host.addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         host.addView(quickPanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         view.visibility = View.VISIBLE
+        refreshFnTab()
     }
 
     /** 설정 화면에서 바꾼 입력 타이밍(멈춤 기준, 꾹 누르기 시간)을 반영 */
@@ -197,6 +208,48 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.swipeDouble = Prefs.singleSwipeDouble(this)
         view.numberLeft = Prefs.numberKeysLeft(this)
         view.fontScale = Prefs.fontScalePercent(this) / 100f
+        refreshFnTab()
+    }
+
+    /**
+     * 숫자 띠가 있는 자판에서만 전체·복사·붙임을 반투명 탭으로 띄운다.
+     * 탭 자리는 키보드 위쪽 여백으로 잡고, 앱 화면이 그 자리를 비우지 않도록 [onComputeInsets]에서 뺀다.
+     */
+    private fun refreshFnTab() {
+        if (!::fnTab.isInitialized || !::host.isInitialized) return
+        val on = Prefs.fnTabEnabled(this) && view.hasSideStrip
+        view.fnTab = on
+        fnTab.theme = view.theme
+        fnTab.alphaPercent = Prefs.fnTabAlphaPercent(this)
+        val hostLp = host.layoutParams as FrameLayout.LayoutParams
+        val top = if (on) view.fnKeyHeightPx().toInt().coerceAtLeast(1) else 0
+        if (hostLp.topMargin != top) { hostLp.topMargin = top; host.layoutParams = hostLp }
+        val tabLp = fnTab.layoutParams as FrameLayout.LayoutParams
+        if (tabLp.leftMargin != hostLp.leftMargin) { tabLp.leftMargin = hostLp.leftMargin; fnTab.layoutParams = tabLp }
+        fnTab.visibility = when {
+            !on -> View.GONE
+            view.visibility == View.VISIBLE -> View.VISIBLE
+            else -> View.INVISIBLE      // 이모지·상용구 패널이 떠 있는 동안은 숨기되 자리는 유지
+        }
+        fnTab.requestLayout()
+        fnTab.invalidate()
+    }
+
+    override fun onComputeInsets(outInsets: InputMethodService.Insets) {
+        super.onComputeInsets(outInsets)
+        if (!::fnTab.isInitialized || fnTab.visibility == View.GONE || isFullscreenMode) return
+        val tabH = (host.layoutParams as FrameLayout.LayoutParams).topMargin
+        if (tabH <= 0) return
+        // 탭 자리는 앱 화면을 밀어 올리지 않고, 터치도 탭과 키보드에만 반응한다 (탭 옆 빈 곳은 뒤의 앱으로 전달)
+        outInsets.contentTopInsets += tabH
+        outInsets.visibleTopInsets += tabH
+        outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_REGION
+        outInsets.touchableRegion.set(0, outInsets.contentTopInsets, root.width, root.height + outInsets.contentTopInsets - tabH)
+        if (fnTab.visibility == View.VISIBLE) {
+            val loc = IntArray(2)
+            fnTab.getLocationInWindow(loc)
+            outInsets.touchableRegion.union(android.graphics.Rect(loc[0], loc[1], loc[0] + fnTab.width, loc[1] + fnTab.height))
+        }
     }
 
     /** 폴드를 펼치거나 접으면 화면 크기가 바뀐다 → 나눠쓰기 전환 */
@@ -227,6 +280,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.heightScale = g.heightScale * ScreenProfile.heightFactor(config.screenHeightDp)
         view.splitGapFraction = g.gapFraction
         view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp, g.rowGapDp, g.numHeightScale, g.numRowGapDp, g.hitShifts)
+        refreshFnTab()
     }
 
     /** 가장 짧은 변이 600dp 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
@@ -265,12 +319,14 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         panel.setBottomInset(view.bottomInsetPx)
         view.visibility = View.INVISIBLE   // 높이는 유지해야 패널이 같은 크기로 뜬다
         panel.visibility = View.VISIBLE
+        refreshFnTab()
     }
 
     private fun hideEmojiPanel() {
         panel.visibility = View.GONE
         quickPanel.visibility = View.GONE
         view.visibility = View.VISIBLE
+        refreshFnTab()
     }
 
     private val quickListener = object : QuickPanel.Listener {
@@ -306,6 +362,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         quickPanel.setBottomInset(view.bottomInsetPx)
         view.visibility = View.INVISIBLE
         quickPanel.visibility = View.VISIBLE
+        refreshFnTab()
     }
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
@@ -685,6 +742,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         doubleTap.reset()
         layoutId = id
         view.keyboardLayout = Layouts.byId(id)
+        refreshFnTab()
         shift.reset(); syncShift()
         refreshAutoCaps()
     }

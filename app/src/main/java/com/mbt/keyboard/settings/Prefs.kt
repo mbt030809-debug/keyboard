@@ -147,6 +147,26 @@ object Prefs {
             .putInt(geoKey(large, "h3"), c.hit3Dp)
             .apply()
     }
+    const val KEY_FN_TAB = "fn_tab"
+    const val KEY_FN_TAB_ALPHA = "fn_tab_alpha_pct"
+    const val FN_TAB_ALPHA_MIN = 20
+    const val FN_TAB_ALPHA_MAX = 90
+
+    /** 숫자 왼쪽 자판에서 전체·복사·붙임을 키보드 위 반투명 탭으로 띄울지 (기본 켬) */
+    fun fnTabEnabled(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_FN_TAB, true)
+
+    fun setFnTabEnabled(context: Context, on: Boolean) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_FN_TAB, on).apply()
+
+    /** 탭의 불투명도 % (기본 50, 낮을수록 뒤가 많이 비침) */
+    fun fnTabAlphaPercent(context: Context): Int =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_FN_TAB_ALPHA, 50).coerceIn(FN_TAB_ALPHA_MIN, FN_TAB_ALPHA_MAX)
+
+    fun setFnTabAlphaPercent(context: Context, pct: Int) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_FN_TAB_ALPHA, pct.coerceIn(FN_TAB_ALPHA_MIN, FN_TAB_ALPHA_MAX)).apply()
+
     const val KEY_FONT_SCALE = "font_scale_pct"
     const val FONT_SCALE_MIN = 70
     const val FONT_SCALE_MAX = 150

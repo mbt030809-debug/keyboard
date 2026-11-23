@@ -142,23 +142,38 @@ class KeyboardView(context: Context) : View(context) {
             dropGestures(); computeCells(); requestLayout(); invalidate()
         }
 
-    private var effCacheKey: Pair<KeyboardLayout?, Boolean>? = null
+    /**
+     * 전체·복사·붙임을 키보드 위 반투명 탭(FnTab)으로 따로 띄운다. 켜면 숫자 띠가 있는 자판의 맨 아래 줄에서 그 세 키를 뺀다.
+     */
+    var fnTab: Boolean = false
+        set(v) {
+            if (field == v) return
+            field = v
+            dropGestures(); computeCells(); requestLayout(); invalidate()
+        }
+
+    /** 지금 자판에 왼쪽 숫자 띠가 있는가 (모아키 또는 숫자 왼쪽 옵션) */
+    val hasSideStrip: Boolean get() = effective()?.sideKeys?.isNotEmpty() == true
+
+    private var effCacheKey: Triple<KeyboardLayout?, Boolean, Boolean>? = null
     private var effCache: KeyboardLayout? = null
 
     /** 실제로 그리는 자판: [numberLeft]이면 숫자 줄을 왼쪽 띠로, 전체·복사·붙임을 맨 아래 줄 앞으로 옮긴 사본 */
     private fun effective(): KeyboardLayout? {
         val base = keyboardLayout ?: return null
-        val key = base to numberLeft
+        val key = Triple(base, numberLeft, fnTab)
         if (effCacheKey == key) return effCache
         val numRow = base.rows.firstOrNull()
         val convert = numberLeft && !base.moaki && base.sideKeys.isEmpty() && numRow?.any { it.type == KeyType.SELECT_ALL } == true
-        val eff = if (!convert) base else {
+        val conv = if (!convert) base else {
             val digits = numRow!!.filter { it.type == KeyType.CHAR && it.label.length == 1 && it.label[0].isDigit() }
             val fn = numRow.filter { it.type in FN_TYPES }
             val rows = base.rows.drop(1).toMutableList()
             rows[rows.lastIndex] = fn + rows.last()
             base.copy(rows = rows, rowHeights = List(rows.size) { 1f }, splitAt = base.splitAt.drop(1), sideKeys = digits)
         }
+        val eff = if (!fnTab || conv.sideKeys.isEmpty()) conv
+        else conv.copy(rows = conv.rows.dropLast(1) + listOf(conv.rows.last().filter { it.type !in FN_TYPES }))
         effCacheKey = key; effCache = eff
         return eff
     }
@@ -363,6 +378,26 @@ class KeyboardView(context: Context) : View(context) {
 
     private fun contentHeight() = (0 until rowCount).sumOf { rowHeightPx(it).toDouble() }.toFloat()
 
+    private fun stripWidthFor(w: Int) = (w - padL - padR) * (SIDE_STRIP_FRACTION * frame.numberRowScale / 0.8f).coerceIn(0.05f, 0.30f)
+
+    private fun layoutWidth() = if (width > 0) width else measuredWidth
+
+    /** 반투명 탭 버튼 하나의 가로 길이 = 숫자 키 한 칸 (띠 폭의 절반) */
+    fun fnKeyWidthPx(): Float = stripWidthFor(layoutWidth()) / 2f
+
+    /** 반투명 탭 버튼 높이 = 맨 아래 줄 키(스페이스바)와 같다 */
+    fun fnKeyHeightPx(): Float = if (rowCount == 0) 0f else keyBodyPx(rowCount - 1)
+
+    /** 탭이 키보드 왼쪽 끝에서 떨어진 거리 (숫자 띠와 같은 선) */
+    fun fnTabLeftPx(): Float = padL
+
+    /** 탭 버튼 좌우 여백: 숫자 키와 똑같이 키 사이 간격의 절반씩 */
+    fun fnTabInsetPx(): Float = frame.keyGapDp / 2f * density
+
+    /** 탭 글자 크기: 같은 크기의 일반 기능키와 똑같이 */
+    fun fnLabelSizePx(kw: Float, kh: Float): Float =
+        (min(min(kh, keyHeightPx), kw * LABEL_WIDTH_FACTOR) * 0.34f * theme.textScale + LABEL_BONUS_DP * density) * fontScale
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
         val h = (contentHeight() + padT + padB).toInt() + bottomInset
@@ -382,7 +417,7 @@ class KeyboardView(context: Context) : View(context) {
         val usableW = width - padL - padR
         val hasSide = layout.sideKeys.isNotEmpty()
         // 모아키는 "숫자 줄 높이" 설정이 숫자 띠의 가로 길이가 된다 (기본 80%일 때 줄 폭의 19%)
-        stripPx = if (hasSide) usableW * (SIDE_STRIP_FRACTION * frame.numberRowScale / 0.8f).coerceIn(0.05f, 0.30f) else 0f
+        stripPx = if (hasSide) stripWidthFor(width) else 0f
         sideCells = emptyList()
         rowTops = FloatArray(layout.rows.size)
         var top = padT
