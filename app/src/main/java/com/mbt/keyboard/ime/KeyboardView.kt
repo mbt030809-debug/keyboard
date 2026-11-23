@@ -117,9 +117,6 @@ class KeyboardView(context: Context) : View(context) {
             invalidate()
         }
 
-    /** 모아키: true면 대각선 ㅡ·ㅣ 방향을 서로 바꾼다 (기본: ↖ ㅡ, ↘ ㅣ) */
-    var moaDiagonalSwap: Boolean = false
-
     /** 꾹 누르기로 인식하는 시간 (설정 화면에서 변경) */
     var longPressMs: Long = Timing.LONG_PRESS_DEFAULT_MS
 
@@ -203,6 +200,8 @@ class KeyboardView(context: Context) : View(context) {
         var popup: Popup? = null
         /** 모아키: 지금 미는 방향이 가리키는 모음 (아직 안 밀었으면 null) */
         var moaVowel: Char? = null
+        /** 모아키: 지금 미는 각도 (화면 기준, 아래가 +90°) */
+        var moaDeg = 0f
         /** 글자 키 위 스와이프로 커서 이동 중 */
         var cursorDrag = false
         var dragAnchorX = 0f
@@ -286,8 +285,12 @@ class KeyboardView(context: Context) : View(context) {
      */
     private fun keyBodyPx(r: Int): Float {
         val base = (keyHeightPx - LEGACY_GAP_DP * density).coerceAtLeast(1f)
-        // 모아키는 숫자 줄을 포함해 모든 줄의 키 높이가 같다
-        val scale = if (isNumberRow(r) && keyboardLayout?.moaki != true) frame.numberRowScale else (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
+        if (keyboardLayout?.moaki == true && !isNumberRow(r)) {
+            // 모아키는 글자 줄이 5줄이라, 키보드 전체 높이가 단모음(글자 4줄)과 똑같도록 줄을 낮춘다:
+            // 줄 5개 + 여백 5칸 = 줄 4개 + 여백 4칸
+            return ((4f * base - frame.rowGapDp * density) / 5f).coerceAtLeast(1f)
+        }
+        val scale = if (isNumberRow(r)) frame.numberRowScale else (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
         return base * scale
     }
 
@@ -484,10 +487,9 @@ class KeyboardView(context: Context) : View(context) {
         val cons = c.key.output[0]
         val d = keyHeightPx * 0.78f                       // 안내 칸 크기
         val rad = max(c.rect.width(), keyHeightPx) * 1.05f // 키 중심에서 안내 칸까지 거리
-        val iV = if (moaDiagonalSwap) 'ㅡ' else 'ㅣ'
-        val eV = if (moaDiagonalSwap) 'ㅣ' else 'ㅡ'
-        val spots = listOf(          // (각도°, 모음)
-            0f to 'ㅏ', 180f to 'ㅓ', -90f to 'ㅗ', 90f to 'ㅜ', -135f to eV, 45f to iV,
+        val spots = listOf(          // (각도°, 모음): 3시 ㅏ, 9시 ㅓ, 12시 ㅗ, 6시 ㅜ, 11시·1시 ㅣ, 5시·7시 ㅡ
+            0f to 'ㅏ', 180f to 'ㅓ', -90f to 'ㅗ', 90f to 'ㅜ',
+            -135f to 'ㅣ', -45f to 'ㅣ', 45f to 'ㅡ', 135f to 'ㅡ',
         )
         val cx = c.rect.centerX(); val cy = c.rect.centerY()
         for ((deg, v) in spots) {
@@ -495,7 +497,10 @@ class KeyboardView(context: Context) : View(context) {
             val x = (cx + rad * kotlin.math.cos(rad2)).toFloat().coerceIn(d / 2f, width - d / 2f)
             val y = (cy + rad * kotlin.math.sin(rad2)).toFloat().coerceAtLeast(d / 2f)
             val box = RectF(x - d / 2f, y - d / 2f, x + d / 2f, y + d / 2f)
-            val chosen = p.moaVowel == v
+            // 미는 각도가 이 칸의 45° 안이면 강조 (같은 ㅣ·ㅡ가 두 칸이라 모음이 아니라 각도로 가린다)
+            var diff = abs(deg - p.moaDeg) % 360f
+            if (diff > 180f) diff = 360f - diff
+            val chosen = p.moaVowel != null && diff <= 22.5f
             paint.style = Paint.Style.FILL
             paint.color = if (chosen) theme.accent else theme.solid(theme.key)
             canvas.drawRoundRect(box, d * 0.3f, d * 0.3f, paint)
@@ -506,7 +511,7 @@ class KeyboardView(context: Context) : View(context) {
             paint.style = Paint.Style.FILL
             paint.color = if (chosen) theme.onAccent else theme.text
             paint.textSize = d * (if (chosen) 0.62f else 0.5f)
-            val label = if (chosen) com.mbt.keyboard.hangul.HangulComposer().let { it.input(cons); it.input(v); it.composing } else v.toString()
+            val label = if (chosen) com.mbt.keyboard.hangul.HangulComposer().let { it.input(cons); it.input(p.moaVowel!!); it.composing } else v.toString()
             drawCentered(canvas, label, box)
         }
     }
@@ -773,6 +778,7 @@ class KeyboardView(context: Context) : View(context) {
         val shortPx = max(kw * 0.30f, 12 * density)
         val longPx = kw * 1.25f
         val v: Char? = if (dist < shortPx) null else moaVowelFor(c.key, dx, dy, dist >= longPx)
+        p.moaDeg = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
         if (v != p.moaVowel) {
             p.moaVowel = v
             if (v != null) { p.cancelTimers(); haptics?.tick() }   // 밀기 시작하면 꾹 누르기(기호 말풍선)는 취소
@@ -783,14 +789,13 @@ class KeyboardView(context: Context) : View(context) {
     /** 자음에서 밀 때 각도(화면 기준, 아래가 +90°) → 모음. 대각선 ↖·↘ 는 ㅡ·ㅣ */
     private fun moaVowelByAngle(dx: Float, dy: Float, long: Boolean): Char {
         val deg = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
-        val iVowel = if (moaDiagonalSwap) 'ㅡ' else 'ㅣ'     // ↘
-        val euVowel = if (moaDiagonalSwap) 'ㅣ' else 'ㅡ'    // ↖
+        // 시계 방향: 11시·1시(위쪽 대각선) = ㅣ, 5시·7시(아래쪽 대각선) = ㅡ. 나머지 4방향은 45° 칸의 가운데
         return when {
-            deg in 25f..65f -> iVowel
-            deg in -155f..-115f -> euVowel
-            abs(deg) <= 45f -> if (long) 'ㅑ' else 'ㅏ'
-            deg in 45f..135f -> if (long) 'ㅠ' else 'ㅜ'
-            abs(deg) >= 135f -> if (long) 'ㅕ' else 'ㅓ'
+            deg in -157.5f..-112.5f || deg in -67.5f..-22.5f -> 'ㅣ'
+            deg in 22.5f..67.5f || deg in 112.5f..157.5f -> 'ㅡ'
+            abs(deg) <= 22.5f -> if (long) 'ㅑ' else 'ㅏ'
+            deg in 67.5f..112.5f -> if (long) 'ㅠ' else 'ㅜ'
+            abs(deg) >= 157.5f -> if (long) 'ㅕ' else 'ㅓ'
             else -> if (long) 'ㅛ' else 'ㅗ'
         }
     }

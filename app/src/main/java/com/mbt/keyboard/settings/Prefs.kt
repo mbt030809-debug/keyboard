@@ -17,14 +17,7 @@ object Prefs {
     private const val KEY_QUICK_TAB = "quick_panel_tab"
     const val KEY_THEME = "keyboard_theme"
     private const val KEY_HAPTIC_STYLE = "haptic_style"
-    const val KEY_MOA_SWAP = "moa_diagonal_swap"
 
-    /** 모아키 대각선 ㅡ·ㅣ 방향 바꾸기 (기본: ↖ ㅡ, ↘ ㅣ) */
-    fun moaDiagonalSwap(context: Context): Boolean =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_MOA_SWAP, false)
-
-    fun setMoaDiagonalSwap(context: Context, on: Boolean) =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_MOA_SWAP, on).apply()
 
     /** 키 누를 때 진동 느낌 id (기본: 예전 방식) */
     fun hapticStyle(context: Context): String =

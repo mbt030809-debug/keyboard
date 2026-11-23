@@ -188,11 +188,6 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
 
-        // 모아키 대각선 방향 바꾸기
-        val moaSwap = findViewById<MaterialSwitch>(R.id.switchMoaSwap)
-        moaSwap.isChecked = Prefs.moaDiagonalSwap(this)
-        moaSwap.setOnCheckedChangeListener { _, on -> Prefs.setMoaDiagonalSwap(this, on) }
-
         // 상용문구: 입력하는 즉시 저장
         val edit = findViewById<EditText>(R.id.editPhrases)
         edit.setText(Phrases.loadRaw(this))

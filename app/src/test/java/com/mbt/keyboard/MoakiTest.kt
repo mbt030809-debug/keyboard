@@ -97,18 +97,18 @@ class MoakiTest {
         assertEquals(4, moa.size)
     }
 
-    @Test fun diagonalsGiveEuAndI() {
-        drag("ㄱ", dxKeys = -0.6f, dyKeys = -0.6f); assertEquals("ㄱ" to 'ㅡ', moa.last())     // ↖
-        drag("ㄱ", dxKeys = 0.6f, dyKeys = 0.6f); assertEquals("ㄱ" to 'ㅣ', moa.last())      // ↘
-        // 나머지 두 대각선은 가까운 방향 모음 (↗ → ㅏ/ㅗ 쪽, ↙ → ㅓ/ㅜ 쪽)
-        drag("ㄱ", dxKeys = 0.7f, dyKeys = -0.3f); assertEquals("ㄱ" to 'ㅏ', moa.last())
-        drag("ㄱ", dxKeys = 0.3f, dyKeys = -0.7f); assertEquals("ㄱ" to 'ㅗ', moa.last())
+    @Test fun upperDiagonalsAreIAndLowerDiagonalsAreEu() {
+        drag("ㄱ", dxKeys = -0.6f, dyKeys = -0.6f); assertEquals("ㄱ" to 'ㅣ', moa.last())     // 11시
+        drag("ㄱ", dxKeys = 0.6f, dyKeys = -0.6f); assertEquals("ㄱ" to 'ㅣ', moa.last())      // 1시
+        drag("ㄱ", dxKeys = 0.6f, dyKeys = 0.6f); assertEquals("ㄱ" to 'ㅡ', moa.last())       // 5시
+        drag("ㄱ", dxKeys = -0.6f, dyKeys = 0.6f); assertEquals("ㄱ" to 'ㅡ', moa.last())      // 7시
     }
 
-    @Test fun diagonalDirectionsCanBeSwapped() {
-        view.moaDiagonalSwap = true
-        drag("ㄴ", dxKeys = -0.6f, dyKeys = -0.6f); assertEquals("ㄴ" to 'ㅣ', moa.last())
-        drag("ㄴ", dxKeys = 0.6f, dyKeys = 0.6f); assertEquals("ㄴ" to 'ㅡ', moa.last())
+    @Test fun cardinalsStillGiveTheirVowelsWithEightWaySectors() {
+        drag("ㄴ", dxKeys = 0.6f, dyKeys = 0.15f); assertEquals("ㄴ" to 'ㅏ', moa.last())     // 3시 근처
+        drag("ㄴ", dxKeys = -0.6f, dyKeys = -0.15f); assertEquals("ㄴ" to 'ㅓ', moa.last())   // 9시 근처
+        drag("ㄴ", dxKeys = 0.15f, dyKeys = -0.6f); assertEquals("ㄴ" to 'ㅗ', moa.last())    // 12시 근처
+        drag("ㄴ", dxKeys = -0.15f, dyKeys = 0.6f); assertEquals("ㄴ" to 'ㅜ', moa.last())    // 6시 근처
     }
 
     @Test fun longDragMakesTheYVowels() {
@@ -173,22 +173,25 @@ class MoakiTest {
         view.dispatchTouchEvent(MotionEvent.obtain(downTime, downTime + 10, MotionEvent.ACTION_UP, r.centerX() + 0.6f * r.width(), r.centerY(), 0))
     }
 
-    @Test fun allMoakiRowsHaveTheSameKeyHeightIncludingTheNumberRow() {
-        val heights = view.keyInnerRects().groupBy { it.second.top }.values.map { it.first().second.height() }
-        assertEquals(6, heights.size)
-        heights.forEach { assertEquals(heights[0], it, 0.5f) }
-        // 다른 자판은 숫자 줄이 더 낮다 (설정값 80%)
-        view.keyboardLayout = Layouts.koreanSingle
+    private fun measuredHeightWith(layout: com.mbt.keyboard.layout.KeyboardLayout, frame: com.mbt.keyboard.ime.KeyboardFrame): Int {
+        view.keyboardLayout = layout
+        view.frame = frame
         view.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
         view.layout(0, 0, view.measuredWidth, view.measuredHeight)
-        val other = view.keyInnerRects().groupBy { it.second.top }.values.map { it.first().second.height() }
-        assertTrue(other.first() < other[1])
+        return view.measuredHeight
     }
 
-    @Test fun diagonalSwapSettingIsSaved() {
-        assertFalse(Prefs.moaDiagonalSwap(ctx))
-        Prefs.setMoaDiagonalSwap(ctx, true)
-        assertTrue(Prefs.moaDiagonalSwap(ctx))
+    @Test fun moakiKeyboardHasTheSameTotalHeightAsTheSingleVowelKeyboard() {
+        listOf(
+            com.mbt.keyboard.ime.KeyboardFrame(),
+            com.mbt.keyboard.ime.KeyboardFrame(rowGapDp = 0, numberGapDp = 0),
+            com.mbt.keyboard.ime.KeyboardFrame(rowGapDp = 14, numberGapDp = 3, numberRowScale = 1.1f),
+            com.mbt.keyboard.ime.KeyboardFrame(topDp = 10, bottomDp = 2, keyGapDp = 2),
+        ).forEach { f ->
+            val single = measuredHeightWith(Layouts.koreanSingle, f)
+            val moaki = measuredHeightWith(Layouts.moaki, f)
+            assertEquals("$f", single.toDouble(), moaki.toDouble(), 2.0)
+        }
     }
 
     // ---- 조합 (엔진)
