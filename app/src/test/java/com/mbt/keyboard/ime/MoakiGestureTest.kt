@@ -18,15 +18,18 @@ class MoakiGestureTest {
             "RLR" to 'ㅑ', "LRL" to 'ㅕ', "UDU" to 'ㅛ', "DUD" to 'ㅠ',
             "RL" to 'ㅐ', "LR" to 'ㅔ', "RLRL" to 'ㅒ', "LRLR" to 'ㅖ',
             "UR" to 'ㅘ', "URL" to 'ㅙ', "DL" to 'ㅝ', "DLR" to 'ㅞ', "UD" to 'ㅚ', "DU" to 'ㅟ',
-            "UP" to 'ㅘ', "UJ" to 'ㅘ', "DQ" to 'ㅝ', "DI" to 'ㅝ', "UPI" to 'ㅙ', "UJQ" to 'ㅙ', "DQJ" to 'ㅞ', "DIP" to 'ㅞ',
             "PI" to 'ㅢ', "QJ" to 'ㅢ', "PU" to 'ㅢ',
         ).forEach { (k, v) -> assertEquals(k, v, MoakiGesture.decode(k)) }
     }
 
-    @Test fun diagonalAfterABasicDirectionIsNotAnEuOrIAndUpDownReturnIsOe() {
-        assertEquals('ㅚ', MoakiGesture.decode("UD"))              // ㅚ는 위로 갔다 되돌아오기
-        assertEquals('ㅟ', MoakiGesture.decode("DU"))
-        assertEquals('ㅗ', MoakiGesture.decode("UI"))              // 위 + ㅣ대각선은 ㅚ가 아니다 (표에 없어 앞부분 ㅗ)
+    @Test fun diagonalAfterABasicDirectionBecomesEuOrIAgain() {
+        assertEquals('ㅣ', MoakiGesture.decode("UI")); assertEquals('ㅣ', MoakiGesture.decode("RJ"))
+        assertEquals('ㅣ', MoakiGesture.decode("LI")); assertEquals('ㅣ', MoakiGesture.decode("DJ"))
+        assertEquals('ㅡ', MoakiGesture.decode("UP")); assertEquals('ㅡ', MoakiGesture.decode("RQ"))
+        assertEquals('ㅡ', MoakiGesture.decode("LP")); assertEquals('ㅡ', MoakiGesture.decode("DQ"))
+        assertEquals('ㅣ', MoakiGesture.decode("URI"))        // 겹모음 도중에 대각선이 나와도 그 대각선 모음
+        assertEquals('ㅚ', MoakiGesture.decode("UD"))          // 되돌아오기는 그대로
+        assertEquals('ㅘ', MoakiGesture.decode("UR")); assertEquals('ㅝ', MoakiGesture.decode("DL"))
     }
 
     @Test fun unknownSequencesFallBackToTheLongestKnownPrefix() {

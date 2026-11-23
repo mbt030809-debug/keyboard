@@ -3,14 +3,12 @@ package com.mbt.keyboard.ime
 /**
  * 모아키 제스처 해석 (안드로이드 비의존). 자음을 누른 채 긋는 동안 방향이 꺾일 때마다 한 "획"이 끝난다.
  * 획의 방향은 글자로 적는다: R(→) L(←) U(↑) D(↓), 대각선 I(↖) J(↗) P(↘) Q(↙).
- * 한 획만 그으면 I·J = ㅣ, P·Q = ㅡ.
+ * 대각선 획은 ㅣ(I·J) 또는 ㅡ(P·Q)다.
  *
- * 첫 획이 기본 방향(ㅏ ㅓ ㅗ ㅜ)이면 이어지는 획은 "두 번째 모음"이다.
- * - 되돌아오면: ㅗ↓ = ㅚ(↑↓), ㅜ↑ = ㅟ(↓↑), →← = ㅐ, ←→ = ㅔ
- * - 같은 쪽 대각선으로 꺾으면: ㅗ 뒤 오른쪽 대각선(↗·↘) = ㅘ, ㅜ 뒤 왼쪽 대각선(↖·↙) = ㅝ
+ * - → ← ↑ ↓ 로 간 뒤 대각선으로 꺾으면 앞 방향은 버리고 그 대각선 모음(ㅣ/ㅡ)이 입력된다.
+ * - 겹모음·왕복은 → ← ↑ ↓ 만으로 잇는다: ㅚ(↑↓) ㅟ(↓↑) ㅘ(↑→) ㅝ(↓←) ㅐ(→←) ㅔ(←→) …
  *
- * 표는 오픈소스 iOS 모아키(vkehfdl1/ios-moaki)의 제스처 표와 삼성 모아키 사용 가이드를 바탕으로 하고,
- * 대각선으로 겹모음을 잇는 부분은 사용자 설명을 따랐다.
+ * 표는 오픈소스 iOS 모아키(vkehfdl1/ios-moaki)의 제스처 표와 삼성 모아키 사용 가이드를 바탕으로 했다.
  */
 object MoakiGesture {
 
@@ -24,10 +22,6 @@ object MoakiGesture {
         "RL" to 'ㅐ', "LR" to 'ㅔ', "RLRL" to 'ㅒ', "LRLR" to 'ㅖ',
         // 겹모음
         "UR" to 'ㅘ', "URL" to 'ㅙ', "DL" to 'ㅝ', "DLR" to 'ㅞ', "UD" to 'ㅚ', "DU" to 'ㅟ',
-        "UP" to 'ㅘ', "UJ" to 'ㅘ',                               // ㅗ + 오른쪽 대각선
-        "DQ" to 'ㅝ', "DI" to 'ㅝ',                               // ㅜ + 왼쪽 대각선
-        "UPI" to 'ㅙ', "UJQ" to 'ㅙ',                             // ㅘ(대각선) 뒤 되돌아오기
-        "DQJ" to 'ㅞ', "DIP" to 'ㅞ',                             // ㅝ(대각선) 뒤 되돌아오기
         "PI" to 'ㅢ', "PJ" to 'ㅢ', "QI" to 'ㅢ', "QJ" to 'ㅢ', "PU" to 'ㅢ', "QU" to 'ㅢ',   // ㅡ 다음 ㅣ
     )
 
@@ -48,6 +42,8 @@ object MoakiGesture {
      */
     fun decode(strokes: String): Char? {
         if (strokes.isEmpty()) return null
+        // → ← ↑ ↓ 로 시작했어도 이어서 대각선이 나오면 그 대각선 모음(ㅣ/ㅡ)으로 읽는다
+        if (strokes[0] in "RLUD") strokes.firstOrNull { it in "IJPQ" }?.let { return TABLE.getValue(it.toString()) }
         TABLE[strokes]?.let { return it }
         for (n in strokes.length - 1 downTo 1) TABLE[strokes.substring(0, n)]?.let { return it }
         return null
