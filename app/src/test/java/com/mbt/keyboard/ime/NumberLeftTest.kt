@@ -63,13 +63,13 @@ class NumberLeftTest {
     @Test fun allThreeLayoutsPutDigitsInATwoColumnStripLeftOfTheLetters() {
         for ((layout, firstLetter) in listOf(Layouts.koreanSingle to "ㅂ", Layouts.korean to "ㅂ", Layouts.english to "q")) {
             show(layout, numberLeft = true)
-            val d = view.keyRects().filter { it.first.label in digits }.map { it.second }
+            val d = view.keyInnerRects().filter { it.first.label in digits }.map { it.second }
             assertEquals(layout.id, 10, d.size)
-            assertTrue(layout.id, d.all { it.right <= rect(firstLetter).left + 1f })              // 모두 글자 키 왼쪽
+            assertTrue(layout.id, d.all { it.right <= inner(firstLetter).left + 1f })              // 모두 글자 키 왼쪽
             assertEquals(layout.id, 2, d.map { it.left.toInt() }.toSet().size)                      // 2열
             assertEquals(layout.id, 5, d.map { it.top.toInt() }.toSet().size)                       // 5칸
             // 맨 위 줄에 숫자는 없다: 첫 줄은 글자 줄이다
-            assertTrue(layout.id, rect(firstLetter).top <= d.minOf { it.top } + 1f)
+            assertTrue(layout.id, inner(firstLetter).top <= d.minOf { it.top } + 1f)
         }
     }
 

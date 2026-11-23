@@ -82,17 +82,18 @@ class MoakiTest {
     }
 
     @Test fun sideDigitsSitLeftOfTheConsonantsAndSpanFourRowHeights() {
-        val digits = view.keyRects().filter { it.first.label in "1234567890".map { c -> c.toString() } }.map { it.second }
-        val firstConsonant = rect("ㅂ")
+        val digits = view.keyInnerRects().filter { it.first.label in "1234567890".map { c -> c.toString() } }.map { it.second }
+        val firstConsonant = view.keyInnerRects().first { it.first.label == "ㅂ" }.second
         assertEquals(10, digits.size)
         digits.forEach { assertTrue(it.right <= firstConsonant.left + 1f) }                 // 모두 자음 키 왼쪽
-        val top = rect("ㅃ").top; val bottom = rect("전체").top                              // 글자 4줄이 차지하는 높이
+        val top = view.keyInnerRects().first { it.first.label == "ㅃ" }.second.top           // 글자 4줄이 차지하는 높이
+        val bottom = view.keyInnerRects().first { it.first.label == "ㅋ" }.second.bottom
         assertEquals(top, digits.minOf { it.top }, 1f)
         assertEquals(bottom, digits.maxOf { it.bottom }, 1f)
-        // 같은 높이를 5칸으로 나눈다
+        // 같은 높이를 5칸으로 나눈다 (칸 사이 줄 여백 4곳 제외)
         val h = digits.map { it.height() }
         h.forEach { assertEquals(h[0], it, 0.5f) }
-        assertEquals((bottom - top) / 5f, h[0], 1f)
+        assertEquals((bottom - top - 4 * 6 * view.resources.displayMetrics.density) / 5f, h[0], 1f)
         // 하단 줄은 띠 아래에서 화면 전체 폭
         assertTrue(rect("전체").left < digits.minOf { it.right })
     }

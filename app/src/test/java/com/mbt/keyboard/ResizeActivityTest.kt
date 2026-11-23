@@ -3,6 +3,7 @@ package com.mbt.keyboard
 import android.view.MotionEvent
 import android.view.View
 import androidx.test.core.app.ActivityScenario
+import com.google.android.material.chip.ChipGroup
 import com.mbt.keyboard.settings.KeyboardGeometry
 import com.mbt.keyboard.settings.Prefs
 import org.junit.Assert.assertEquals
@@ -51,155 +52,149 @@ class ResizeActivityTest {
         }
     }
 
-    private fun tap(a: ResizeActivity, id: Int) {
-        val v = a.findViewById<View>(id)
+    private fun press(v: View) {
         val t = android.os.SystemClock.uptimeMillis()
         v.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, 1f, 1f, 0))
         v.dispatchTouchEvent(MotionEvent.obtain(t, t + 10, MotionEvent.ACTION_UP, 1f, 1f, 0))
     }
 
-    @Test fun everyAdjustButtonWorksAndIsSavedOnPhone() {
+    private fun chips(a: ResizeActivity) = a.findViewById<ChipGroup>(R.id.pageChips)
+    private fun goTo(a: ResizeActivity, page: Int) { chips(a).getChildAt(page).performClick() }
+    private fun controls(a: ResizeActivity) = a.findViewById<android.view.ViewGroup>(R.id.pageControls)
+    private fun step(a: ResizeActivity, row: Int, plus: Boolean) =
+        press(controls(a).getChildAt(row).findViewById(if (plus) R.id.stepPlus else R.id.stepMinus))
+    private fun value(a: ResizeActivity, row: Int) =
+        controls(a).getChildAt(row).findViewById<android.widget.TextView>(R.id.stepValue).text.toString()
+    private fun title(a: ResizeActivity) = a.findViewById<android.widget.TextView>(R.id.pageTitle).text.toString()
+
+    private fun previewHost(a: ResizeActivity) =
+        a.findViewById<android.view.ViewGroup>(R.id.previewContainer).getChildAt(0) as android.widget.FrameLayout
+    private fun previewKeyboard(a: ResizeActivity) = previewHost(a).getChildAt(0) as com.mbt.keyboard.ime.KeyboardView
+
+    @Test fun sevenTabsInPriorityOrderAndTheFirstIsSelected() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                tap(a, R.id.widthMinus); tap(a, R.id.heightPlus); tap(a, R.id.moveUp)
-                tap(a, R.id.moveLeft)      // 가로 99%: 남는 공간 안에서 왼쪽으로
+                assertEquals(7, chips(a).childCount)
+                assertTrue(title(a).startsWith("① 전체 크기"))
+                listOf("② 상하좌우 여백", "③ 키 사이 간격", "④ 숫자줄 크기", "⑤ 숫자줄 여백", "⑥ 전복붙 높이", "⑦ 터치 인식 영역").forEachIndexed { i, t ->
+                    goTo(a, i + 1)
+                    assertTrue("${title(a)} vs $t", title(a).startsWith(t))
+                }
+            }
+        }
+    }
+
+    @Test fun nextAndPreviousButtonsWalkThroughThePagesAndStopAtTheEnds() {
+        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                assertEquals(false, a.findViewById<View>(R.id.prevButton).isEnabled)
+                a.findViewById<View>(R.id.nextButton).performClick()
+                assertTrue(title(a).startsWith("② "))
+                assertTrue(chips(a).getChildAt(1).let { (it as com.google.android.material.chip.Chip).isChecked })
+                a.findViewById<View>(R.id.prevButton).performClick()
+                assertTrue(title(a).startsWith("① "))
+                repeat(10) { a.findViewById<View>(R.id.nextButton).performClick() }
+                assertTrue(title(a).startsWith("⑦ "))
+                assertEquals(false, a.findViewById<View>(R.id.nextButton).isEnabled)
+            }
+        }
+    }
+
+    @Test fun sizePageChangesWidthAndHeightByOnePercentAndIsSaved() {
+        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                assertEquals(2, controls(a).childCount)                 // 폰(접힘)·세로: 갈라진 정도는 없다
+                step(a, 0, plus = false); step(a, 0, plus = false); step(a, 0, plus = false)
+                step(a, 1, plus = false); step(a, 1, plus = false); step(a, 1, plus = true)
                 val g = Prefs.geometry(a, large = false)
-                assertEquals(99, g.widthPct); assertEquals(101, g.heightPct)
-                assertEquals(2, g.raiseDp); assertTrue(g.xDp < 0)
-                // 폰(접힘)에서는 갈라진 정도 행이 숨겨진다
-                assertEquals(View.GONE, a.findViewById<View>(R.id.gapRow).visibility)
+                assertEquals(97, g.widthPct); assertEquals(99, g.heightPct)
+                assertEquals("97%", value(a, 0))
             }
         }
     }
 
     @Test @Config(sdk = [34], qualifiers = "w800dp-h1280dp")
-    fun gapRowShowsAndSavesOnLargeScreenSeparatelyFromPhone() {
+    fun splitGapShowsOnLargeScreenSeparatelyFromPhoneAndResetRestoresEverything() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertEquals(View.VISIBLE, a.findViewById<View>(R.id.gapRow).visibility)
-                tap(a, R.id.gapPlus); tap(a, R.id.gapPlus)
+                assertEquals(3, controls(a).childCount)
+                step(a, 2, plus = true); step(a, 2, plus = true)
                 assertEquals(20, Prefs.geometry(a, large = true).gapPct)
-                // 접힘(폰) 설정은 그대로
-                assertEquals(KeyboardGeometry.GAP_DEFAULT, Prefs.geometry(a, large = false).gapPct)
+                assertEquals(KeyboardGeometry.GAP_DEFAULT, Prefs.geometry(a, large = false).gapPct)   // 접힘(폰) 설정은 그대로
                 a.findViewById<View>(R.id.resetButton).performClick()
                 assertEquals(KeyboardGeometry(), Prefs.geometry(a, large = true))
             }
         }
     }
 
-    @Test fun holdingAMoveButtonDoesNotPileUpValuesPastTheEdge() {
+    @Test fun paddingPageAdjustsFourSidesAndKeepsTheKeyboardTotalHeight() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                repeat(20) { tap(a, R.id.widthMinus) }      // 가로 최소(50%)로
-                repeat(40) { tap(a, R.id.moveLeft) }          // 왼쪽 끝을 지나 계속 눌러도
-                val atEdge = Prefs.geometry(a, large = false)
-                tap(a, R.id.moveRight)                         // 한 번 반대로 누르면 바로 움직여야 한다
-                val after = Prefs.geometry(a, large = false)
-                assertTrue("xDp ${atEdge.xDp} -> ${after.xDp}", after.xDp > atEdge.xDp)
-            }
-        }
-    }
-
-    private fun previewLp(a: ResizeActivity): android.widget.FrameLayout.LayoutParams {
-        val container = a.findViewById<android.view.ViewGroup>(R.id.previewContainer)
-        return container.getChildAt(0).layoutParams as android.widget.FrameLayout.LayoutParams
-    }
-
-    @Test fun moveUpRaisesThePreviewEveryTime() {
-        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
-            sc.onActivity { a ->
-                val density = a.resources.displayMetrics.density
-                repeat(5) { i ->
-                    tap(a, R.id.moveUp)
-                    assertEquals("after ${i + 1} taps", (2 * (i + 1) * density).toInt(), previewLp(a).bottomMargin)
-                }
-                tap(a, R.id.moveDown)
-                assertEquals((8 * density).toInt(), previewLp(a).bottomMargin)
-            }
-        }
-    }
-
-    @Test fun afterShrinkingWidthLeftAndRightMoveThePreview() {
-        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
-            sc.onActivity { a ->
-                repeat(20) { tap(a, R.id.widthMinus) }             // 가로 80% (1%씩)
-                val start = previewLp(a).leftMargin
-                tap(a, R.id.moveLeft)
-                val left = previewLp(a).leftMargin
-                assertTrue("left: $start -> $left", left < start)
-                tap(a, R.id.moveRight); tap(a, R.id.moveRight)
-                val right = previewLp(a).leftMargin
-                assertTrue("right: $left -> $right", right > left)
-            }
-        }
-    }
-
-    @Test fun movingSideToSideWorksEvenRightAfterTheDefaultFullWidth() {
-        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
-            sc.onActivity { a ->
-                // 가로 100%에서 ◀를 눌러도 반응한다 (가로가 한 단계 줄며 왼쪽으로)
-                tap(a, R.id.moveLeft)
+                val before = previewKeyboard(a).let { it.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)); it.measuredHeight }
+                goTo(a, 1)
+                assertEquals(4, controls(a).childCount)
+                step(a, 0, plus = true); step(a, 0, plus = true)                            // 위쪽 +2
+                step(a, 1, plus = false)                                                      // 아래쪽 -1
+                step(a, 2, plus = true)                                                       // 왼쪽 +1
+                step(a, 3, plus = false); step(a, 3, plus = false)                          // 오른쪽 -2
                 val g = Prefs.geometry(a, large = false)
-                assertEquals(100 - KeyboardGeometry.AUTO_SHRINK_PCT, g.widthPct)
-                assertTrue(g.xDp < 0)
-                val free = (a.resources.displayMetrics.widthPixels * 0.05f).toInt()
-                assertTrue(previewLp(a).leftMargin < free / 2 + 1)         // 가운데보다 왼쪽
+                assertEquals(6, g.padTopDp); assertEquals(3, g.padBottomDp); assertEquals(5, g.padLeftDp); assertEquals(2, g.padRightDp)
+                assertEquals("6dp", value(a, 0))
+                val kb = previewKeyboard(a)
+                kb.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+                assertEquals(before.toDouble(), kb.measuredHeight.toDouble(), 1.0)
             }
         }
     }
 
-    @Test fun widthAndHeightChangeByExactlyOnePercentPerTap() {
+    @Test fun gapNumberRowAndTabPagesAreSaved() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                tap(a, R.id.widthMinus); tap(a, R.id.widthMinus); tap(a, R.id.widthMinus)
-                tap(a, R.id.heightMinus); tap(a, R.id.heightMinus)
-                tap(a, R.id.heightPlus)
+                goTo(a, 2)                                                                   // ③ 간격
+                step(a, 0, plus = true)                                                      // 가로 +1
+                step(a, 1, plus = false); step(a, 1, plus = false)                         // 세로 -2
+                goTo(a, 3); step(a, 0, plus = true)                                          // ④ 숫자줄 크기 +5%
+                goTo(a, 4); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑤ 숫자줄 여백 +2
+                goTo(a, 5); step(a, 0, plus = false)                                         // ⑥ 전복붙 높이 -5%
                 val g = Prefs.geometry(a, large = false)
-                assertEquals(97, g.widthPct)
-                assertEquals(99, g.heightPct)
+                assertEquals(7, g.keyGapDp); assertEquals(4, g.rowGapDp)
+                assertEquals(85, g.numHeightPct); assertEquals(8, g.numRowGapDp)
+                assertEquals(95, Prefs.fnTabHeightPercent(a))
+                assertEquals("95%", value(a, 0))
+                assertEquals(View.VISIBLE, a.findViewById<View>(R.id.pageNote).visibility)    // 전복붙 안내
             }
         }
     }
 
-    private fun stepperButton(a: ResizeActivity, row: Int, plus: Boolean): Int {
-        val container = a.findViewById<android.view.ViewGroup>(R.id.frameControls)
-        val v = container.getChildAt(row).findViewById<View>(if (plus) R.id.stepPlus else R.id.stepMinus)
-        val t = android.os.SystemClock.uptimeMillis()
-        v.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, 1f, 1f, 0))
-        v.dispatchTouchEvent(MotionEvent.obtain(t, t + 10, MotionEvent.ACTION_UP, 1f, 1f, 0))
-        return row
-    }
-
-    @Test fun frameAndKeyGapControlsWorkAndAreSaved() {
+    @Test fun hitZonePageHasFourSteppersAndResetRestoresTheDefaults() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                val container = a.findViewById<android.view.ViewGroup>(R.id.frameControls)
-                assertEquals(12, container.childCount)            // 위·아래·왼쪽·오른쪽·키 가로 간격·키 세로 여백·숫자↔글자 세로 여백·숫자 줄 높이
-                stepperButton(a, 0, plus = true); stepperButton(a, 0, plus = true)   // 위쪽 +2
-                stepperButton(a, 1, plus = false)                                      // 아래쪽 -1
-                stepperButton(a, 2, plus = true)                                       // 왼쪽 +1
-                stepperButton(a, 3, plus = false); stepperButton(a, 3, plus = false)  // 오른쪽 -2
-                stepperButton(a, 4, plus = true)                                       // 글자 키 간격 +1
-                stepperButton(a, 5, plus = false); stepperButton(a, 5, plus = false)  // 세로 여백 -2
-                stepperButton(a, 6, plus = true); stepperButton(a, 6, plus = true)  // 숫자↔글자 세로 여백 +2
-                stepperButton(a, 11, plus = true)                                      // 숫자 줄 높이 +5%
-                val g = Prefs.geometry(a, large = false)
-                assertEquals(4, g.rowGapDp); assertEquals(8, g.numRowGapDp); assertEquals(85, g.numHeightPct)
-                // 위쪽 4+2, 아래쪽 4-1, 왼쪽 4+1, 오른쪽 4-2, 키 간격 6+1
-                assertEquals(6, g.padTopDp); assertEquals(3, g.padBottomDp)
-                assertEquals(5, g.padLeftDp); assertEquals(2, g.padRightDp); assertEquals(7, g.keyGapDp)
-                // 표시도 갱신
-                assertEquals("6dp", container.getChildAt(0).findViewById<android.widget.TextView>(R.id.stepValue).text)
-            }
-        }
-    }
-
-    @Test fun resetRestoresFrameDefaults() {
-        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
-            sc.onActivity { a ->
-                stepperButton(a, 0, plus = true); stepperButton(a, 4, plus = true)
+                goTo(a, 6)
+                assertEquals(4, controls(a).childCount)
+                step(a, 0, plus = true); step(a, 3, plus = true)
+                assertEquals(KeyboardGeometry.HIT_DEFAULT + 1, Prefs.geometry(a, large = false).hit0Dp)
+                goTo(a, 5); step(a, 0, plus = true)
                 a.findViewById<View>(R.id.resetButton).performClick()
                 assertEquals(KeyboardGeometry(), Prefs.geometry(a, large = false))
+                assertEquals(100, Prefs.fnTabHeightPercent(a))
+            }
+        }
+    }
+
+    @Test fun thereAreNoPositionMoveControlsAndOldSavedPositionIsIgnored() {
+        val ctx = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        Prefs.setGeometry(ctx, large = false, KeyboardGeometry(raiseDp = 50, xDp = 40, widthPct = 80))
+        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                val lp = previewHost(a).layoutParams as android.widget.FrameLayout.LayoutParams
+                assertEquals(0, lp.bottomMargin)                             // 띄우기 없음
+                // 가운데 정렬: 남는 폭의 절반이 왼쪽 여백
+                val free = (a.resources.displayMetrics.widthPixels * 0.2f).toInt()
+                assertEquals(free / 2.0, lp.leftMargin.toDouble(), 2.0)
+                // 저장된 이동값도 0으로 정리된다
+                step(a, 0, plus = true)
+                assertEquals(0, Prefs.geometry(a, large = false).raiseDp)
+                assertEquals(0, Prefs.geometry(a, large = false).xDp)
             }
         }
     }

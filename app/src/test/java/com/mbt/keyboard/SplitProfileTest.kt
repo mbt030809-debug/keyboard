@@ -118,8 +118,14 @@ class SplitProfileTest {
     fun resizeScreenOnFoldedLandscapeEditsOnlyTheLandscapeGap() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertEquals(View.VISIBLE, a.findViewById<View>(R.id.gapRow).visibility)   // 접힘이어도 가로면 보인다
-                repeat(8) { tap(a, R.id.gapPlus) }
+                val controls = a.findViewById<android.view.ViewGroup>(R.id.pageControls)
+                assertEquals(3, controls.childCount)                                         // 접힘이어도 가로면 갈라진 정도가 보인다
+                repeat(8) {
+                    val v = controls.getChildAt(2).findViewById<View>(R.id.stepPlus)
+                    val t = android.os.SystemClock.uptimeMillis()
+                    v.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, 1f, 1f, 0))
+                    v.dispatchTouchEvent(MotionEvent.obtain(t, t + 10, MotionEvent.ACTION_UP, 1f, 1f, 0))
+                }
                 assertEquals(8, Prefs.geometry(a, large = false, landscape = true).gapPct)
                 assertEquals(KeyboardGeometry.GAP_DEFAULT, Prefs.geometry(a, large = false, landscape = false).gapPct)
             }

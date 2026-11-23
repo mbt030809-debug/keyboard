@@ -35,16 +35,39 @@ class KeyboardFrameTest {
     }
 
     @Test fun defaultFrameKeepsTheOldLayout() {
-        val rects = view.keyRects().map { it.second }
+        val rects = view.keyInnerRects().map { it.second }       // 눈에 보이는 키 기준
         assertEquals(4 * density, rects.minOf { it.left }, 0.01f)
         assertEquals(widthPx - 4 * density, rects.maxOf { it.right }, 0.01f)
         assertEquals(4 * density, rects.minOf { it.top }, 0.01f)
     }
 
+    @Test fun outerMarginIsExactlyThePaddingNoMatterWhatTheKeyGapIs() {
+        for (gap in listOf(0, 6, 20)) {
+            view.frame = KeyboardFrame(leftDp = 7, topDp = 3, rightDp = 9, bottomDp = 5, keyGapDp = gap, rowGapDp = gap); relayout()
+            val r = view.keyInnerRects().map { it.second }
+            assertEquals("gap=$gap", 7 * density, r.minOf { it.left }, 0.05f)
+            assertEquals("gap=$gap", widthPx - 9 * density, r.maxOf { it.right }, 0.05f)
+            assertEquals("gap=$gap", 3 * density, r.minOf { it.top }, 0.05f)
+            assertEquals("gap=$gap", view.measuredHeight - 5 * density, r.maxOf { it.bottom }, 1.5f)
+        }
+    }
+
+    @Test fun totalSizeNeverChangesWhateverElseIsAdjusted() {
+        val base = view.measuredHeight
+        for (f in listOf(
+            KeyboardFrame(topDp = 20, bottomDp = 0), KeyboardFrame(leftDp = 30, rightDp = 0), KeyboardFrame(keyGapDp = 0, rowGapDp = 0),
+            KeyboardFrame(keyGapDp = 14, rowGapDp = 14), KeyboardFrame(numberRowScale = 1.3f), KeyboardFrame(numberRowScale = 0.5f),
+            KeyboardFrame(numberGapDp = 0), KeyboardFrame(numberGapDp = 30), KeyboardFrame(topDp = 10, rowGapDp = 12, numberGapDp = 3),
+        )) {
+            view.frame = f; relayout()
+            assertEquals(f.toString(), base.toDouble(), view.measuredHeight.toDouble(), 1.0)
+        }
+    }
+
     @Test fun eachSideCanBeSetIndependently() {
         view.frame = KeyboardFrame(leftDp = 20, topDp = 0, rightDp = 2, bottomDp = 9, keyGapDp = 6)
         relayout()
-        val rects = view.keyRects().map { it.second }
+        val rects = view.keyInnerRects().map { it.second }
         assertEquals(20 * density, rects.minOf { it.left }, 0.01f)
         assertEquals(widthPx - 2 * density, rects.maxOf { it.right }, 0.01f)
         assertEquals(0f, rects.minOf { it.top }, 0.01f)
@@ -52,20 +75,23 @@ class KeyboardFrameTest {
         assertEquals(rects.maxOf { it.bottom } + 9 * density, view.measuredHeight.toFloat(), 1f)
     }
 
-    @Test fun verticalPaddingsChangeTheKeyboardHeight() {
+    @Test fun verticalPaddingsKeepTheKeyboardHeightAndShrinkTheKeysInstead() {
         val base = view.measuredHeight
+        val keyH = view.keyInnerRects().first { it.first.label == "q" }.second.height()
         view.frame = KeyboardFrame(topDp = 14, bottomDp = 14)           // 위·아래 각 +10dp
         relayout()
-        assertEquals((base + 20 * density).toDouble(), view.measuredHeight.toDouble(), 2.0)
+        assertEquals(base.toDouble(), view.measuredHeight.toDouble(), 1.0)
+        assertTrue(view.keyInnerRects().first { it.first.label == "q" }.second.height() < keyH)
         view.frame = KeyboardFrame(topDp = 0, bottomDp = 0)             // 위·아래 각 -4dp
         relayout()
-        assertEquals((base - 8 * density).toDouble(), view.measuredHeight.toDouble(), 2.0)
+        assertEquals(base.toDouble(), view.measuredHeight.toDouble(), 1.0)
+        assertTrue(view.keyInnerRects().first { it.first.label == "q" }.second.height() > keyH)
     }
 
     @Test fun zeroPaddingLetsKeysTouchTheEdges() {
         view.frame = KeyboardFrame(0, 0, 0, 0, 6)
         relayout()
-        val rects = view.keyRects().map { it.second }
+        val rects = view.keyInnerRects().map { it.second }
         assertEquals(0f, rects.minOf { it.left }, 0.01f)
         assertEquals(widthPx.toFloat(), rects.maxOf { it.right }, 0.01f)
     }
@@ -179,13 +205,14 @@ class KeyboardFrameTest {
             view.keyboardLayout = layout
             relayout()
             val rects = view.keyRects()
+            val backInner = view.keyInnerRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.BACKSPACE }.second
             val back = rects.first { it.first.type == com.mbt.keyboard.layout.KeyType.BACKSPACE }.second
             val key = rects.first { it.first.label == letter }.second
             // 키 폭 비율 = 가로 비중 비율 (예: 1.25 / 글자 키 비중)
             val expected = 1.25f / rects.first { it.first.label == letter }.first.weight
             assertEquals(layout.id, expected, back.width() / key.width(), 0.01f)
             // 지우기는 줄의 오른쪽 끝
-            assertEquals(layout.id, (widthPx - 4 * density), back.right, 0.5f)
+            assertEquals(layout.id, (widthPx - 4 * density), backInner.right, 0.5f)
         }
     }
 }
@@ -288,19 +315,20 @@ class RowGapFrameTest {
 
     private fun inner(label: String) = view.keyInnerRects().first { it.first.label == label }.second
 
-    @Test fun widerRowGapKeepsKeySizeAndMakesTheKeyboardTaller() {
+    @Test fun widerRowGapShrinksTheKeysButKeepsTheTotalHeightAndOuterMargin() {
         val keyH = inner("ㅂ").height()
         val gapBefore = inner("ㅁ").top - inner("ㅂ").bottom          // ㅂ 줄과 ㅁ 줄 사이
         val heightBefore = view.measuredHeight
         assertEquals(6f, gapBefore / density, 0.05f)
         view.frame = KeyboardFrame(rowGapDp = 14); relayout()
-        assertEquals(keyH, inner("ㅂ").height(), 0.01f)                // 키 높이는 그대로
+        assertTrue(inner("ㅂ").height() < keyH)                         // 키가 그만큼 작아지고
         assertEquals(14f, (inner("ㅁ").top - inner("ㅂ").bottom) / density, 0.05f)
-        // 위·아래 가장자리 반 칸씩(+4+4)과 글자 줄 사이 3곳(+8씩)이 늘어난다. 숫자 줄 아래 여백은 따로라 그대로
-        assertEquals(heightBefore + (4 + 4 + 3 * 8) * density, view.measuredHeight.toFloat(), 2f)
+        assertEquals(heightBefore.toDouble(), view.measuredHeight.toDouble(), 1.0)   // 전체 높이는 그대로
+        assertEquals(4f, inner("1").top / density, 0.05f)                // 바깥 여백도 그대로 (위 여백 설정값)
         view.frame = KeyboardFrame(rowGapDp = 0); relayout()
-        assertEquals(keyH, inner("ㅂ").height(), 0.01f)
+        assertTrue(inner("ㅂ").height() > keyH)
         assertEquals(0f, (inner("ㅁ").top - inner("ㅂ").bottom) / density, 0.05f)
+        assertEquals(heightBefore.toDouble(), view.measuredHeight.toDouble(), 1.0)
     }
 
     @Test fun gapBetweenNumberRowAndLetterRowIsSeparate() {
@@ -312,14 +340,14 @@ class RowGapFrameTest {
         view.frame = KeyboardFrame(numberGapDp = 20); relayout()
         assertEquals(20f, numGap(), 0.05f)
         assertEquals(6f, letterGap(), 0.05f)                            // 글자 줄 사이는 그대로
-        assertEquals(keyH, inner("ㅂ").height(), 0.01f)                 // 키 크기 그대로
-        assertEquals(numH, inner("1").height(), 0.01f)
-        assertEquals(before + 14 * density, view.measuredHeight.toFloat(), 2f)
+        assertTrue(inner("ㅂ").height() < keyH)                         // 전체 높이가 고정이라 키가 조금 작아진다
+        assertEquals(numH / keyH, inner("1").height() / inner("ㅂ").height(), 0.01f)   // 숫자 줄 비율은 그대로
+        assertEquals(before.toDouble(), view.measuredHeight.toDouble(), 1.0)
         view.frame = KeyboardFrame(rowGapDp = 12, numberGapDp = 0); relayout()
         assertEquals(0f, numGap(), 0.05f)
         assertEquals(12f, letterGap(), 0.05f)
-        // 맨 위 키는 가장자리 여백 안쪽에서 시작 (위쪽 여백 4dp + 줄 사이 여백의 절반)
-        assertEquals(4f + 6f, inner("1").top / density, 0.1f)
+        // 맨 위 키는 위쪽 여백(4dp)에서 바로 시작 (줄 여백과 무관)
+        assertEquals(4f, inner("1").top / density, 0.1f)
     }
 
     @Test fun horizontalGapStaysIndependentOfTheRowGap() {
@@ -342,7 +370,7 @@ class RowGapFrameTest {
     @Test fun keypadsKeepFourEqualRows() {
         view.keyboardLayout = Layouts.numberPad
         view.frame = KeyboardFrame(numberRowScale = 0.4f, rowGapDp = 12); relayout()
-        val tops = view.keyRects().groupBy { it.second.top }.keys.sorted()
+        val tops = view.keyInnerRects().groupBy { Math.round(it.second.top) }.keys.sorted().map { it.toFloat() }
         val pitches = tops.zipWithNext { a, b -> b - a }
         assertTrue(pitches.all { kotlin.math.abs(it - pitches[0]) < 1f })
     }

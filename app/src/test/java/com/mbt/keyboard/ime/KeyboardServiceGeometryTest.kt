@@ -63,7 +63,7 @@ class KeyboardServiceGeometryTest {
         assertEquals(512, root.getChildAt(0).layoutParams.width)
     }
 
-    @Test fun raiseAndSideOffsetBecomeMargins() {
+    @Test fun oldRaiseAndSideOffsetAreIgnoredNowThatPositionIsSetByMarginsOnly() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val density = ctx.resources.displayMetrics.density
         Prefs.setGeometry(ctx, large = false, KeyboardGeometry(widthPct = 60, xDp = -16, raiseDp = 30))
@@ -71,8 +71,8 @@ class KeyboardServiceGeometryTest {
         val root = service.onCreateInputView() as FrameLayout
         layoutRoot(root, 1000)
         val lp = root.getChildAt(0).layoutParams as FrameLayout.LayoutParams
-        assertEquals((30 * density).toInt(), lp.bottomMargin)
-        assertTrue(lp.leftMargin in 1..199)                    // 가운데(200)보다 왼쪽
+        assertEquals(0, lp.bottomMargin)                       // 띄우기 없음
+        assertEquals(200, lp.leftMargin)                       // 가운데 (이동값은 무시)
     }
 
     @Test fun framePaddingsAndKeyGapReachTheRealKeyboardAndFollowLiveChanges() {

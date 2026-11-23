@@ -258,7 +258,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
      */
     private fun applyGeometry(config: Configuration) {
         val large = ScreenProfile.isLarge(this)
-        val g = Prefs.geometry(this, large, config.orientation == Configuration.ORIENTATION_LANDSCAPE)
+        val g = Prefs.geometry(this, large, config.orientation == Configuration.ORIENTATION_LANDSCAPE).copy(xDp = 0, raiseDp = 0)       // 위치 이동은 없앴다: 크기와 여백으로만 맞춘다
         val density = resources.displayMetrics.density
         val screenW = when {
             rootWidthPx > 0 -> rootWidthPx

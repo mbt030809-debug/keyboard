@@ -66,12 +66,12 @@ class FnTabTest {
     @Test fun digitStripReachesTheBottomRowWhenTheTabIsOn() {
         val on = keyView(true, true)
         val off = keyView(true, false)
-        val bottomOn = on.keyRects().filter { it.first.type == KeyType.SPACE }.maxOf { it.second.bottom }
-        val digit5On = on.keyRects().first { it.first.label == "5" }.second
-        val digit0On = on.keyRects().first { it.first.label == "0" }.second
+        val bottomOn = on.keyInnerRects().filter { it.first.type == KeyType.SPACE }.maxOf { it.second.bottom }
+        val digit5On = on.keyInnerRects().first { it.first.label == "5" }.second
+        val digit0On = on.keyInnerRects().first { it.first.label == "0" }.second
         assertEquals(bottomOn, digit5On.bottom, 1f)                                   // 5·0 이 맨 아래 줄 높이까지
         assertEquals(bottomOn, digit0On.bottom, 1f)
-        val digit5Off = off.keyRects().first { it.first.label == "5" }.second
+        val digit5Off = off.keyInnerRects().first { it.first.label == "5" }.second
         assertTrue(digit5On.bottom > digit5Off.bottom)
         // 맨 아래 줄 키는 띠 오른쪽에서 시작한다
         val spaceLeft = on.keyRects().first { it.first.type == KeyType.SPACE }.second.left
@@ -134,7 +134,7 @@ class FnTabTest {
             val digit = v.keyInnerRects().first { it.first.label == "1" }.second
             assertEquals(digit.left, v.fnTabLeftPx() + v.fnTabInsetPx(), 1f)
             assertEquals(digit.top, v.fnTabPadPx(), 1f)
-            assertEquals(f.rightDp * d, v.fnTabRightPx(), 0.5f)
+            assertEquals(f.rightDp * d, v.fnTabRightPx() + v.fnTabInsetPx(), 0.5f)
         }
     }
 
@@ -205,8 +205,8 @@ class FnTabTest {
         assertEquals(listOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE), fired)
         // 버튼 밖(왼쪽 여백)을 눌러도 아무 일 없다
         val t = SystemClock.uptimeMillis()
-        tab.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, 1f, 5f, 0))
-        tab.dispatchTouchEvent(MotionEvent.obtain(t, t + 10, MotionEvent.ACTION_UP, 1f, 5f, 0))
+        tab.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, 1f, 1f, 0))
+        tab.dispatchTouchEvent(MotionEvent.obtain(t, t + 10, MotionEvent.ACTION_UP, 1f, 1f, 0))
         assertEquals(3, fired.size)
     }
 

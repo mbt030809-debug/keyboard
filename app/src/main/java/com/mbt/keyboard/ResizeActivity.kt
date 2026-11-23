@@ -13,22 +13,25 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.mbt.keyboard.ime.FnTab
 import com.mbt.keyboard.ime.KeyboardFrame
 import com.mbt.keyboard.ime.KeyboardHost
 import com.mbt.keyboard.ime.KeyboardView
 import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.settings.KeyboardGeometry
+import com.mbt.keyboard.settings.ResizeDiagram
 import com.mbt.keyboard.settings.Prefs
 import com.mbt.keyboard.settings.ScreenProfile
 
 /**
- * 키보드 크기·위치 조정 화면.
- * 아래에 실제 키보드와 똑같은 미리보기가 뜨고, 위의 버튼으로 가로·세로 길이와 위치를 바꾸면 바로 반영된다.
+ * 키보드 크기·위치 조정 화면 (미리보기 고정 + 항목 탭).
+ * 위에 실제 키보드와 똑같은 미리보기가 고정되고, 아래 ①~⑦ 탭을 넘기며 항목마다 그림과 설명, 조절 버튼을 보여준다.
+ * 우선순위: ① 전체 크기 → ② 여백 → ③ 키 간격 → ④ 숫자줄 크기 → ⑤ 숫자줄 여백 → ⑥ 전복붙 높이. 앞 항목은 뒤 항목을 바꿔도 변하지 않는다.
  * 폴드를 접었을 때와 펼쳤을 때는 각각 따로 저장된다 (지금 기기 상태 기준).
  */
 class ResizeActivity : AppCompatActivity() {
-
     /** 키보드와 같은 기준(기기 화면 전체 크기)으로 접힘/펼침을 판정해야 저장한 값이 키보드에 적용된다 */
     private val large get() = ScreenProfile.isLarge(this)
     private val landscape get() = ScreenProfile.isLandscape(this)
@@ -40,10 +43,18 @@ class ResizeActivity : AppCompatActivity() {
     /** 갈라진 자판이 적용 중인가 (펼침 화면 + 설정 켬). 아닐 때는 "갈라진 정도" 행을 숨긴다 */
     private var splitActive = false
 
-    /** 키 둘레 여백·키 간격 조절 줄 (표시 갱신용) */
+    /** 지금 보이는 항목의 [－ 값 ＋] 줄 (표시 갱신용) */
     private class Stepper(val value: TextView, val minus: View, val plus: View, val text: () -> String,
                           val canMinus: () -> Boolean, val canPlus: () -> Boolean)
     private val steppers = ArrayList<Stepper>()
+
+    /** 항목(탭) 하나: 제목·배지·설명·그림·조절 버튼 */
+    private inner class Page(
+        val chip: Int, val title: Int, val badge: Int, val desc: Int, val part: ResizeDiagram.Part,
+        val note: Int = 0, val build: () -> Unit,
+    )
+    private lateinit var pages: List<Page>
+    private var pageIndex = 0
 
     /** 미리보기가 놓이는 실제 가로 폭(px). 측정되기 전에는 화면 폭으로 대신한다 */
     private var containerWidthPx = 0
@@ -53,13 +64,14 @@ class ResizeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_resize)
-        geometry = Prefs.geometry(this, large, landscape)
+        // 위치 이동은 없앴다 (크기와 여백으로만 맞춘다): 예전에 저장된 이동값은 무시
+        geometry = Prefs.geometry(this, large, landscape).copy(xDp = 0, raiseDp = 0)
 
         // 상태바 영역만 비운다. 아래쪽 내비게이션 바 여백은 키보드 뷰가 실제와 똑같이 스스로 처리한다.
         val root = findViewById<View>(R.id.root)
         ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(bars.left, bars.top, bars.right, 0)
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
 
@@ -94,71 +106,129 @@ class ResizeActivity : AppCompatActivity() {
             }
         }
 
-        // 길게 누르면 계속 변하는 버튼들
-        bind(R.id.widthMinus) { geometry = geometry.widerBy(-1) }
-        bind(R.id.widthPlus) { geometry = geometry.widerBy(1) }
-        bind(R.id.heightMinus) { geometry = geometry.tallerBy(-1) }
-        bind(R.id.heightPlus) { geometry = geometry.tallerBy(1) }
-        bind(R.id.gapMinus) { geometry = geometry.gapWiderBy(-1) }
-        bind(R.id.gapPlus) { geometry = geometry.gapWiderBy(1) }
-        bind(R.id.moveLeft) { geometry = geometry.movedX(-1, containerWidthPx, density) }
-        bind(R.id.moveRight) { geometry = geometry.movedX(1, containerWidthPx, density) }
-        bind(R.id.moveUp) { geometry = geometry.raisedBy(1) }
-        bind(R.id.moveDown) { geometry = geometry.raisedBy(-1) }
+        pages = listOf(
+            Page(R.string.resize_page_size, R.string.resize_title_size, R.string.resize_badge_base, R.string.resize_desc_size, ResizeDiagram.Part.SIZE) {
+                addStepper(R.string.resize_width, { geometry = geometry.widerBy(it) }, { "${geometry.widthPct}%" },
+                    { geometry.widthPct > KeyboardGeometry.WIDTH_MIN }, { geometry.widthPct < KeyboardGeometry.WIDTH_MAX })
+                addStepper(R.string.resize_height, { geometry = geometry.tallerBy(it) }, { "${geometry.heightPct}%" },
+                    { geometry.heightPct > KeyboardGeometry.HEIGHT_MIN }, { geometry.heightPct < KeyboardGeometry.HEIGHT_MAX })
+                if (splitActive) addStepper(R.string.resize_gap, { geometry = geometry.gapWiderBy(it) },
+                    { if (!large && geometry.gapPct == 0) getString(R.string.resize_gap_off) else "${geometry.gapPct}%" },
+                    { geometry.gapPct > KeyboardGeometry.GAP_MIN }, { geometry.gapPct < KeyboardGeometry.GAP_MAX })
+            },
+            Page(R.string.resize_page_pad, R.string.resize_title_pad, R.string.resize_badge_1, R.string.resize_desc_pad, ResizeDiagram.Part.PAD) {
+                addStepper(R.string.resize_pad_top, { geometry = geometry.padTopBy(it) }, { "${geometry.padTopDp}dp" },
+                    { geometry.padTopDp > KeyboardGeometry.PAD_MIN }, { geometry.padTopDp < KeyboardGeometry.PAD_MAX })
+                addStepper(R.string.resize_pad_bottom, { geometry = geometry.padBottomBy(it) }, { "${geometry.padBottomDp}dp" },
+                    { geometry.padBottomDp > KeyboardGeometry.PAD_MIN }, { geometry.padBottomDp < KeyboardGeometry.PAD_MAX })
+                addStepper(R.string.resize_pad_left, { geometry = geometry.padLeftBy(it) }, { "${geometry.padLeftDp}dp" },
+                    { geometry.padLeftDp > KeyboardGeometry.PAD_MIN }, { geometry.padLeftDp < KeyboardGeometry.PAD_MAX })
+                addStepper(R.string.resize_pad_right, { geometry = geometry.padRightBy(it) }, { "${geometry.padRightDp}dp" },
+                    { geometry.padRightDp > KeyboardGeometry.PAD_MIN }, { geometry.padRightDp < KeyboardGeometry.PAD_MAX })
+            },
+            Page(R.string.resize_page_gap, R.string.resize_title_gap, R.string.resize_badge_12, R.string.resize_desc_gap, ResizeDiagram.Part.GAP) {
+                addStepper(R.string.resize_key_gap, { geometry = geometry.keyGapBy(it) }, { "${geometry.keyGapDp}dp" },
+                    { geometry.keyGapDp > KeyboardGeometry.KEY_GAP_MIN }, { geometry.keyGapDp < KeyboardGeometry.KEY_GAP_MAX })
+                addStepper(R.string.resize_row_gap, { geometry = geometry.rowGapBy(it) }, { "${geometry.rowGapDp}dp" },
+                    { geometry.rowGapDp > KeyboardGeometry.ROW_GAP_MIN }, { geometry.rowGapDp < KeyboardGeometry.ROW_GAP_MAX })
+            },
+            Page(R.string.resize_page_numrow, R.string.resize_title_numrow, R.string.resize_badge_123, R.string.resize_desc_numrow, ResizeDiagram.Part.NUMROW) {
+                // 숫자가 왼쪽 띠에 있으면(모아키·숫자 왼쪽 옵션) "숫자줄 크기"는 띠의 가로 길이, 아니면 줄 높이
+                addStepper(R.string.resize_num_height, { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
+                    { geometry.numHeightPct > KeyboardGeometry.NUM_HEIGHT_MIN }, { geometry.numHeightPct < KeyboardGeometry.NUM_HEIGHT_MAX })
+            },
+            Page(R.string.resize_page_numgap, R.string.resize_title_numgap, R.string.resize_badge_1234, R.string.resize_desc_numgap, ResizeDiagram.Part.NUMGAP) {
+                addStepper(R.string.resize_num_row_gap, { geometry = geometry.numRowGapBy(it) }, { "${geometry.numRowGapDp}dp" },
+                    { geometry.numRowGapDp > KeyboardGeometry.NUM_ROW_GAP_MIN }, { geometry.numRowGapDp < KeyboardGeometry.NUM_ROW_GAP_MAX })
+            },
+            Page(R.string.resize_page_tab, R.string.resize_title_tab, R.string.resize_badge_tab, R.string.resize_desc_tab, ResizeDiagram.Part.TAB, note = R.string.resize_note_tab) {
+                addStepper(R.string.resize_tab_height,
+                    { Prefs.setFnTabHeightPercent(this, Prefs.fnTabHeightPercent(this) + it * FN_TAB_HEIGHT_STEP) },
+                    { "${Prefs.fnTabHeightPercent(this)}%" },
+                    { Prefs.fnTabHeightPercent(this) > Prefs.FN_TAB_HEIGHT_MIN }, { Prefs.fnTabHeightPercent(this) < Prefs.FN_TAB_HEIGHT_MAX })
+            },
+            Page(R.string.resize_page_hit, R.string.resize_title_hit, R.string.resize_badge_hit, R.string.resize_desc_hit, ResizeDiagram.Part.HIT) {
+                addStepper(R.string.resize_hit0, { geometry = geometry.hit0By(it) }, { signedDp(geometry.hit0Dp) },
+                    { geometry.hit0Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit0Dp < KeyboardGeometry.HIT_MAX })
+                addStepper(R.string.resize_hit1, { geometry = geometry.hit1By(it) }, { signedDp(geometry.hit1Dp) },
+                    { geometry.hit1Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit1Dp < KeyboardGeometry.HIT_MAX })
+                addStepper(R.string.resize_hit2, { geometry = geometry.hit2By(it) }, { signedDp(geometry.hit2Dp) },
+                    { geometry.hit2Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit2Dp < KeyboardGeometry.HIT_MAX })
+                addStepper(R.string.resize_hit3, { geometry = geometry.hit3By(it) }, { signedDp(geometry.hit3Dp) },
+                    { geometry.hit3Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit3Dp < KeyboardGeometry.HIT_MAX })
+            },
+        )
 
-        // 키 둘레 여백 4방향 + 키 사이 간격 (1dp씩)
-        addStepper(R.string.resize_pad_top, { geometry = geometry.padTopBy(it) }, { "${geometry.padTopDp}dp" },
-            { geometry.padTopDp > KeyboardGeometry.PAD_MIN }, { geometry.padTopDp < KeyboardGeometry.PAD_MAX })
-        addStepper(R.string.resize_pad_bottom, { geometry = geometry.padBottomBy(it) }, { "${geometry.padBottomDp}dp" },
-            { geometry.padBottomDp > KeyboardGeometry.PAD_MIN }, { geometry.padBottomDp < KeyboardGeometry.PAD_MAX })
-        addStepper(R.string.resize_pad_left, { geometry = geometry.padLeftBy(it) }, { "${geometry.padLeftDp}dp" },
-            { geometry.padLeftDp > KeyboardGeometry.PAD_MIN }, { geometry.padLeftDp < KeyboardGeometry.PAD_MAX })
-        addStepper(R.string.resize_pad_right, { geometry = geometry.padRightBy(it) }, { "${geometry.padRightDp}dp" },
-            { geometry.padRightDp > KeyboardGeometry.PAD_MIN }, { geometry.padRightDp < KeyboardGeometry.PAD_MAX })
-        addStepper(R.string.resize_key_gap, { geometry = geometry.keyGapBy(it) }, { "${geometry.keyGapDp}dp" },
-            { geometry.keyGapDp > KeyboardGeometry.KEY_GAP_MIN }, { geometry.keyGapDp < KeyboardGeometry.KEY_GAP_MAX })
-        addStepper(R.string.resize_row_gap, { geometry = geometry.rowGapBy(it) }, { "${geometry.rowGapDp}dp" },
-            { geometry.rowGapDp > KeyboardGeometry.ROW_GAP_MIN }, { geometry.rowGapDp < KeyboardGeometry.ROW_GAP_MAX })
-        addStepper(R.string.resize_num_row_gap, { geometry = geometry.numRowGapBy(it) }, { "${geometry.numRowGapDp}dp" },
-            { geometry.numRowGapDp > KeyboardGeometry.NUM_ROW_GAP_MIN }, { geometry.numRowGapDp < KeyboardGeometry.NUM_ROW_GAP_MAX })
-        addStepper(R.string.resize_hit0, { geometry = geometry.hit0By(it) }, { signedDp(geometry.hit0Dp) },
-            { geometry.hit0Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit0Dp < KeyboardGeometry.HIT_MAX })
-        addStepper(R.string.resize_hit1, { geometry = geometry.hit1By(it) }, { signedDp(geometry.hit1Dp) },
-            { geometry.hit1Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit1Dp < KeyboardGeometry.HIT_MAX })
-        addStepper(R.string.resize_hit2, { geometry = geometry.hit2By(it) }, { signedDp(geometry.hit2Dp) },
-            { geometry.hit2Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit2Dp < KeyboardGeometry.HIT_MAX })
-        addStepper(R.string.resize_hit3, { geometry = geometry.hit3By(it) }, { signedDp(geometry.hit3Dp) },
-            { geometry.hit3Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit3Dp < KeyboardGeometry.HIT_MAX })
-        // 숫자가 왼쪽 띠에 있으면(모아키·숫자 왼쪽 옵션) "숫자 줄 크기"는 띠의 가로 길이, 아니면 줄 높이
-        addStepper(R.string.resize_num_height, { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
-            { geometry.numHeightPct > KeyboardGeometry.NUM_HEIGHT_MIN }, { geometry.numHeightPct < KeyboardGeometry.NUM_HEIGHT_MAX })
+        // 항목 탭(칩)
+        val chips = findViewById<ChipGroup>(R.id.pageChips)
+        pages.forEachIndexed { i, page ->
+            val chip = layoutInflater.inflate(R.layout.chip_page, chips, false) as Chip
+            chip.id = View.generateViewId()
+            chip.setText(page.chip)
+            chip.tag = i
+            chips.addView(chip)
+        }
+        chips.setOnCheckedStateChangeListener { group, ids ->
+            val id = ids.firstOrNull() ?: return@setOnCheckedStateChangeListener
+            showPage(group.findViewById<View>(id).tag as Int)
+        }
+        findViewById<View>(R.id.prevButton).setOnClickListener { selectPage(pageIndex - 1) }
+        findViewById<View>(R.id.nextButton).setOnClickListener { selectPage(pageIndex + 1) }
 
         findViewById<MaterialButton>(R.id.resetButton).setOnClickListener {
             geometry = KeyboardGeometry()
+            Prefs.setFnTabHeightPercent(this, 100)
             refresh()
         }
         findViewById<MaterialButton>(R.id.doneButton).setOnClickListener { finish() }
 
+        selectPage(0)
         refresh()
     }
 
     private fun signedDp(v: Int) = if (v > 0) "+${v}dp" else "${v}dp"
 
-    /** [－ 값 ＋] 한 줄을 만들어 "키 둘레 여백" 영역에 붙인다 */
+    /** 탭(칩)을 눌러 고른 것과 같게 항목 [index]로 이동 */
+    private fun selectPage(index: Int) {
+        val i = index.coerceIn(0, pages.size - 1)
+        val chips = findViewById<ChipGroup>(R.id.pageChips)
+        chips.check(chips.getChildAt(i).id)
+        showPage(i)
+    }
+
+    /** 항목 [index]의 제목·설명·그림·조절 버튼을 보여준다 */
+    private fun showPage(index: Int) {
+        pageIndex = index
+        val page = pages[index]
+        findViewById<TextView>(R.id.pageTitle).setText(page.title)
+        findViewById<TextView>(R.id.pageBadge).setText(page.badge)
+        findViewById<TextView>(R.id.pageDesc).setText(page.desc)
+        findViewById<ResizeDiagram>(R.id.diagram).part = page.part
+        findViewById<TextView>(R.id.pageNote).apply {
+            if (page.note != 0) { setText(page.note); visibility = View.VISIBLE } else visibility = View.GONE
+        }
+        findViewById<ViewGroup>(R.id.pageControls).removeAllViews()
+        steppers.clear()
+        page.build()
+        findViewById<View>(R.id.prevButton).isEnabled = index > 0
+        findViewById<View>(R.id.nextButton).isEnabled = index < pages.size - 1
+        refresh()
+    }
+
+    /** [－ 값 ＋] 한 줄을 만들어 지금 항목의 조절 영역에 붙인다 */
     private fun addStepper(
         labelRes: Int, change: (Int) -> Unit, text: () -> String, canMinus: () -> Boolean, canPlus: () -> Boolean,
     ) {
-        val row = layoutInflater.inflate(R.layout.row_stepper, findViewById<ViewGroup>(R.id.frameControls), false)
+        val container = findViewById<ViewGroup>(R.id.pageControls)
+        val row = layoutInflater.inflate(R.layout.row_stepper, container, false)
         row.findViewById<TextView>(R.id.stepLabel).setText(labelRes)
         val minus = row.findViewById<View>(R.id.stepMinus)
         val plus = row.findViewById<View>(R.id.stepPlus)
-        findViewById<ViewGroup>(R.id.frameControls).addView(row)
+        container.addView(row)
         bindButton(minus) { change(-1) }
         bindButton(plus) { change(1) }
         steppers += Stepper(row.findViewById(R.id.stepValue), minus, plus, text, canMinus, canPlus)
     }
-
-    private fun bind(id: Int, change: () -> Unit) = bindButton(findViewById(id), change)
 
     /** 눌렀을 때 한 번, 계속 누르고 있으면 반복해서 [change]를 실행한다 */
     @SuppressLint("ClickableViewAccessibility")
@@ -225,30 +295,14 @@ class ResizeActivity : AppCompatActivity() {
                     else -> R.string.resize_profile_normal
                 },
             )
-        findViewById<TextView>(R.id.widthValue).text = "${geometry.widthPct}%"
-        findViewById<TextView>(R.id.heightValue).text = "${geometry.heightPct}%"
-
-        findViewById<View>(R.id.widthMinus).isEnabled = geometry.widthPct > KeyboardGeometry.WIDTH_MIN
-        findViewById<View>(R.id.widthPlus).isEnabled = geometry.widthPct < KeyboardGeometry.WIDTH_MAX
-        findViewById<View>(R.id.heightMinus).isEnabled = geometry.heightPct > KeyboardGeometry.HEIGHT_MIN
-        findViewById<View>(R.id.heightPlus).isEnabled = geometry.heightPct < KeyboardGeometry.HEIGHT_MAX
-        findViewById<View>(R.id.gapRow).visibility = if (splitActive) View.VISIBLE else View.GONE
-        findViewById<TextView>(R.id.gapValue).text =
-            if (!large && geometry.gapPct == 0) getString(R.string.resize_gap_off) else "${geometry.gapPct}%"
-        findViewById<View>(R.id.gapMinus).isEnabled = geometry.gapPct > KeyboardGeometry.GAP_MIN
-        findViewById<View>(R.id.gapPlus).isEnabled = geometry.gapPct < KeyboardGeometry.GAP_MAX
-        findViewById<View>(R.id.moveLeft).isEnabled = geometry.canMoveLeft(containerWidthPx, density)
-        findViewById<View>(R.id.moveRight).isEnabled = geometry.canMoveRight(containerWidthPx, density)
-        findViewById<View>(R.id.moveUp).isEnabled = geometry.canRaise
-        findViewById<View>(R.id.moveDown).isEnabled = geometry.canLower
-
-        findViewById<TextView>(R.id.moveHint).text =
-            if (geometry.freePx(containerWidthPx) > 0) getString(R.string.resize_move_hint_x, geometry.raiseDp, KeyboardGeometry.X_STEP_DP)
-            else getString(R.string.resize_move_hint_full, geometry.raiseDp)
     }
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         super.onDestroy()
+    }
+
+    private companion object {
+        const val FN_TAB_HEIGHT_STEP = 5
     }
 }
