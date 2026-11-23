@@ -223,6 +223,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private fun showEmojiPanel() {
         flushComposing()
         fitToKeyboard(panel)
+        panel.refresh()
         panel.setBottomInset(view.bottomInsetPx)
         view.visibility = View.INVISIBLE   // 높이는 유지해야 패널이 같은 크기로 뜬다
         panel.visibility = View.VISIBLE

@@ -10,13 +10,15 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.mbt.keyboard.clipboard.ClipboardHistory
+import com.mbt.keyboard.clipboard.PrefsClipboardStore
 import com.mbt.keyboard.emoji.Category
 import com.mbt.keyboard.emoji.EmojiData
 
 /**
  * 이모티콘·이모지 패널. 키보드 자리에 겹쳐서 표시된다.
  *
- * - 이모티콘 탭: 감정·동물 등 카테고리 알약 → 누르면 목록 → 탭하면 입력
+ * - 이모티콘 탭: 최근 쓴 줄 + 분류별 한 줄 이어쓰기, 탭하면 바로 입력
  * - 이모지 탭: 카테고리 아이콘 + 이모지 격자
  * - 오른쪽 위 ✕: 닫고 키보드로 돌아가기
  */
@@ -33,6 +35,9 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
 
     private val emoticons: List<Category> by lazy { EmojiData.emoticons(context) }
     private val emojis: List<Category> by lazy { EmojiData.emoji(context) }
+
+    /** 최근 쓴 이모티콘 (최신순, 최대 [RECENT_MAX]개). 이모티콘 탭 맨 위 "최근" 줄에 보인다 */
+    private val recent = ClipboardHistory(PrefsClipboardStore(context, "recent_emoticons"), max = RECENT_MAX)
 
     private var tab = TAB_EMOTICON
     private var emojiCategory = 0
@@ -102,11 +107,16 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
      */
     private fun showEmoticonsGrouped() {
         indexChips.removeAllViews()
-        emoticons.forEachIndexed { i, c ->
-            val color = PALETTE[i % PALETTE.size]
+        // (이름, 이모티콘들, 색): 최근 줄이 있으면 맨 앞
+        val groups = ArrayList<Triple<String, List<String>, Int>>()
+        val recentItems = recent.items()
+        if (recentItems.isNotEmpty()) groups += Triple(RECENT_LABEL, recentItems, RECENT_COLOR)
+        emoticons.forEachIndexed { i, c -> groups += Triple(c.label, c.items, PALETTE[i % PALETTE.size]) }
+
+        groups.forEachIndexed { i, (label, _, color) ->
             indexChips.addView(
                 TextView(context).apply {
-                    text = c.label
+                    text = label
                     textSize = 13f
                     gravity = Gravity.CENTER
                     setTextColor(theme.text)
@@ -117,13 +127,12 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
                 LayoutParams(LayoutParams.WRAP_CONTENT, dp(30)).apply { setMargins(dp(3), dp(4), dp(3), dp(4)) },
             )
         }
-        emoticons.forEachIndexed { i, c ->
-            val color = PALETTE[i % PALETTE.size]
+        groups.forEach { (label, items, color) ->
             val block = flow()
             // 분류 이름: 색을 채운 알약. 이 줄 맨 앞에 오고, 이모티콘들이 이어서 나열된다
             block.addView(
                 TextView(context).apply {
-                    text = c.label
+                    text = label
                     textSize = 13f
                     setTypeface(typeface, Typeface.BOLD)
                     setTextColor(theme.text)
@@ -132,11 +141,19 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
                     isSingleLine = true
                 },
             )
-            c.items.forEach { e -> block.addView(pill(e, color, 15f) { listener.onInsert(e) }) }
+            items.forEach { e ->
+                block.addView(pill(e, color, 15f) {
+                    recent.add(e)           // 화면은 그대로 두고(튀지 않게) 다음에 열 때 최근 줄에 반영
+                    listener.onInsert(e)
+                })
+            }
             blocks += block
             container.addView(block)
         }
     }
+
+    /** 패널을 다시 열 때 호출: 최근 줄을 갱신하고 맨 위로 돌아간다 */
+    fun refresh() = render()
 
     private fun withAlpha(color: Int, alpha: Int) = (color and 0x00FFFFFF) or (alpha shl 24)
 
@@ -224,6 +241,9 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
     private companion object {
         const val TAB_EMOTICON = 0
         const val TAB_EMOJI = 1
+        const val RECENT_MAX = 12
+        const val RECENT_LABEL = "최근"
+        val RECENT_COLOR = 0xFFFFB300.toInt()
 
         /** 알약 테두리 색 (빨강·초록·보라·하늘·갈색 순환) */
         val PALETTE = intArrayOf(

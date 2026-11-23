@@ -63,15 +63,14 @@ class ClipboardHistory(
 }
 
 /** [Prefs]와 같은 저장 파일에 기록을 보관한다 (앱 전용 저장소, 백업 꺼짐) */
-class PrefsClipboardStore(private val context: Context) : ClipboardHistory.Store {
+class PrefsClipboardStore(
+    private val context: Context,
+    private val key: String = "clipboard_history",
+) : ClipboardHistory.Store {
     override fun load(): String =
-        context.getSharedPreferences(Prefs.FILE, Context.MODE_PRIVATE).getString(KEY, "").orEmpty()
+        context.getSharedPreferences(Prefs.FILE, Context.MODE_PRIVATE).getString(key, "").orEmpty()
 
     override fun save(raw: String) {
-        context.getSharedPreferences(Prefs.FILE, Context.MODE_PRIVATE).edit().putString(KEY, raw).apply()
-    }
-
-    private companion object {
-        const val KEY = "clipboard_history"
+        context.getSharedPreferences(Prefs.FILE, Context.MODE_PRIVATE).edit().putString(key, raw).apply()
     }
 }

@@ -78,4 +78,39 @@ class EmojiPanelTest {
         assertEquals(View.VISIBLE, indexBar.visibility)
         assertEquals(emoticons.size, body.childCount)
     }
+
+    @Test fun noRecentRowUntilSomethingHasBeenUsed() {
+        assertTrue(texts(indexBar).none { it.text == "최근" })
+        assertEquals(emoticons.size, body.childCount)
+    }
+
+    @Test fun recentRowAppearsOnTopNewestFirstAfterRefresh() {
+        texts(body.getChildAt(0)).first { it.text == "(´▽`)" }.performClick()
+        texts(body.getChildAt(1)).first { it.text == "(╬ ಠ益ಠ)" }.performClick()
+        panel.refresh()                                                   // 패널을 다시 열 때
+        assertEquals(emoticons.size + 1, body.childCount)
+        val row = texts(body.getChildAt(0))
+        assertEquals("최근", row.first().text.toString())
+        assertEquals(listOf("(╬ ಠ益ಠ)", "(´▽`)"), row.drop(1).map { it.text.toString() })
+        assertEquals("최근", texts(indexBar).first().text.toString())     // 바로가기 칩도 맨 앞
+        // 최근 줄에서 한 번 눌러도 바로 입력되고, 같은 건 중복 없이 맨 앞으로
+        row.first { it.text == "(´▽`)" }.performClick()
+        assertEquals("(´▽`)", inserted.last())
+        panel.refresh()
+        assertEquals(listOf("(´▽`)", "(╬ ಠ益ಠ)"), texts(body.getChildAt(0)).drop(1).map { it.text.toString() })
+    }
+
+    @Test fun recentRowKeepsAtMostTwelveAndSurvivesANewPanel() {
+        val all = emoticons.flatMap { it.items }.distinct().take(15)
+        all.forEach { e -> texts(body).first { it.text == e }.performClick() }
+        val again = EmojiPanel(ctx, object : EmojiPanel.Listener {
+            override fun onInsert(text: String) {}
+            override fun onClose() {}
+        })
+        val b = (again.getChildAt(2) as ScrollView).getChildAt(0) as LinearLayout
+        val row = texts(b.getChildAt(0))
+        assertEquals("최근", row.first().text.toString())
+        assertEquals(12, row.size - 1)
+        assertEquals(all.last(), row[1].text.toString())
+    }
 }
