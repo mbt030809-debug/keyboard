@@ -80,7 +80,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
                 canvas.drawRoundRect(l + d / 2, top + d / 2, r - d / 2, kh - d / 2, radius, radius, paint)
                 paint.style = Paint.Style.FILL
             }
-            paint.color = theme.text
+            paint.color = withAlpha(theme.text, alphaPercent)          // 글씨도 버튼·바탕과 같은 반투명
             paint.textSize = src.fnLabelSizePx(kw, kh - top)
             val y = (top + kh) / 2f - (paint.descent() + paint.ascent()) / 2f
             canvas.drawText(k.label, (l + r) / 2f, y, paint)

@@ -182,7 +182,7 @@ class FnTabTest {
         assertEquals(3, fired.size)
     }
 
-    @Test fun tabFillIsSemiTransparentButTextIsOpaque() {
+    @Test fun tabFillAndTextAreBothSemiTransparent() {
         val v = keyView(true, true)
         val tab = FnTab(ctx, v)
         tab.alphaPercent = 50
@@ -197,7 +197,7 @@ class FnTabTest {
         assertEquals(4, fills.size)                                                  // 바탕 1 + 버튼 3
         fills.forEach { assertEquals(127f, (it ushr 24).toFloat(), 1f) }
         assertEquals(3, textColors.size)
-        textColors.forEach { assertEquals(255, it ushr 24) }
+        textColors.forEach { assertEquals(127f, (it ushr 24).toFloat(), 1f) }
     }
 
     @Test fun prefsDefaultsAndClamping() {
