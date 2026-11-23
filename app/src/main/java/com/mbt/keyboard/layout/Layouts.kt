@@ -20,7 +20,10 @@ object Layouts {
      * 꾹 누르기 기호 묶음. 글자 키에 읽는 순서(왼쪽 위 → 오른쪽 아래)대로 배정한다.
      * 각 묶음의 첫 항목이 기본값(꾹 누르고 그대로 떼면 입력), 나머지는 밀어서 선택.
      * 자주 쓰는 것을 앞쪽 키에 두었고, 괄호·따옴표는 쌍이 기본이다.
-     * 숫자는 맨 윗줄에 있으므로 제외. (숫자 키 자체의 꾹 누르기는 [numberRow]에서 `1`→`!`, `2`→`@`)
+     * 숫자는 맨 윗줄에 있으므로 제외.
+     *
+     * 뒤쪽 키 배치(단모음 기준): `ㅔ`=→←↑↓, `ㅣ`=하트, `ㅊ`=@, `ㅍ`=_ - —, `ㅜ`=?, `ㅡ`=!
+     * (☆ 키를 없애고 뒤의 키들을 한 칸씩 앞으로 당긴 결과. ? 와 → 는 서로 자리를 바꿨다)
      */
     val SYMBOL_GROUPS: List<List<String>> = listOf(
         listOf("()", "(", ")"),
@@ -29,8 +32,8 @@ object Layouts {
         listOf("<>", "<", ">"),
         listOf("\"\"", "\"", "''", "'"),
         listOf("^"),
-        listOf("~", "…"),
-        listOf("?"),                       // 비워진 키(※·가 빠짐)에 물음표
+        listOf("~"),
+        listOf("→", "←", "↑", "↓"),         // ? 와 자리를 바꿈
         listOf("#"),
         listOf("&"),
         listOf("%", "°"),
@@ -38,13 +41,13 @@ object Layouts {
         listOf("*", "×"),
         listOf(":", ";"),
         listOf("/", "|", "\\"),             // | \ 는 / 의 하위 후보
-        listOf("❤\uFE0F"),                 // 비워진 키(|\가 / 로 이동)에 하트
+        listOf("❤\uFE0F", "♡", "💕", "💖", "💙", "💔"),   // 하트 6개 (한 줄 말풍선)
         listOf("$", "₩"),
         listOf("`"),
-        listOf("☆", "♡"),
-        listOf("●"),
+        listOf("@"),                       // ☆ 키를 없애고 한 칸씩 당김: ● 가 있던 자리에 골뱅이
         listOf("_", "-", "—"),            // - 는 _ 의 하위 후보
-        listOf("→", "←", "↑", "↓"),
+        listOf("?"),
+        listOf("!"),
         // 이하 4개는 두벌식·영어(글자 키 26개)에서만 사용
         listOf("€", "£", "¥"),
         listOf("±"),
@@ -57,31 +60,22 @@ object Layouts {
     private val shift = Key("⇧", KeyType.SHIFT, weight = 1.5f)
     private val backspace = Key("⌫", KeyType.BACKSPACE, weight = 1.5f)
 
-    /**
-     * 맨 윗줄 한 줄 (13칸, 모두 같은 폭): 전체 · 복사 · 붙임 + 숫자 1~0.
-     * 숫자 키를 꾹 누르면 PC 키보드처럼 `1`→`!`, `2`→`@`.
-     */
+    /** 맨 윗줄 한 줄 (13칸, 모두 같은 폭): 전체 · 복사 · 붙임 + 숫자 1~0 */
     private val numberRow = listOf(
         Key("전체", KeyType.SELECT_ALL),
         Key("복사", KeyType.COPY),
         Key("붙임", KeyType.PASTE),
-    ) + "1234567890".map { d ->
-        Key(d.toString(), hints = when (d) {
-            '1' -> listOf("!")
-            '2' -> listOf("@")
-            else -> emptyList()
-        })
-    }
+    ) + "1234567890".map { Key(it.toString()) }
 
     /** 맨 윗줄(전체·복사·붙임·숫자)은 낮게 */
     private val rowHeights = listOf(0.8f, 1f, 1f, 1f, 1f)
 
-    /** 녹음(음성인식)은 스페이스바 바로 오른쪽. 폭 합계 10 */
+    /** 녹음(음성인식)은 스페이스바 바로 오른쪽. 🎤·마침표·쉼표는 같은 폭(1칸). 폭 합계 10 */
     private fun bottom() = listOf(
         Key("😊", KeyType.EMOJI, weight = 1.3f),
         Key(",", hints = listOf("'", "\"")),
-        Key("", KeyType.SPACE, output = " ", weight = 4.2f),
-        Key("🎤", KeyType.VOICE, weight = 1.2f),
+        Key("", KeyType.SPACE, output = " ", weight = 4.4f),
+        Key("🎤", KeyType.VOICE, weight = 1.0f),
         Key(".", hints = listOf("…", ".com", "·")),   // · 는 . 의 하위 후보
         Key("⏎", KeyType.ENTER, weight = 1.3f),
     )

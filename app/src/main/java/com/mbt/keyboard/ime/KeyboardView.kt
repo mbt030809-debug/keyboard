@@ -319,6 +319,7 @@ class KeyboardView(context: Context) : View(context) {
                 else -> 0.40f
             }
             paint.textSize = cell.rect.height() * size * theme.textScale
+            if (key.type == KeyType.VOICE) paint.textSize -= ICON_SHRINK_DP * density
             if (key.type == KeyType.SPACE) paint.alpha = 140
             drawCentered(canvas, label, r)
             paint.alpha = 255
@@ -367,7 +368,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawLanguageIndicator(canvas: Canvas, r: RectF) {
         val korean = keyboardLayout?.hangul == true
         val tokens = listOf("한" to korean, "EN" to !korean)
-        paint.textSize = r.height() * 0.34f * theme.textScale
+        paint.textSize = r.height() * 0.34f * theme.textScale - ICON_SHRINK_DP * density
         val padH = 9 * density
         val between = 4 * density
         val boxH = paint.textSize * 1.75f
@@ -673,6 +674,9 @@ class KeyboardView(context: Context) : View(context) {
         const val REPEAT_INTERVAL_MS = 45L
         const val SWIPE_THRESHOLD_DP = 40f
         const val SLOP_DP = 8f
+        /** 스페이스바의 "한 EN" 표시와 🎤 아이콘을 이만큼(dp) 작게 */
+        const val ICON_SHRINK_DP = 1f
+
         const val DRAG_START_DP = 24f
         const val DRAG_STEP_DP = 14f
 

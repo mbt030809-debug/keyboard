@@ -77,6 +77,12 @@ class LayoutsTest {
             )
             assertEquals(listOf(",", "", "🎤", "."), bottom.filter { it.type != KeyType.EMOJI && it.type != KeyType.ENTER }.map { it.label })
             assertEquals(10.0, bottom.sumOf { it.weight.toDouble() }, 0.001)
+            // 녹음 키와 마침표(와 쉼표)는 폭이 똑같다
+            val voice = bottom.first { it.type == KeyType.VOICE }
+            val period = bottom.first { it.label == "." }
+            val comma = bottom.first { it.label == "," }
+            assertEquals(period.weight, voice.weight, 0.0001f)
+            assertEquals(period.weight, comma.weight, 0.0001f)
         }
     }
 
@@ -86,13 +92,22 @@ class LayoutsTest {
 
     private fun keyWithHint(l: KeyboardLayout, hint: String) = l.rows.flatten().first { hint in it.hints }
 
-    @Test fun starCircleAndReferenceMarkAreRemoved() {
+    @Test fun starsCirclesAndReferenceMarkAreRemoved() {
         Layouts.all.forEach { l ->
             val hints = allHints(l)
-            assertTrue("★" !in hints && "○" !in hints && "※" !in hints)
+            assertTrue(listOf("★", "☆", "○", "●", "※").none { it in hints })
         }
-        // 비슷한 기호 중 요청하지 않은 것(☆ ♡ ●)은 그대로
-        assertTrue(allHints(Layouts.koreanSingle).containsAll(listOf("☆", "♡", "●")))
+        // 빈 모양 하트 ♡ 는 하트 목록으로 옮겨 왔다
+        assertTrue("♡" in keyWithHint(Layouts.koreanSingle, "❤\uFE0F").hints)
+    }
+
+    @Test fun ellipsisIsNoLongerUnderTheTildeKey() {
+        Layouts.all.forEach { l ->
+            assertEquals(listOf("~"), keyWithHint(l, "~").hints)
+            // … 는 마침표 키에만 있다
+            assertEquals(1, l.rows.flatten().count { "…" in it.hints })
+            assertTrue("…" in keyWithHint(l, ".com").hints)
+        }
     }
 
     @Test fun middleDotIsUnderThePeriodKey() {
@@ -119,26 +134,53 @@ class LayoutsTest {
         }
     }
 
-    @Test fun heartAtQuestionExclamationEachGetTheirOwnFreeKey() {
+    @Test fun digitKeysHaveNoLongPress() {
         Layouts.all.forEach { l ->
-            val keys = listOf("!", "@", "?", "❤\uFE0F").map { keyWithHint(l, it) }
-            assertEquals("네 기호가 서로 다른 키에", 4, keys.toSet().size)
-            // 숫자 1, 2 (PC 키보드의 Shift+1, Shift+2)
-            assertEquals(listOf("!"), l.rows[0].first { it.output == "1" }.hints)
-            assertEquals(listOf("@"), l.rows[0].first { it.output == "2" }.hints)
-            // ? 와 ❤️ 는 비워진 글자 키
-            assertEquals(listOf("?"), keyWithHint(l, "?").hints)
-            assertEquals(listOf("❤\uFE0F"), keyWithHint(l, "❤\uFE0F").hints)
-            // 한 번만 존재
-            listOf("!", "@", "?", "❤\uFE0F").forEach { sym -> assertEquals(sym, 1, allHints(l).count { it == sym }) }
+            l.rows[0].filter { it.type == KeyType.CHAR }.forEach { assertTrue("${l.id}:${it.label}", it.hints.isEmpty()) }
         }
+    }
+
+    @Test fun heartKeyHasSixHeartsInOneRow() {
+        Layouts.all.forEach { l ->
+            assertEquals(listOf("❤\uFE0F", "♡", "💕", "💖", "💙", "💔"), keyWithHint(l, "❤\uFE0F").hints)
+        }
+    }
+
+    @Test fun atSignQuestionAndExclamationEachHaveTheirOwnKey() {
+        Layouts.all.forEach { l ->
+            val keys = listOf("@", "?", "!").map { keyWithHint(l, it) }
+            assertEquals(3, keys.toSet().size)
+            assertEquals(listOf("@"), keyWithHint(l, "@").hints)
+            assertEquals(listOf("?"), keyWithHint(l, "?").hints)
+            assertEquals(listOf("!"), keyWithHint(l, "!").hints)
+            listOf("@", "?", "!").forEach { sym -> assertEquals(sym, 1, allHints(l).count { it == sym }) }
+        }
+    }
+
+    @Test fun singleVowelTailKeysAfterThePull() {
+        // ☆ 키를 없애고 한 칸씩 당긴 결과 (단모음 기준)
+        val m = Layouts.koreanSingle.rows.flatten().filter { it.type == KeyType.CHAR }.associate { it.label to it.hints }
+        assertEquals(listOf("→", "←", "↑", "↓"), m["ㅔ"])      // ? 와 → 가 자리를 바꿈
+        assertEquals(listOf("@"), m["ㅊ"])                     // ● 가 있던 자리에 골뱅이
+        assertEquals(listOf("_", "-", "—"), m["ㅍ"])           // 한 칸 당겨짐
+        assertEquals(listOf("?"), m["ㅜ"])
+        assertEquals(listOf("!"), m["ㅡ"])                     // 비워진 마지막 키에 느낌표
+        assertEquals(listOf("~"), m["ㅐ"])
+    }
+
+    @Test fun questionAndExclamationSitOnNeighbouringKeys() {
+        // 물음표와 느낌표는 붙어 있는 두 키라 연달아 누르기 쉽다
+        val row = Layouts.koreanSingle.rows[3].filter { it.type == KeyType.CHAR }
+        val q = row.indexOfFirst { "?" in it.hints }
+        val e = row.indexOfFirst { "!" in it.hints }
+        assertEquals(1, e - q)
     }
 
     @Test fun noSymbolIsOnTwoKeysExceptIntentionalDuplicates() {
         // 글자 키 묶음 안에서는 같은 기호가 중복되지 않는다
         val flat = Layouts.SYMBOL_GROUPS.flatten()
         assertEquals(flat.size, flat.toSet().size)
-        assertTrue(flat.none { it in listOf("★", "○", "※", "·") })
+        assertTrue(flat.none { it in listOf("★", "☆", "○", "●", "※", "·", "…") })
     }
 
     @Test fun rowHeightsMatchRows() {
@@ -176,8 +218,10 @@ class LayoutsTest {
 
     @Test fun everyTwoCharHintIsADeclaredPair() {
         Layouts.all.forEach { l ->
-            // ❤️ 는 하트 + 이모지 표시 문자라 길이는 2지만 쌍 기호가 아니다
-            l.rows.flatten().flatMap { it.hints }.filter { it.length == 2 && it != "❤\uFE0F" }
+            // 이모지(💕 등)는 UTF-16으로 2글자, ❤️ 는 하트 + 표시 문자라 길이가 2지만 쌍 기호가 아니다.
+            // 그래서 글자 수는 코드포인트로 세고 이모지는 제외한다
+            l.rows.flatten().flatMap { it.hints }
+                .filter { it.codePointCount(0, it.length) == 2 && it != "❤\uFE0F" }
                 .forEach { assertTrue("${l.id}:$it", it in Layouts.PAIRS) }
         }
         // 선언된 쌍은 모두 어딘가에 배치돼 있어야 한다

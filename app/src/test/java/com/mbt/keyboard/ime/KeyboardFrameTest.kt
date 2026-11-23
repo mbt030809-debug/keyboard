@@ -124,10 +124,10 @@ class KeyboardFrameTest {
 
     /** 어떤 글자를 어떤 색·굵기로 그렸는지 기록하는 캔버스 (가상 환경은 픽셀을 실제로 그리지 않는다) */
     private class RecordingCanvas : android.graphics.Canvas() {
-        data class Text(val text: String, val color: Int, val bold: Boolean)
+        data class Text(val text: String, val color: Int, val bold: Boolean, val size: Float)
         val texts = ArrayList<Text>()
         override fun drawText(text: String, x: Float, y: Float, paint: android.graphics.Paint) {
-            texts += Text(text, paint.color, paint.isFakeBoldText)
+            texts += Text(text, paint.color, paint.isFakeBoldText, paint.textSize)
         }
     }
 
@@ -155,5 +155,22 @@ class KeyboardFrameTest {
         t = drawnTexts()
         assertEquals(accent, t.first { it.text == "EN" }.color)
         assertTrue(t.first { it.text == "한" }.color != accent)
+    }
+
+    @Test fun languageIndicatorAndVoiceIconAreOneDpSmaller() {
+        view.keyboardLayout = Layouts.koreanSingle; relayout()
+        val texts = drawnTexts()
+        // "한 EN": 스페이스바 안쪽 높이의 34%에서 1dp 줄임
+        val space = view.keyInnerRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.SPACE }.second
+        val expectedLang = space.height() * 0.34f * view.theme.textScale - 1 * density
+        assertEquals(expectedLang, texts.first { it.text == "한" }.size, 0.01f)
+        assertEquals(expectedLang, texts.first { it.text == "EN" }.size, 0.01f)
+        // 🎤: 키 높이의 34%에서 1dp 줄임
+        val voice = view.keyRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.VOICE }.second
+        val expectedVoice = voice.height() * 0.34f * view.theme.textScale - 1 * density
+        assertEquals(expectedVoice, texts.first { it.text == "🎤" }.size, 0.01f)
+        // 다른 툴바 글자(전체·복사·붙임)는 그대로 (줄이지 않음)
+        val edit = view.keyRects().first { it.first.label == "전체" }.second
+        assertEquals(edit.height() * 0.34f * view.theme.textScale, texts.first { it.text == "전체" }.size, 0.01f)
     }
 }
