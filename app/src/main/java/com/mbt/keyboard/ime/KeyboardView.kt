@@ -602,8 +602,9 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawFrostBackdrop(canvas: Canvas, w: Float, h: Float) {
         bgPaint.shader = theme.backgroundShader(w, h)
         canvas.drawRect(0f, 0f, w, h, bgPaint)
-        val r = max(w, h) * 0.42f
-        for ((fx, fy, c) in FROST_BLOBS) {
+        val blobs = if (theme.frostStyle == 1) PEARL_BLOBS else HOLO_BLOBS
+        for ((fx, fy, rr, c) in blobs) {
+            val r = max(w, h) * rr
             bgPaint.shader = android.graphics.RadialGradient(w * fx, h * fy, r, c, c and 0x00FFFFFF, Shader.TileMode.CLAMP)
             canvas.drawRect(0f, 0f, w, h, bgPaint)
         }
@@ -645,9 +646,9 @@ class KeyboardView(context: Context) : View(context) {
         // ① 그림자 (넓고 옅은 것 + 가깝고 진한 것)
         glassPaint.shader = null
         glassPaint.style = Paint.Style.FILL
-        glassPaint.color = 0x0F2A3C64
+        glassPaint.color = 0x142A3C64
         canvas.drawRoundRect(r.left - density, r.top + 1.5f * density, r.right + density, r.bottom + 4 * density, radius + density, radius + density, glassPaint)
-        glassPaint.color = 0x1A2A3C64
+        glassPaint.color = 0x242A3C64
         canvas.drawRoundRect(r.left, r.top + density, r.right, r.bottom + 2 * density, radius, radius, glassPaint)
 
         glassPath.rewind()
@@ -1322,11 +1323,22 @@ class KeyboardView(context: Context) : View(context) {
         const val LABEL_WIDTH_FACTOR = 1.35f
         const val FROST_BLUR_DIV = 4
 
-        /** 연한 레인보우 번짐: (가로 위치, 세로 위치, 색) 비율 */
-        private val FROST_BLOBS = listOf(
-            Triple(0.12f, 0.15f, 0xCCFFB6D2.toInt()), Triple(0.88f, 0.10f, 0xCCFFE29A.toInt()),
-            Triple(0.80f, 0.60f, 0xCCA8ECC4.toInt()), Triple(0.15f, 0.65f, 0xCCA9D4FF.toInt()),
-            Triple(0.55f, 0.95f, 0xCCCDB8FF.toInt()),
+        /** 번짐 배경 한 덩어리: (가로 위치, 세로 위치, 반지름 비율, 색) */
+        private data class Blob(val fx: Float, val fy: Float, val r: Float, val color: Int)
+
+        /** 홀로그램 파스텔: 라벤더·하늘·연노랑·핑크, 오른쪽 위와 왼쪽 아래에 하얀 빛 */
+        private val HOLO_BLOBS = listOf(
+            Blob(0.04f, 0.10f, 0.45f, 0xE6B9AFE8.toInt()), Blob(0.34f, 0.28f, 0.42f, 0xE6B6D6EA.toInt()),
+            Blob(0.50f, 0.52f, 0.34f, 0xCCD6EBD2.toInt()), Blob(0.66f, 0.50f, 0.30f, 0xE6F4F0C4.toInt()),
+            Blob(0.26f, 0.95f, 0.42f, 0xE6FCDCE6.toInt()), Blob(0.86f, 0.96f, 0.42f, 0xE6B5ADE3.toInt()),
+            Blob(0.94f, 0.00f, 0.34f, 0xF2FFFFFF.toInt()), Blob(0.00f, 0.78f, 0.28f, 0xE6FFFFFF.toInt()),
+        )
+
+        /** 펄 화이트: 거의 흰색 바탕에 옅은 핑크·민트·하늘빛, 오른쪽 위에 강한 하얀 빛 */
+        private val PEARL_BLOBS = listOf(
+            Blob(0.38f, 0.60f, 0.30f, 0x99F8DDE8.toInt()), Blob(0.24f, 0.62f, 0.32f, 0x80D8F2EA.toInt()),
+            Blob(0.46f, 1.00f, 0.34f, 0xB3BFD4F8.toInt()), Blob(1.00f, 0.80f, 0.30f, 0x99FFF6D6.toInt()),
+            Blob(0.02f, 0.05f, 0.30f, 0x99F2F7FF.toInt()), Blob(0.92f, 0.08f, 0.40f, 0xFFFFFFFF.toInt()),
         )
         const val LABEL_BONUS_DP = 1f
         const val DEFAULT_NUMBER_GAP_DP = 6f

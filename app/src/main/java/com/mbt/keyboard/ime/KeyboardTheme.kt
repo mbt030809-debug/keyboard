@@ -26,6 +26,8 @@ data class KeyboardTheme(
      * 뒤가 비치는 느낌은 약한 블러 대신 부드러운 번짐 배경 + 반투명 흰색으로 낸다.
      */
     val frost: Boolean = false,
+    /** [frost]의 뒷배경 모양: 0 = 홀로그램 파스텔(라벤더·하늘·크림·핑크), 1 = 펄 화이트(거의 흰색에 옅은 무지개빛) */
+    val frostStyle: Int = 0,
     /** 0이 아니면 숫자 키 배경으로 이 색을 그대로 쓴다 (투명한 키 테마용) */
     val numberKeyOverride: Int = 0,
 ) {

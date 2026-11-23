@@ -61,10 +61,19 @@ object KeyboardThemes {
         NamedTheme(
             "rainbowfrost", "레인보우 프로스트 (유리)",
             KeyboardTheme(
-                background = 0xFFFFD9E8.toInt(), backgroundMid = 0xFFD9F6E4.toInt(), backgroundEnd = 0xFFE4D6FF.toInt(),
+                background = 0xFFBFC7EC.toInt(), backgroundMid = 0xFFEFF0D2.toInt(), backgroundEnd = 0xFFE9D5EE.toInt(),
                 key = 0x38FFFFFF, specialKey = 0x24FFFFFF, keyPressed = 0x8CB4C6FF.toInt(),
                 text = 0xFF37405A.toInt(), accent = 0xFF3A50C8.toInt(), onAccent = 0xFFFFFFFF.toInt(),
                 keyBorder = 0x99FFFFFF.toInt(), keyShadow = false, frost = true, numberKeyOverride = 0x2EFFFFFF,
+            ),
+        ),
+        NamedTheme(
+            "pearlfrost", "펄 프로스트 (유리)",
+            KeyboardTheme(
+                background = 0xFFE6EEF9.toInt(), backgroundMid = 0xFFF3F6FB.toInt(), backgroundEnd = 0xFFEAF1F6.toInt(),
+                key = 0x73FFFFFF, specialKey = 0x4DFFFFFF, keyPressed = 0x99BFD4F8.toInt(),
+                text = 0xFF3A4560.toInt(), accent = 0xFF3A50C8.toInt(), onAccent = 0xFFFFFFFF.toInt(),
+                keyBorder = 0xCCFFFFFF.toInt(), keyShadow = false, frost = true, frostStyle = 1, numberKeyOverride = 0x5CFFFFFF,
             ),
         ),
         NamedTheme("sunset", "선셋 글로우", glass(0xFFB48A, 0xB79CFF, 0x66FFFFFF, 0x99FFFFFF, 0x33FFFFFF, 0x99FFFFFF, 0x4A1F5E, 0x7A2CBF, 0xFFFFFF, mid = 0xFF8FA3)),
