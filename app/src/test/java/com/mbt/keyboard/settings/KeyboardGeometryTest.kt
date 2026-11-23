@@ -161,6 +161,10 @@ class NumberRowGeometryTest {
         assertEquals(120, g.numHeightBy(99).numHeightPct)
         assertEquals(85, g.numHeightBy(1).numHeightPct)            // 5%씩
         assertEquals(6, g.numRowGapDp)
+        assertEquals(listOf(3, 3, 3), g.hitShifts)                    // 기본: 인식 영역을 아래로 3dp
+        assertEquals(-8, g.hit1By(-99).hit1Dp)
+        assertEquals(12, g.hit3By(99).hit3Dp)
+        assertEquals(4, g.hit2By(1).hit2Dp)
         assertEquals(0, g.numRowGapBy(-99).numRowGapDp)
         assertEquals(40, g.numRowGapBy(99).numRowGapDp)
     }

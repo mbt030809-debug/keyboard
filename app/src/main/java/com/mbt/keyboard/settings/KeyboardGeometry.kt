@@ -19,6 +19,9 @@ import kotlin.math.roundToInt
  * @param keyGapDp 글자 키(숫자 줄 아래 모든 줄)의 키와 키 사이 간격 (0~16dp)
  * @param rowGapDp 줄과 줄 사이 세로 여백 (0~24dp). 넓혀도 키 크기는 그대로, 키보드가 세로로 길어진다
  * @param numRowGapDp 숫자 줄과 그 아래 첫 글자 줄 사이 세로 여백 (0~40dp). 키 크기는 그대로
+ * @param hit1Dp 첫째 글자 줄(ㅂㅈㄷㄱㅅ)의 인식 영역을 아래로 넓히는 양 (-8~+12dp). 음수면 위로 좁힘
+ * @param hit2Dp 둘째 글자 줄(ㅁㄴㅇㄹㅎ) 아래쪽 인식 영역 이동
+ * @param hit3Dp 셋째 글자 줄(ㅋㅌㅊㅍ) 아래쪽 인식 영역 이동
  * @param numHeightPct 맨 윗줄(숫자 줄) 높이: 일반 키 높이 대비 % (40~120, 기본 80)
  */
 data class KeyboardGeometry(
@@ -35,6 +38,9 @@ data class KeyboardGeometry(
     val rowGapDp: Int = ROW_GAP_DEFAULT,
     val numHeightPct: Int = NUM_HEIGHT_DEFAULT,
     val numRowGapDp: Int = NUM_ROW_GAP_DEFAULT,
+    val hit1Dp: Int = HIT_DEFAULT,
+    val hit2Dp: Int = HIT_DEFAULT,
+    val hit3Dp: Int = HIT_DEFAULT,
 ) {
     /** 범위를 벗어난 값을 허용 범위 안으로 */
     fun clamped() = KeyboardGeometry(
@@ -51,6 +57,9 @@ data class KeyboardGeometry(
         rowGapDp.coerceIn(ROW_GAP_MIN, ROW_GAP_MAX),
         numHeightPct.coerceIn(NUM_HEIGHT_MIN, NUM_HEIGHT_MAX),
         numRowGapDp.coerceIn(NUM_ROW_GAP_MIN, NUM_ROW_GAP_MAX),
+        hit1Dp.coerceIn(HIT_MIN, HIT_MAX),
+        hit2Dp.coerceIn(HIT_MIN, HIT_MAX),
+        hit3Dp.coerceIn(HIT_MIN, HIT_MAX),
     )
 
     fun widerBy(steps: Int) = copy(widthPct = widthPct + steps * WIDTH_STEP).clamped()
@@ -63,6 +72,13 @@ data class KeyboardGeometry(
     fun padRightBy(steps: Int) = copy(padRightDp = padRightDp + steps * PAD_STEP).clamped()
     fun padBottomBy(steps: Int) = copy(padBottomDp = padBottomDp + steps * PAD_STEP).clamped()
     fun keyGapBy(steps: Int) = copy(keyGapDp = keyGapDp + steps * KEY_GAP_STEP).clamped()
+    fun hit1By(steps: Int) = copy(hit1Dp = hit1Dp + steps).clamped()
+    fun hit2By(steps: Int) = copy(hit2Dp = hit2Dp + steps).clamped()
+    fun hit3By(steps: Int) = copy(hit3Dp = hit3Dp + steps).clamped()
+
+    /** 글자 줄 3개의 아래 경계 이동량(dp) */
+    val hitShifts: List<Int> get() = listOf(hit1Dp, hit2Dp, hit3Dp)
+
     fun numRowGapBy(steps: Int) = copy(numRowGapDp = numRowGapDp + steps * ROW_GAP_STEP).clamped()
     fun rowGapBy(steps: Int) = copy(rowGapDp = rowGapDp + steps * ROW_GAP_STEP).clamped()
     fun numHeightBy(steps: Int) = copy(numHeightPct = numHeightPct + steps * NUM_HEIGHT_STEP).clamped()
@@ -166,6 +182,11 @@ data class KeyboardGeometry(
         const val ROW_GAP_MAX = 24
         const val ROW_GAP_STEP = 1
         const val ROW_GAP_DEFAULT = 6
+
+        /** 줄 인식 영역 이동: 터치가 평소 아래로 밀리는 것을 보정하려고 기본은 아래로 3dp */
+        const val HIT_MIN = -8
+        const val HIT_MAX = 12
+        const val HIT_DEFAULT = 3
 
         const val NUM_ROW_GAP_MIN = 0
         const val NUM_ROW_GAP_MAX = 40

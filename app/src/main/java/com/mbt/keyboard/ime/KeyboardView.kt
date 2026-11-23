@@ -42,6 +42,8 @@ data class KeyboardFrame(
     val numberRowScale: Float = 0.8f,
     /** 숫자 줄과 그 아래 첫 글자 줄 사이 세로 여백 (키 크기는 그대로) */
     val numberGapDp: Int = 6,
+    /** 글자 줄 3개 각각의 아래 경계를 이만큼(dp) 아래로 옮겨 인식한다. 눈에 보이는 키는 그대로다 */
+    val hitShiftDp: List<Int> = listOf(0, 0, 0),
 )
 
 /**
@@ -233,6 +235,13 @@ class KeyboardView(context: Context) : View(context) {
     private var rowCells: List<List<Cell>> = emptyList()
     private val pointers = SparseArray<Pointer>()
     private var rowTops = FloatArray(0)
+
+    /** 터치가 어느 줄인지 가를 때 쓰는 줄 윗경계. 줄별 인식 영역 이동이 반영된다 (눈에 보이는 위치는 [rowTops]) */
+    private var hitTops = FloatArray(0)
+
+    /** 설정 화면 미리보기에서 인식 영역 경계를 점선으로 보여준다 */
+    var showHitZones: Boolean = false
+        set(v) { field = v; invalidate() }
     private var bottomInset = 0
 
     /** 하단 내비게이션 바 여백 (이모지 패널이 같은 여백을 쓰도록 공개) */
@@ -343,6 +352,14 @@ class KeyboardView(context: Context) : View(context) {
         }
         cells = out
         rowCells = rows
+        hitTops = FloatArray(rowTops.size) { rowTops[it] }
+        if (isNumberRow(0)) {
+            // 글자 줄 k(1~3)의 아래 경계 = 다음 줄의 윗경계를 hitShiftDp[k-1]만큼 아래로
+            for (r in 2..minOf(4, rowTops.size - 1)) {
+                val shift = frame.hitShiftDp.getOrElse(r - 2) { 0 } * density
+                hitTops[r] = (rowTops[r] + shift).coerceAtLeast(hitTops[r - 1] + 1f)
+            }
+        }
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -376,6 +393,7 @@ class KeyboardView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         drawBackground(canvas)
         val gap = 3 * density
+        if (showHitZones) drawHitZones(canvas)
         val radius = 7 * density
         for (cell in cells) {
             val key = cell.key
@@ -456,6 +474,17 @@ class KeyboardView(context: Context) : View(context) {
         paint.style = Paint.Style.FILL
         paint.textSize = d * 0.6f
         drawCentered(canvas, "↶", RectF(cx - d / 2f, cy - d / 2f, cx + d / 2f, cy + d / 2f))
+    }
+
+    /** 줄 인식 경계(점선). 키 위에 겹쳐 보이도록 키를 그린 뒤가 아니라 배경 바로 위에 그려 가볍게 표시 */
+    private fun drawHitZones(canvas: Canvas) {
+        borderPaint.color = theme.accent
+        borderPaint.strokeWidth = 1.5f * density
+        borderPaint.pathEffect = android.graphics.DashPathEffect(floatArrayOf(6 * density, 4 * density), 0f)
+        for (r in 1 until hitTops.size) {
+            canvas.drawLine(padL, hitTops[r], width - padR, hitTops[r], borderPaint)
+        }
+        borderPaint.pathEffect = null
     }
 
     private fun drawMessage(canvas: Canvas, text: String) {
@@ -786,7 +815,7 @@ class KeyboardView(context: Context) : View(context) {
     /** 정확히 맞는 키가 없으면 같은 행에서 가장 가까운 키 (키 사이 틈 터치 보정) */
     private fun hit(x: Float, y: Float): Cell? {
         if (rowCells.isEmpty()) return null
-        var row = rowTops.indexOfLast { it <= y }
+        var row = hitTops.indexOfLast { it <= y }
         if (row < 0) row = 0
         var best: Cell? = null
         var bestDist = Float.MAX_VALUE

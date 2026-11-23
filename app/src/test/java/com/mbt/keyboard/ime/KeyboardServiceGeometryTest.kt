@@ -82,7 +82,7 @@ class KeyboardServiceGeometryTest {
         val root = service.onCreateInputView() as FrameLayout
         layoutRoot(root, 1000)
         val keyboard = (root.getChildAt(0) as FrameLayout).getChildAt(0) as KeyboardView
-        assertEquals(KeyboardFrame(12, 1, 20, 3, 2), keyboard.frame)
+        assertEquals(KeyboardFrame(12, 1, 20, 3, 2, hitShiftDp = listOf(3, 3, 3)), keyboard.frame)   // 인식 영역 기본값: 아래로 3dp
 
         Prefs.setGeometry(ctx, large = false, KeyboardGeometry(padLeftDp = 0, keyGapDp = 10))
         layoutRoot(root, 1000)

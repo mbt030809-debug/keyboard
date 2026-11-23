@@ -446,3 +446,91 @@ class GlassThemeDrawTest {
         assertEquals(0, r.borders)
     }
 }
+
+/** 줄별 인식 영역 이동: 눈에 보이는 키는 그대로, 터치가 어느 줄로 읽히는지만 바뀐다 */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class HitShiftTest {
+    private lateinit var view: KeyboardView
+    private val density get() = view.resources.displayMetrics.density
+    private val fired = ArrayList<String>()
+
+    @Before fun setUp() {
+        view = KeyboardView(ApplicationProvider.getApplicationContext<Context>())
+        view.keyboardLayout = Layouts.koreanSingle
+        view.listener = object : KeyboardView.Listener {
+            override fun onKey(key: com.mbt.keyboard.layout.Key) { fired += key.label }
+            override fun onText(text: String) = Unit
+            override fun onSwipeSpace() = Unit
+            override fun onCursorMove(steps: Int) = Unit
+            override fun onCursorMoveEnd() = Unit
+            override fun onShiftPress(down: Boolean) = Unit
+            override fun onEnterLongPress() = Unit
+        }
+        relayout()
+    }
+
+    private fun relayout() {
+        view.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+    }
+
+    private fun tapAt(x: Float, y: Float): String? {
+        fired.clear()
+        val t = android.os.SystemClock.uptimeMillis()
+        view.dispatchTouchEvent(android.view.MotionEvent.obtain(t, t, android.view.MotionEvent.ACTION_DOWN, x, y, 0))
+        view.dispatchTouchEvent(android.view.MotionEvent.obtain(t, t + 10, android.view.MotionEvent.ACTION_UP, x, y, 0))
+        return fired.firstOrNull()
+    }
+
+    private fun rect(label: String) = view.keyRects().first { it.first.label == label }.second
+
+    @Test fun withoutShiftTheBoundaryIsWhereTheRowsMeet() {
+        val b = rect("ㅂ"); val m = rect("ㅁ")
+        assertEquals("ㅂ", tapAt(b.centerX(), b.bottom - 2))
+        assertEquals("ㅁ", tapAt(m.centerX(), m.top + 2))
+    }
+
+    @Test fun shiftingTheTopRowDownCatchesTouchesThatLandedLow() {
+        view.frame = KeyboardFrame(hitShiftDp = listOf(10, 0, 0)); relayout()
+        val b = rect("ㅂ"); val m = rect("ㅁ")
+        // ㅂ 줄 바로 아래(원래는 ㅁ 영역) 5dp 지점이 이제 ㅂ으로 읽힌다
+        assertEquals("ㅂ", tapAt(b.centerX(), b.bottom + 5 * density))
+        // 그 아래 깊은 곳은 여전히 ㅁ
+        assertEquals("ㅁ", tapAt(m.centerX(), m.centerY()))
+    }
+
+    @Test fun eachRowHasItsOwnShiftAndNegativeShrinksTheRowAbove() {
+        view.frame = KeyboardFrame(hitShiftDp = listOf(0, 8, -6)); relayout()
+        val m = rect("ㅁ"); val k = rect("ㅋ"); val b = rect("ㅂ")
+        assertEquals("ㅁ", tapAt(m.centerX(), m.bottom + 4 * density))          // 둘째 줄은 아래로 8dp 더 넓다
+        assertEquals("ㅂ", tapAt(b.centerX(), b.bottom - 2))                     // 첫째 줄은 그대로
+        // 셋째 줄 아래 경계를 위로 6dp 옮김: 스페이스 줄이 위로 넓어진다
+        val space = rect("😊")
+        assertEquals("😊", tapAt(space.centerX(), space.top - 3 * density))
+        assertEquals("ㅋ", tapAt(k.centerX(), k.centerY()))
+    }
+
+    @Test fun visibleKeysDoNotMoveWhenShiftChanges() {
+        val before = view.keyInnerRects().map { it.second.top }
+        view.frame = KeyboardFrame(hitShiftDp = listOf(12, 12, 12)); relayout()
+        assertEquals(before, view.keyInnerRects().map { it.second.top })
+    }
+
+    @Test fun extremeShiftsNeverReorderRows() {
+        view.frame = KeyboardFrame(hitShiftDp = listOf(-8, 12, -8)); relayout()
+        listOf("ㅂ", "ㅁ", "ㅋ", "😊").forEach { label ->
+            val r = rect(label)
+            assertEquals(label, label, tapAt(r.centerX(), r.centerY()))              // 키 한가운데는 항상 그 키
+        }
+    }
+
+    @Test fun keypadsAreNotAffected() {
+        view.keyboardLayout = Layouts.numberPad
+        view.frame = KeyboardFrame(hitShiftDp = listOf(12, 12, 12)); relayout()
+        val r1 = view.keyRects().first { it.first.label == "1" }.second
+        val r4 = view.keyRects().first { it.first.label == "4" }.second
+        assertEquals("1", tapAt(r1.centerX(), r1.bottom - 2))
+        assertEquals("4", tapAt(r4.centerX(), r4.top + 2))
+    }
+}

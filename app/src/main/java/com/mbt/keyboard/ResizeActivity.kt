@@ -65,6 +65,7 @@ class ResizeActivity : AppCompatActivity() {
         // 펼침 화면은 설정 스위치, 접힘 화면은 가로 모드일 때만 갈라진 정도를 조절할 수 있다
         splitActive = if (large) Prefs.splitOnLargeScreen(this) else landscape
         keyboard = KeyboardView(this).also {
+            it.showHitZones = true          // 조절하는 동안 줄 인식 경계를 점선으로 보여준다
             it.keyboardLayout = Layouts.byId(Prefs.koreanLayout(this))
             it.split = splitActive && (large || geometry.gapPct > 0)
         }
@@ -112,6 +113,12 @@ class ResizeActivity : AppCompatActivity() {
             { geometry.rowGapDp > KeyboardGeometry.ROW_GAP_MIN }, { geometry.rowGapDp < KeyboardGeometry.ROW_GAP_MAX })
         addStepper(R.string.resize_num_row_gap, { geometry = geometry.numRowGapBy(it) }, { "${geometry.numRowGapDp}dp" },
             { geometry.numRowGapDp > KeyboardGeometry.NUM_ROW_GAP_MIN }, { geometry.numRowGapDp < KeyboardGeometry.NUM_ROW_GAP_MAX })
+        addStepper(R.string.resize_hit1, { geometry = geometry.hit1By(it) }, { signedDp(geometry.hit1Dp) },
+            { geometry.hit1Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit1Dp < KeyboardGeometry.HIT_MAX })
+        addStepper(R.string.resize_hit2, { geometry = geometry.hit2By(it) }, { signedDp(geometry.hit2Dp) },
+            { geometry.hit2Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit2Dp < KeyboardGeometry.HIT_MAX })
+        addStepper(R.string.resize_hit3, { geometry = geometry.hit3By(it) }, { signedDp(geometry.hit3Dp) },
+            { geometry.hit3Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit3Dp < KeyboardGeometry.HIT_MAX })
         addStepper(R.string.resize_num_height, { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
             { geometry.numHeightPct > KeyboardGeometry.NUM_HEIGHT_MIN }, { geometry.numHeightPct < KeyboardGeometry.NUM_HEIGHT_MAX })
 
@@ -123,6 +130,8 @@ class ResizeActivity : AppCompatActivity() {
 
         refresh()
     }
+
+    private fun signedDp(v: Int) = if (v > 0) "+${v}dp" else "${v}dp"
 
     /** [－ 값 ＋] 한 줄을 만들어 "키 둘레 여백" 영역에 붙인다 */
     private fun addStepper(
@@ -183,7 +192,7 @@ class ResizeActivity : AppCompatActivity() {
         keyboard.split = splitActive && (large || geometry.gapPct > 0)
         keyboard.frame = KeyboardFrame(
             geometry.padLeftDp, geometry.padTopDp, geometry.padRightDp, geometry.padBottomDp, geometry.keyGapDp,
-            geometry.rowGapDp, geometry.numHeightScale, geometry.numRowGapDp,
+            geometry.rowGapDp, geometry.numHeightScale, geometry.numRowGapDp, geometry.hitShifts,
         )
         steppers.forEach {
             it.value.text = it.text()

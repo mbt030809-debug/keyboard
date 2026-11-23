@@ -150,7 +150,7 @@ class ResizeActivityTest {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
                 val container = a.findViewById<android.view.ViewGroup>(R.id.frameControls)
-                assertEquals(8, container.childCount)            // 위·아래·왼쪽·오른쪽·키 가로 간격·키 세로 여백·숫자↔글자 세로 여백·숫자 줄 높이
+                assertEquals(11, container.childCount)            // 위·아래·왼쪽·오른쪽·키 가로 간격·키 세로 여백·숫자↔글자 세로 여백·숫자 줄 높이
                 stepperButton(a, 0, plus = true); stepperButton(a, 0, plus = true)   // 위쪽 +2
                 stepperButton(a, 1, plus = false)                                      // 아래쪽 -1
                 stepperButton(a, 2, plus = true)                                       // 왼쪽 +1
@@ -158,7 +158,7 @@ class ResizeActivityTest {
                 stepperButton(a, 4, plus = true)                                       // 글자 키 간격 +1
                 stepperButton(a, 5, plus = false); stepperButton(a, 5, plus = false)  // 세로 여백 -2
                 stepperButton(a, 6, plus = true); stepperButton(a, 6, plus = true)  // 숫자↔글자 세로 여백 +2
-                stepperButton(a, 7, plus = true)                                       // 숫자 줄 높이 +5%
+                stepperButton(a, 10, plus = true)                                      // 숫자 줄 높이 +5%
                 val g = Prefs.geometry(a, large = false)
                 assertEquals(4, g.rowGapDp); assertEquals(8, g.numRowGapDp); assertEquals(85, g.numHeightPct)
                 // 위쪽 4+2, 아래쪽 4-1, 왼쪽 4+1, 오른쪽 4-2, 키 간격 6+1

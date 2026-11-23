@@ -57,6 +57,12 @@ class SplitProfileTest {
         assertEquals(80, Prefs.geometry(ctx, large = true).numHeightPct)     // 펼침 화면은 따로
     }
 
+    @Test fun hitShiftsAreSavedPerProfile() {
+        Prefs.setGeometry(ctx, large = false, KeyboardGeometry(hit1Dp = 6, hit2Dp = -2, hit3Dp = 0))
+        assertEquals(listOf(6, -2, 0), Prefs.geometry(ctx, large = false).hitShifts)
+        assertEquals(listOf(3, 3, 3), Prefs.geometry(ctx, large = true).hitShifts)
+    }
+
     @Test fun landscapeDefaultsKeepOldBehaviour() {
         // 가로 값을 저장한 적이 없으면: 펼침은 세로 값 그대로, 접힘은 0(안 나눔)
         Prefs.setGeometry(ctx, large = true, KeyboardGeometry(gapPct = 25))

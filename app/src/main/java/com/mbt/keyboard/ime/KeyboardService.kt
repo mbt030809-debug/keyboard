@@ -223,7 +223,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         // 가로 모드처럼 화면이 낮으면 키 높이를 자동으로 줄인다 (사용자가 정한 세로 길이에 곱해진다)
         view.heightScale = g.heightScale * ScreenProfile.heightFactor(config.screenHeightDp)
         view.splitGapFraction = g.gapFraction
-        view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp, g.rowGapDp, g.numHeightScale, g.numRowGapDp)
+        view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp, g.rowGapDp, g.numHeightScale, g.numRowGapDp, g.hitShifts)
     }
 
     /** 가장 짧은 변이 600dp 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
