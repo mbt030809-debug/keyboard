@@ -18,6 +18,8 @@
     <string name="haptic_title">진동 피드백</string>
     <string name="haptic_switch">키를 누를 때 진동</string>
     <string name="haptic_strength">진동 세기</string>
+    <string name="haptic_style_title">진동 느낌</string>
+    <string name="haptic_style_desc">기계식 키보드 스위치처럼 느껴지게 해요. 고르면 바로 한 번 울려서 느껴 볼 수 있어요</string>
     <string name="haptic_weak">약함</string>
     <string name="haptic_strong">강함</string>
     <string name="theme_card_title">키보드 테마</string>

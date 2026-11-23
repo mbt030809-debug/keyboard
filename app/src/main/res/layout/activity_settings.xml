@@ -555,6 +555,26 @@
                         android:textSize="12sp"
                         android:alpha="0.6" />
                 </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/haptic_style_title"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/haptic_style_desc"
+                    android:textSize="12sp"
+                    android:alpha="0.7" />
+
+                <RadioGroup
+                    android:id="@+id/radioHapticStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

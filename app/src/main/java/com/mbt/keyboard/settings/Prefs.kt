@@ -16,6 +16,14 @@ object Prefs {
     private const val KEY_CLIPBOARD_ON = "clipboard_history_enabled"
     private const val KEY_QUICK_TAB = "quick_panel_tab"
     const val KEY_THEME = "keyboard_theme"
+    private const val KEY_HAPTIC_STYLE = "haptic_style"
+
+    /** 키 누를 때 진동 느낌 id (기본: 예전 방식) */
+    fun hapticStyle(context: Context): String =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString(KEY_HAPTIC_STYLE, null) ?: "default"
+
+    fun setHapticStyle(context: Context, id: String) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putString(KEY_HAPTIC_STYLE, id).apply()
     const val KEY_SPLIT_DUP = "split_duplicate_keys"
 
     /** 영어 갈라진 자판에서 안쪽 가장자리에 반대편 키를 복제해 보일지 (기본: 끔) */

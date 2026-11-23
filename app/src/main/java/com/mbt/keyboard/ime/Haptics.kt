@@ -38,7 +38,8 @@ class Haptics(private val context: Context) {
     fun refresh() {
         enabled = Prefs.hapticEnabled(context)
         val strength = Prefs.hapticStrength(context)
-        keyEffect = effect(strength, 1f)
+        val style = HapticStyle.byId(Prefs.hapticStyle(context))
+        keyEffect = if (style == HapticStyle.DEFAULT) effect(strength, 1f) else styled(style, strength)
         tickEffect = effect(strength, 0.6f)
         longEffect = effect(strength, 1.6f)
     }
@@ -56,6 +57,24 @@ class Haptics(private val context: Context) {
         val ms = (durationMs(strength) * scale).toLong().coerceAtLeast(1L)
         val amp = if (amplitudeControl) amplitude(strength) else VibrationEffect.DEFAULT_AMPLITUDE
         return VibrationEffect.createOneShot(ms, amp)
+    }
+
+    /** 스위치 느낌 파형. 세기 조절이 안 되는 기기에서는 켜짐/꺼짐 길이만 쓴다 */
+    private fun styled(style: HapticStyle, strength: Int): VibrationEffect {
+        val p = style.pattern(strength)
+        return if (amplitudeControl) {
+            VibrationEffect.createWaveform(p.timings, p.amplitudes, -1)
+        } else {
+            // 켜짐/꺼짐만 가능: 세기 0인 구간은 쉬고 나머지는 진동. 첫 값은 "쉬는 시간"이라 0으로 시작한다
+            val on = ArrayList<Long>().apply { add(0L) }
+            var vibrating = false
+            p.timings.forEachIndexed { i, t ->
+                val isOn = p.amplitudes[i] > 0
+                if (isOn == vibrating && on.size > 1) on[on.lastIndex] = on.last() + t else on.add(t)
+                vibrating = isOn
+            }
+            VibrationEffect.createWaveform(on.toLongArray(), -1)
+        }
     }
 
     /**

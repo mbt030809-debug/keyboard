@@ -14,6 +14,7 @@ import android.widget.RadioGroup
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
 import com.mbt.keyboard.ime.Haptics
+import com.mbt.keyboard.ime.HapticStyle
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -139,6 +140,25 @@ class SettingsActivity : AppCompatActivity() {
         slider.addOnChangeListener { _, value, fromUser ->
             if (!fromUser) return@addOnChangeListener
             Prefs.setHapticStrength(this, value.toInt())
+            preview.refresh(); preview.key()
+        }
+
+        // 진동 느낌: 고르는 즉시 저장하고 한 번 울려서 느껴 보게 한다
+        val styleGroup = findViewById<RadioGroup>(R.id.radioHapticStyle)
+        val currentStyle = HapticStyle.byId(Prefs.hapticStyle(this))
+        HapticStyle.values().forEach { st ->
+            val rb = com.google.android.material.radiobutton.MaterialRadioButton(this).apply {
+                id = View.generateViewId()
+                tag = st
+                text = "${st.label}  —  ${st.desc}"
+                textSize = 14f
+            }
+            styleGroup.addView(rb)
+            if (st == currentStyle) styleGroup.check(rb.id)
+        }
+        styleGroup.setOnCheckedChangeListener { group, checked ->
+            val st = group.findViewById<View>(checked)?.tag as? HapticStyle ?: return@setOnCheckedChangeListener
+            Prefs.setHapticStyle(this, st.id)
             preview.refresh(); preview.key()
         }
 
