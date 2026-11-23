@@ -30,14 +30,15 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val w = src.fnTabLeftPx() + keys.size * src.fnKeyWidthPx()
-        setMeasuredDimension(w.toInt() + 1, src.fnKeyHeightPx().toInt().coerceAtLeast(1))
+        val w = src.fnTabLeftPx() + keys.size * src.fnKeyWidthPx() + src.fnTabPadPx()
+        setMeasuredDimension(w.toInt() + 1, src.fnTabHeightPx().toInt().coerceAtLeast(1))
     }
 
     private fun keyLeft(i: Int) = src.fnTabLeftPx() + i * src.fnKeyWidthPx()
 
-    private fun indexAt(x: Float): Int {
+    private fun indexAt(x: Float, y: Float): Int {
         val kw = src.fnKeyWidthPx()
+        if (y < src.fnTabPadPx() || y > height - src.fnTabPadPx()) return -1
         return keys.indices.firstOrNull { x >= keyLeft(it) && x < keyLeft(it) + kw } ?: -1      // 인식은 간격까지 포함
     }
 
@@ -45,25 +46,31 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         val kw = src.fnKeyWidthPx()
-        val kh = height.toFloat()
+        val pad = src.fnTabPadPx()
+        val top = pad
+        val kh = height - pad          // 버튼 아래 끝
         val radius = 7 * d
+        // 키보드 바탕: 버튼 상하좌우로 같은 폭만큼, 버튼과 똑같이 반투명
+        val plateLeft = (src.fnTabLeftPx() - pad).coerceAtLeast(0f)
+        paint.color = withAlpha(theme.background, alphaPercent)
+        canvas.drawRoundRect(plateLeft, 0f, width.toFloat(), height.toFloat(), radius + 3 * d, radius + 3 * d, paint)
         val gx = src.fnTabInsetPx()
         keys.forEachIndexed { i, k ->
             val cl = keyLeft(i)
             val l = cl + gx
             val r = cl + kw - gx
             paint.color = withAlpha(if (i == pressed) theme.keyPressed else theme.specialKey, alphaPercent)
-            canvas.drawRoundRect(l, 0f, r, kh, radius, radius, paint)
+            canvas.drawRoundRect(l, top, r, kh, radius, radius, paint)
             if (theme.keyBorder != 0) {
                 paint.color = withAlpha(theme.keyBorder, alphaPercent.coerceAtLeast(60))
                 // 테두리는 채움과 같은 방식으로 얇은 선만 (스타일 전환 없이 안쪽을 한 번 더 칠하지 않는다)
                 paint.style = Paint.Style.STROKE; paint.strokeWidth = d
-                canvas.drawRoundRect(l + d / 2, d / 2, r - d / 2, kh - d / 2, radius, radius, paint)
+                canvas.drawRoundRect(l + d / 2, top + d / 2, r - d / 2, kh - d / 2, radius, radius, paint)
                 paint.style = Paint.Style.FILL
             }
             paint.color = theme.text
-            paint.textSize = src.fnLabelSizePx(kw, kh)
-            val y = kh / 2f - (paint.descent() + paint.ascent()) / 2f
+            paint.textSize = src.fnLabelSizePx(kw, kh - top)
+            val y = (top + kh) / 2f - (paint.descent() + paint.ascent()) / 2f
             canvas.drawText(k.label, (l + r) / 2f, y, paint)
         }
     }
@@ -71,19 +78,19 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
     override fun onTouchEvent(e: MotionEvent): Boolean {
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                pressed = indexAt(e.x)
+                pressed = indexAt(e.x, e.y)
                 if (pressed >= 0) haptics?.key()
                 invalidate()
                 return pressed >= 0
             }
             MotionEvent.ACTION_MOVE -> {
-                if (pressed >= 0 && indexAt(e.x) != pressed) { pressed = -1; invalidate() }
+                if (pressed >= 0 && indexAt(e.x, e.y) != pressed) { pressed = -1; invalidate() }
             }
             MotionEvent.ACTION_UP -> {
                 val hit = pressed
                 pressed = -1
                 invalidate()
-                if (hit >= 0 && indexAt(e.x) == hit) onKey?.invoke(keys[hit])
+                if (hit >= 0 && indexAt(e.x, e.y) == hit) onKey?.invoke(keys[hit])
             }
             MotionEvent.ACTION_CANCEL -> { pressed = -1; invalidate() }
         }

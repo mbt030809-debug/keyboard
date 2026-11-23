@@ -385,11 +385,24 @@ class KeyboardView(context: Context) : View(context) {
     /** 반투명 탭 버튼 하나의 가로 길이 = 숫자 키 한 칸 (띠 폭의 절반) */
     fun fnKeyWidthPx(): Float = stripWidthFor(layoutWidth()) / 2f
 
-    /** 반투명 탭 버튼 높이 = 맨 아래 줄 키(스페이스바)와 같다 */
-    fun fnKeyHeightPx(): Float = if (rowCount == 0) 0f else keyBodyPx(rowCount - 1)
+    /**
+     * 반투명 탭 버튼 높이 = 숫자 키 높이. 숫자 띠(전체 줄)를 숫자 한 열 개수(5)로 나눈 칸에서 줄 여백을 뺀 값이다
+     */
+    fun fnKeyHeightPx(): Float {
+        val n = (effective()?.sideKeys?.size ?: 0) / 2
+        if (rowCount == 0 || n == 0) return if (rowCount == 0) 0f else keyBodyPx(rowCount - 1)
+        val stripH = (0 until rowCount).sumOf { rowHeightPx(it).toDouble() }.toFloat()
+        return (stripH / n - frame.rowGapDp * density).coerceAtLeast(1f)
+    }
 
     /** 탭이 키보드 왼쪽 끝에서 떨어진 거리 (숫자 띠와 같은 선) */
     fun fnTabLeftPx(): Float = padL
+
+    /** 탭 바탕이 버튼 둘레로 내미는 길이 (상하좌우 똑같이) */
+    fun fnTabPadPx(): Float = FN_TAB_PAD_DP * density
+
+    /** 탭 전체 높이 = 버튼 + 위아래 바탕 */
+    fun fnTabHeightPx(): Float = fnKeyHeightPx() + 2 * fnTabPadPx()
 
     /** 탭 버튼 좌우 여백: 숫자 키와 똑같이 키 사이 간격의 절반씩 */
     fun fnTabInsetPx(): Float = frame.keyGapDp / 2f * density
@@ -420,6 +433,7 @@ class KeyboardView(context: Context) : View(context) {
         stripPx = if (hasSide) stripWidthFor(width) else 0f
         sideCells = emptyList()
         rowTops = FloatArray(layout.rows.size)
+        val stripRows = if (fnTab) layout.rows.size else layout.rows.size - 1
         var top = padT
         layout.rows.forEachIndexed { r, row ->
             val rowH = rowHeightPx(r)
@@ -445,7 +459,8 @@ class KeyboardView(context: Context) : View(context) {
                 }
             }
             // 왼쪽 세로 띠(숫자)가 있으면 맨 아래 줄을 뺀 줄들은 그 오른쪽에서 시작한다
-            val inStrip = hasSide && r < layout.rows.size - 1
+            // 탭이 전체·복사·붙임을 맡으면 숫자 띠가 맨 아래 줄까지 이어진다 (숫자 키 높이 = 줄 높이)
+            val inStrip = hasSide && r < stripRows
             // 숫자 띠와 글자 키 사이 가로 여백 = "숫자키 글자키 여백" 설정 (키 사이 기본 간격 대신)
             val stripShift = if (inStrip) (frame.numberGapDp - frame.keyGapDp) * density else 0f
             val rowStartX = if (inStrip) padL + stripPx + stripShift else padL
@@ -471,7 +486,7 @@ class KeyboardView(context: Context) : View(context) {
         if (hasSide) {
             // 왼쪽 띠: 맨 아래 줄 위까지의 높이를 숫자 줄 수로 똑같이 나눠 2열로 놓는다
             val sideTop = rowTops[0]
-            val sideBottom = rowTops[layout.rows.size - 1]
+            val sideBottom = if (stripRows == layout.rows.size) top else rowTops[layout.rows.size - 1]
             val n = layout.sideKeys.size / 2
             val cellH = (sideBottom - sideTop) / n
             val colW = stripPx / 2f
@@ -1154,6 +1169,7 @@ class KeyboardView(context: Context) : View(context) {
         val FN_TYPES = setOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE)
         const val DEFAULT_NUMBER_ROW_SCALE = 0.8f
         const val LABEL_WIDTH_FACTOR = 1.35f
+        const val FN_TAB_PAD_DP = 6f
         const val LABEL_BONUS_DP = 1f
         const val DEFAULT_NUMBER_GAP_DP = 6f
         const val UNDO_MARK_DP = 52f

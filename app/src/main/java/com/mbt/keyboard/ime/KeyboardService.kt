@@ -222,7 +222,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         fnTab.theme = view.theme
         fnTab.alphaPercent = Prefs.fnTabAlphaPercent(this)
         val hostLp = host.layoutParams as FrameLayout.LayoutParams
-        val top = if (on) view.fnKeyHeightPx().toInt().coerceAtLeast(1) else 0
+        val top = if (on) view.fnTabHeightPx().toInt().coerceAtLeast(1) else 0
         if (hostLp.topMargin != top) { hostLp.topMargin = top; host.layoutParams = hostLp }
         val tabLp = fnTab.layoutParams as FrameLayout.LayoutParams
         if (tabLp.leftMargin != hostLp.leftMargin) { tabLp.leftMargin = hostLp.leftMargin; fnTab.layoutParams = tabLp }

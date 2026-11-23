@@ -55,13 +55,54 @@ class FnTabTest {
         assertFalse(keyView(false, false).hasSideStrip)
     }
 
-    @Test fun tabButtonsMatchDigitKeyWidthAndSpaceBarHeight() {
+    @Test fun tabButtonsMatchDigitKeyWidthAndHeight() {
         val v = keyView(true, true)
         val digit = v.keyInnerRects().first { it.first.label == "1" }.second
-        val space = v.keyInnerRects().first { it.first.type == KeyType.SPACE }.second
         assertEquals(digit.width(), v.fnKeyWidthPx() - 2 * v.fnTabInsetPx(), 1f)    // 눈에 보이는 키 폭
         assertEquals(digit.left, v.fnTabLeftPx() + v.fnTabInsetPx(), 1f)             // 숫자 띠와 같은 선
-        assertEquals(space.height(), v.fnKeyHeightPx(), 1f)
+        assertEquals(digit.height(), v.fnKeyHeightPx(), 1f)                          // 숫자 키와 세로도 같다
+    }
+
+    @Test fun digitStripReachesTheBottomRowWhenTheTabIsOn() {
+        val on = keyView(true, true)
+        val off = keyView(true, false)
+        val bottomOn = on.keyRects().filter { it.first.type == KeyType.SPACE }.maxOf { it.second.bottom }
+        val digit5On = on.keyRects().first { it.first.label == "5" }.second
+        val digit0On = on.keyRects().first { it.first.label == "0" }.second
+        assertEquals(bottomOn, digit5On.bottom, 1f)                                   // 5·0 이 맨 아래 줄 높이까지
+        assertEquals(bottomOn, digit0On.bottom, 1f)
+        val digit5Off = off.keyRects().first { it.first.label == "5" }.second
+        assertTrue(digit5On.bottom > digit5Off.bottom)
+        // 맨 아래 줄 키는 띠 오른쪽에서 시작한다
+        val spaceLeft = on.keyRects().first { it.first.type == KeyType.SPACE }.second.left
+        val emojiLeft = on.keyRects().filter { it.first.type == KeyType.VOICE }.minOf { it.second.left }
+        assertTrue(emojiLeft >= digit0On.right - 1f)
+        assertTrue(spaceLeft > emojiLeft)
+        // 모아키(줄 5개)에서는 숫자 키 높이가 글자 줄 높이와 같다
+        val moa = keyView(false, true, Layouts.moaki)
+        val rowH = moa.keyRects().first { it.first.label == "ㅂ" }.second.height()
+        assertEquals(rowH, moa.keyRects().first { it.first.label == "3" }.second.height(), 1f)
+    }
+
+    @Test fun plateSurroundsTheButtonsOnAllFourSidesWithTheSameTranslucency() {
+        val v = keyView(true, true)
+        val tab = FnTab(ctx, v)
+        tab.alphaPercent = 50
+        measure(tab, 1000)
+        val rects = ArrayList<FloatArray>(); val colors = ArrayList<Int>()
+        val canvas = object : android.graphics.Canvas() {
+            override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { rects += floatArrayOf(l, t, r, b); colors += p.color }
+        }
+        tab.draw(canvas)
+        val plate = rects.first()
+        val buttons = rects.drop(1)
+        assertEquals(3, buttons.size)
+        val pad = v.fnTabPadPx()
+        assertEquals(pad, buttons.minOf { it[1] } - plate[1], 1f)                        // 위
+        assertEquals(pad, plate[3] - buttons.maxOf { it[3] }, 1f)                        // 아래
+        assertEquals(pad, plate[2] - buttons.maxOf { it[2] } - v.fnTabInsetPx(), 1f)     // 오른쪽
+        assertTrue(buttons.minOf { it[0] } - plate[0] > 0f)                              // 왼쪽
+        colors.forEach { assertEquals(127f, (it ushr 24).toFloat(), 1f) }                // 바탕·버튼 같은 반투명
     }
 
     @Test fun spaceBarGetsWiderWhenTheTabTakesOverTheThreeKeys() {
@@ -103,7 +144,7 @@ class FnTabTest {
             override fun drawText(text: String, x: Float, y: Float, p: android.graphics.Paint) { textColors += p.color }
         }
         tab.draw(canvas)
-        assertTrue(fills.isNotEmpty())
+        assertEquals(4, fills.size)                                                  // 바탕 1 + 버튼 3
         fills.forEach { assertEquals(127f, (it ushr 24).toFloat(), 1f) }
         assertEquals(3, textColors.size)
         textColors.forEach { assertEquals(255, it ushr 24) }
