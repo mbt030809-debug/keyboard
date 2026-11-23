@@ -164,6 +164,17 @@ class KeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
+    private var undoMark = false
+    private val clearUndoMark = Runnable { undoMark = false; invalidate() }
+
+    /** 지운 글자를 되돌렸을 때: 글자 없이 불투명한 ↶ 표시만 잠깐 보여준다 */
+    fun showUndoMark(durationMs: Long = UNDO_MARK_MS) {
+        undoMark = true
+        handler.removeCallbacks(clearUndoMark)
+        handler.postDelayed(clearUndoMark, durationMs)
+        invalidate()
+    }
+
     /** [rect]는 터치 판정 영역, [inner]는 그려지는 영역(키 사이 틈 제외, 미리 계산해 그릴 때 객체를 만들지 않음) */
     private class Cell(val key: Key, val rect: RectF, val inner: RectF, val duplicate: Boolean = false)
 
@@ -398,6 +409,24 @@ class KeyboardView(context: Context) : View(context) {
         }
         for (i in 0 until pointers.size()) pointers.valueAt(i).popup?.let { drawPopup(canvas, it) }
         message?.let { drawMessage(canvas, it) }
+        if (undoMark) drawUndoMark(canvas)
+    }
+
+    /** 키보드 위쪽 가운데의 둥근 ↶ 표시. 완전히 불투명하고 글자는 없다 */
+    private fun drawUndoMark(canvas: Canvas) {
+        val d = UNDO_MARK_DP * density
+        val cx = width / 2f
+        val cy = padT + d / 2f + 4 * density
+        paint.style = Paint.Style.FILL
+        paint.color = theme.accent                    // 불투명 (알파 255)
+        canvas.drawCircle(cx, cy, d / 2f, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 2 * density
+        paint.color = theme.onAccent
+        canvas.drawCircle(cx, cy, d / 2f - 1.5f * density, paint)
+        paint.style = Paint.Style.FILL
+        paint.textSize = d * 0.6f
+        drawCentered(canvas, "↶", RectF(cx - d / 2f, cy - d / 2f, cx + d / 2f, cy + d / 2f))
     }
 
     private fun drawMessage(canvas: Canvas, text: String) {
@@ -743,6 +772,8 @@ class KeyboardView(context: Context) : View(context) {
 
     private companion object {
         /** 갈라진 자판의 복제 키 가로 비중 (원래 키는 1) */
+        const val UNDO_MARK_DP = 52f
+        const val UNDO_MARK_MS = 900L
         const val DUPLICATE_WEIGHT = 0.85f
         /** 옛 고정 간격(키 높이에서 빼던 값) */
         const val LEGACY_GAP_DP = 6f

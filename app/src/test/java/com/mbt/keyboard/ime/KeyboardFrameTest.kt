@@ -367,3 +367,45 @@ class RowGapFrameTest {
         assertEquals(1, fired.size)
     }
 }
+
+/** 되돌렸을 때의 표시: 불투명한 ↶ 하나만, 글자는 없다 */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class UndoMarkTest {
+    private lateinit var view: KeyboardView
+
+    private class Rec : android.graphics.Canvas() {
+        val texts = ArrayList<String>()
+        val circleAlphas = ArrayList<Int>()
+        override fun drawText(text: String, x: Float, y: Float, paint: android.graphics.Paint) { texts += text }
+        override fun drawCircle(cx: Float, cy: Float, radius: Float, paint: android.graphics.Paint) {
+            if (paint.style == android.graphics.Paint.Style.FILL) circleAlphas += android.graphics.Color.alpha(paint.color)
+        }
+    }
+
+    @Before fun setUp() {
+        view = KeyboardView(ApplicationProvider.getApplicationContext<Context>())
+        view.keyboardLayout = Layouts.koreanSingle
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+    }
+
+    private fun draw(): Rec = Rec().also { view.draw(it) }
+
+    @Test fun nothingIsShownByDefault() {
+        assertTrue("↶" !in draw().texts)
+    }
+
+    @Test fun showsOnlyTheArrowOpaqueAndNoWords() {
+        val before = draw().texts.toSet()
+        view.showUndoMark()
+        val r = draw()
+        assertTrue("↶" in r.texts)
+        assertEquals(setOf("↶"), r.texts.toSet() - before)                        // 새로 생긴 글자는 ↶ 뿐
+        assertTrue(r.texts.none { it.contains("되돌") })
+        assertTrue(r.circleAlphas.isNotEmpty() && r.circleAlphas.all { it == 255 })   // 불투명
+    }
+}

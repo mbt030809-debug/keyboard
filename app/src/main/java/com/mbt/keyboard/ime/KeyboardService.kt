@@ -568,7 +568,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         backspaceStartedRun = false
         var restored = 0
         repeat(times) { if (restoreLastDeletion()) restored++ }
-        say(if (restored > 0) "↶ 되돌렸어요" else "되돌릴 글자가 없어요")
+        if (restored > 0 && ::view.isInitialized) view.showUndoMark()      // 글자 없이 ↶ 표시만
     }
 
     private fun restoreLastDeletion(): Boolean {
