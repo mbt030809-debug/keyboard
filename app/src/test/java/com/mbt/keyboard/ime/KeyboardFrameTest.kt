@@ -173,4 +173,19 @@ class KeyboardFrameTest {
         val edit = view.keyRects().first { it.first.label == "전체" }.second
         assertEquals(edit.height() * 0.34f * view.theme.textScale, texts.first { it.text == "전체" }.size, 0.01f)
     }
+
+    @Test fun backspaceIsDrawnOnePointTwoFiveTimesALetterKeyOnEveryLayout() {
+        for ((layout, letter) in listOf(Layouts.koreanSingle to "ㅋ", Layouts.korean to "ㅋ", Layouts.english to "z")) {
+            view.keyboardLayout = layout
+            relayout()
+            val rects = view.keyRects()
+            val back = rects.first { it.first.type == com.mbt.keyboard.layout.KeyType.BACKSPACE }.second
+            val key = rects.first { it.first.label == letter }.second
+            // 키 폭 비율 = 가로 비중 비율 (예: 1.25 / 글자 키 비중)
+            val expected = 1.25f / rects.first { it.first.label == letter }.first.weight
+            assertEquals(layout.id, expected, back.width() / key.width(), 0.01f)
+            // 지우기는 줄의 오른쪽 끝
+            assertEquals(layout.id, (widthPx - 4 * density), back.right, 0.5f)
+        }
+    }
 }

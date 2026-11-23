@@ -55,6 +55,12 @@ class SettingsActivity : AppCompatActivity() {
         btnEnable.setOnClickListener { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
         btnSelect.setOnClickListener { imm.showInputMethodPicker() }
 
+        // 설치된 빌드 표시 (새 APK가 실제로 설치됐는지 확인용)
+        val info = packageManager.getPackageInfo(packageName, 0)
+        @Suppress("DEPRECATION")
+        findViewById<TextView>(R.id.versionText).text =
+            getString(R.string.version_label, info.versionName, info.versionCode)
+
         // 키보드 크기·위치 조정 화면
         findViewById<MaterialButton>(R.id.btnResize).setOnClickListener {
             startActivity(Intent(this, ResizeActivity::class.java))

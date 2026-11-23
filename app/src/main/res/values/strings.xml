@@ -42,6 +42,7 @@
     <string name="resize_move_hint_full">가로가 꽉 차 있어서, ◀ ▶를 누르면 가로가 한 단계 줄어들며 움직여요 · 바닥에서 %1$ddp 위</string>
     <string name="resize_reset">초기화</string>
     <string name="resize_done">완료</string>
+    <string name="version_label">버전 %1$s (빌드 %2$d)</string>
     <string name="timing_title">입력 타이밍</string>
     <string name="timing_pause_label">멈춤 기준 (단모음)</string>
     <string name="timing_pause_desc">모음으로 끝난 글자(어, 가…) 뒤에서 이 시간 이상 멈췄다가 자음을 치면, 받침이 아니라 다음 글자 초성이 돼요. 길게 하면 사실상 꺼져요</string>

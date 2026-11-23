@@ -58,7 +58,6 @@ object Layouts {
     private fun spacer(w: Float) = Key(label = "", type = KeyType.SPACER, weight = w)
 
     private val shift = Key("⇧", KeyType.SHIFT, weight = 1.5f)
-    private val backspace = Key("⌫", KeyType.BACKSPACE, weight = 1.5f)
 
     /** 맨 윗줄 한 줄 (13칸, 모두 같은 폭): 전체 · 복사 · 붙임 + 숫자 1~0 */
     private val numberRow = listOf(
@@ -96,6 +95,12 @@ object Layouts {
     private val singleRowLetterWeight = (SINGLE_ROW_TOTAL - SHIFT_NARROW - BACKSPACE_WEIGHT) / 6f
 
     /**
+     * 두벌식·영어의 마지막 글자 줄: 쉬프트 1.5 + 글자 7개 + 지우기 1.25 = 10칸 (다른 줄과 같은 전체 폭).
+     * 지우기를 1.25칸으로 줄이고 남는 폭은 글자 7개가 똑같이 나눠 가진다.
+     */
+    private val wideRowLetterWeight = (10f - 1.5f - BACKSPACE_WEIGHT) / 7f
+
+    /**
      * 글자 줄 생성. 기호 묶음은 [symbolStart]번부터 키 순서대로 배정된다.
      * @param shifted 쉬프트 상태 글자 (없으면 null)
      */
@@ -125,7 +130,8 @@ object Layouts {
                     listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅠ", "ㅜ", "ㅡ"),
                     List(7) { null },
                     19,
-                ) + backspace,
+                    weight = wideRowLetterWeight,
+                ) + backspaceMid,
             bottom(),
         ),
         rowHeights,
@@ -182,7 +188,10 @@ object Layouts {
                 letters("asdfghjkl".map { it.toString() }, "asdfghjkl".map { it.uppercase() }, 10) +
                 spacer(0.5f),
             listOf(shift) +
-                letters("zxcvbnm".map { it.toString() }, "zxcvbnm".map { it.uppercase() }, 19) + backspace,
+                letters(
+                    "zxcvbnm".map { it.toString() }, "zxcvbnm".map { it.uppercase() }, 19,
+                    weight = wideRowLetterWeight,
+                ) + backspaceMid,
             bottom(),
         ),
         rowHeights,

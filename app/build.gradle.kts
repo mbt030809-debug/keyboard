@@ -1,7 +1,14 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+// 빌드 번호는 app/version.properties 에서 읽는다
+val buildNumber = Properties()
+    .apply { file("version.properties").inputStream().use { load(it) } }
+    .getProperty("build").toInt()
 
 android {
     namespace = "com.mbt.keyboard"
@@ -11,8 +18,8 @@ android {
         applicationId = "com.mbt.keyboard"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = buildNumber
+        versionName = "0.1.$buildNumber"
     }
 
     buildTypes {
