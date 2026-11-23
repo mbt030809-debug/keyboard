@@ -574,3 +574,47 @@ class HitShiftTest {
         assertEquals("4", tapAt(r4.centerX(), r4.top + 2))
     }
 }
+
+/** 맨 아래(스페이스바) 줄 키 높이 조절 */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class SpaceRowScaleTest {
+    private val ctx get() = ApplicationProvider.getApplicationContext<Context>()
+
+    private fun view(l: com.mbt.keyboard.layout.KeyboardLayout, f: KeyboardFrame, numberLeft: Boolean = false): KeyboardView {
+        val v = KeyboardView(ctx).also { it.numberLeft = numberLeft; it.keyboardLayout = l; it.frame = f }
+        v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+        return v
+    }
+
+    private fun h(v: KeyboardView, type: com.mbt.keyboard.layout.KeyType) = v.keyInnerRects().first { it.first.type == type }.second.height()
+    private fun hq(v: KeyboardView, label: String) = v.keyInnerRects().first { it.first.label == label }.second.height()
+
+    @Test fun spaceRowCanBeMadeTallerOrShorterWhileTheTotalHeightStays() {
+        for ((layout, letter, nl) in listOf(Triple(Layouts.english, "q", false), Triple(Layouts.english, "q", true), Triple(Layouts.koreanSingle, "ㅂ", false))) {
+            val base = view(layout, KeyboardFrame(), nl)
+            val ratio0 = h(base, com.mbt.keyboard.layout.KeyType.SPACE) / hq(base, letter)
+            assertEquals("${layout.id} 기본은 같은 높이", 1f, ratio0, 0.02f)
+            for (scale in listOf(0.6f, 1.3f, 1.5f)) {
+                val v = view(layout, KeyboardFrame(spaceRowScale = scale), nl)
+                assertEquals("${layout.id} x$scale", scale, h(v, com.mbt.keyboard.layout.KeyType.SPACE) / hq(v, letter), 0.02f)
+                assertEquals("${layout.id} 전체 높이 고정", base.measuredHeight.toDouble(), v.measuredHeight.toDouble(), 1.0)
+            }
+        }
+    }
+
+    @Test fun geometrySettingIsClampedSteppedAndSavedPerProfile() {
+        val g = com.mbt.keyboard.settings.KeyboardGeometry()
+        assertEquals(100, g.spaceRowPct)
+        assertEquals(105, g.spaceRowBy(1).spaceRowPct)
+        assertEquals(50, g.copy(spaceRowPct = 1).clamped().spaceRowPct)
+        assertEquals(150, g.copy(spaceRowPct = 999).clamped().spaceRowPct)
+        com.mbt.keyboard.settings.Prefs.setGeometry(ctx, large = true, g.copy(spaceRowPct = 130), landscape = false)
+        com.mbt.keyboard.settings.Prefs.setGeometry(ctx, large = true, g.copy(spaceRowPct = 70), landscape = true)
+        assertEquals(130, com.mbt.keyboard.settings.Prefs.geometry(ctx, large = true, landscape = false).spaceRowPct)
+        assertEquals(70, com.mbt.keyboard.settings.Prefs.geometry(ctx, large = true, landscape = true).spaceRowPct)
+        assertEquals(100, com.mbt.keyboard.settings.Prefs.geometry(ctx, large = false, landscape = false).spaceRowPct)
+        assertEquals(1.3f, g.copy(spaceRowPct = 130).spaceRowScale, 0.001f)
+    }
+}

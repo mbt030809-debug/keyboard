@@ -76,7 +76,7 @@ class ResizeActivityTest {
             sc.onActivity { a ->
                 assertEquals(7, chips(a).childCount)
                 assertTrue(title(a).startsWith("① 전체 크기"))
-                listOf("② 상하좌우 여백", "③ 키 사이 간격", "④ 숫자줄 크기", "⑤ 숫자줄 여백", "⑥ 전복붙 높이", "⑦ 터치 인식 영역").forEachIndexed { i, t ->
+                listOf("② 상하좌우 여백", "③ 키 사이 간격", "④ 숫자줄·스페이스바 줄 크기", "⑤ 숫자줄 여백", "⑥ 전복붙 높이", "⑦ 터치 인식 영역").forEachIndexed { i, t ->
                     goTo(a, i + 1)
                     assertTrue("${title(a)} vs $t", title(a).startsWith(t))
                 }
@@ -154,12 +154,15 @@ class ResizeActivityTest {
                 step(a, 0, plus = true)                                                      // 가로 +1
                 step(a, 1, plus = false); step(a, 1, plus = false)                         // 세로 -2
                 goTo(a, 3); step(a, 0, plus = true)                                          // ④ 숫자줄 크기 +5%
+                assertEquals(2, controls(a).childCount)                                      // 숫자줄 크기 + 스페이스바 줄 높이
+                step(a, 1, plus = true); step(a, 1, plus = true); step(a, 1, plus = false)   // 스페이스바 줄 +5%
                 goTo(a, 4); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑤ 숫자줄 여백 +2
                 goTo(a, 5); step(a, 0, plus = false)                                         // ⑥ 전복붙 높이 -5%
                 step(a, 1, plus = true); step(a, 1, plus = true)                             // 탭 여백 +2
                 val g = Prefs.geometry(a, large = false)
                 assertEquals(7, g.keyGapDp); assertEquals(4, g.rowGapDp)
                 assertEquals(85, g.numHeightPct); assertEquals(8, g.numRowGapDp)
+                assertEquals(105, g.spaceRowPct)
                 assertEquals(95, g.fnTabHeightPct)
                 assertEquals(6, g.fnTabPadDp)
                 assertEquals("95%", value(a, 0))

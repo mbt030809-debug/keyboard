@@ -137,6 +137,9 @@ class ResizeActivity : AppCompatActivity() {
                 // 숫자가 왼쪽 띠에 있으면(모아키·숫자 왼쪽 옵션) "숫자줄 크기"는 띠의 가로 길이, 아니면 줄 높이
                 addStepper(R.string.resize_num_height, { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
                     { geometry.numHeightPct > KeyboardGeometry.NUM_HEIGHT_MIN }, { geometry.numHeightPct < KeyboardGeometry.NUM_HEIGHT_MAX })
+                // 맨 아래 줄(스페이스바 줄) 키 높이: 늘리거나 줄이거나 (전체 크기는 고정이라 다른 줄이 그만큼 변한다)
+                addStepper(R.string.resize_space_row, { geometry = geometry.spaceRowBy(it) }, { "${geometry.spaceRowPct}%" },
+                    { geometry.spaceRowPct > KeyboardGeometry.SPACE_ROW_MIN }, { geometry.spaceRowPct < KeyboardGeometry.SPACE_ROW_MAX })
             },
             Page(R.string.resize_page_numgap, R.string.resize_title_numgap, R.string.resize_badge_1234, R.string.resize_desc_numgap, ResizeDiagram.Part.NUMGAP) {
                 addStepper(R.string.resize_num_row_gap, { geometry = geometry.numRowGapBy(it) }, { "${geometry.numRowGapDp}dp" },
@@ -273,7 +276,7 @@ class ResizeActivity : AppCompatActivity() {
         keyboard.split = splitActive && (large || geometry.gapPct > 0)
         keyboard.frame = KeyboardFrame(
             geometry.padLeftDp, geometry.padTopDp, geometry.padRightDp, geometry.padBottomDp, geometry.keyGapDp,
-            geometry.rowGapDp, geometry.numHeightScale, geometry.numRowGapDp, geometry.hitShifts,
+            geometry.rowGapDp, geometry.numHeightScale, geometry.numRowGapDp, geometry.hitShifts, geometry.spaceRowScale,
         )
         val tabOn = Prefs.fnTabEnabled(this) && keyboard.hasSideStrip
         keyboard.fnTab = tabOn

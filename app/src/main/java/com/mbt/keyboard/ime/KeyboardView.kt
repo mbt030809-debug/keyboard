@@ -49,6 +49,8 @@ data class KeyboardFrame(
     val numberGapDp: Int = 6,
     /** 숫자 줄과 글자 줄 3개, 줄 4개 각각의 아래 경계를 이만큼(dp) 아래로 옮겨 인식한다. 눈에 보이는 키는 그대로다 */
     val hitShiftDp: List<Int> = listOf(0, 0, 0, 0),
+    /** 맨 아래 줄(스페이스바 줄) 키 높이: 일반 줄 대비 배율 (1 = 같음). 전체 크기는 고정이라 다른 줄이 그만큼 줄거나 늘어난다 */
+    val spaceRowScale: Float = 1f,
 )
 
 /**
@@ -363,11 +365,14 @@ class KeyboardView(context: Context) : View(context) {
             // 숫자가 왼쪽 띠에 있는 자판(모아키·숫자 왼쪽 옵션)은 모든 줄 높이가 같다
             val n = eff.rows.size
             val single = base * DEFAULT_NUMBER_ROW_SCALE + 4f * base + DEFAULT_NUMBER_GAP_DP * density + 4f * ref.rowGapDp * density
-            return ((single - n * ref.rowGapDp * density) / n).coerceAtLeast(1f)
+            return ((single - n * ref.rowGapDp * density) / n).coerceAtLeast(1f) * spaceRowFactor(r, f)
         }
         val scale = if (isNumberRow(r)) f.numberRowScale else (eff?.rowHeights?.getOrNull(r) ?: 1f)
-        return base * scale
+        return base * scale * spaceRowFactor(r, f)
     }
+
+    /** 맨 아래 줄(스페이스바 줄)만 설정한 배율, 나머지는 1 */
+    private fun spaceRowFactor(r: Int, f: KeyboardFrame) = if (r == rowCount - 1) f.spaceRowScale else 1f
 
     private fun refGapBelowPx(r: Int) = (if (isNumberRow(r) && r + 1 < rowCount) ref.numberGapDp else ref.rowGapDp) * density
 

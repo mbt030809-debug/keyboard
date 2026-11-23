@@ -275,7 +275,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.splitGapFraction = g.gapFraction
         view.fnTabHeightScale = g.fnTabHeightPct / 100f            // 전복붙 탭 높이·여백도 화면 상태별(펼침/접힘 × 세로/가로) 설정
         view.fnTabPadDp = g.fnTabPadDp
-        view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp, g.rowGapDp, g.numHeightScale, g.numRowGapDp, g.hitShifts)
+        view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp, g.rowGapDp, g.numHeightScale, g.numRowGapDp, g.hitShifts, g.spaceRowScale)
         refreshFnTab()
     }
 
