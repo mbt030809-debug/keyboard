@@ -409,3 +409,40 @@ class UndoMarkTest {
         assertTrue(r.circleAlphas.isNotEmpty() && r.circleAlphas.all { it == 255 })   // 불투명
     }
 }
+
+/** 감성 테마(그라데이션 배경·유리 키)가 실제로 그려지는지 */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class GlassThemeDrawTest {
+    private class Rec : android.graphics.Canvas() {
+        var gradientRects = 0
+        var borders = 0
+        override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: android.graphics.Paint) {
+            if (paint.shader != null) gradientRects++
+        }
+        override fun drawRoundRect(left: Float, top: Float, right: Float, bottom: Float, rx: Float, ry: Float, paint: android.graphics.Paint) {
+            if (paint.style == android.graphics.Paint.Style.STROKE) borders++
+        }
+    }
+
+    private fun viewWith(id: String): KeyboardView {
+        val v = KeyboardView(ApplicationProvider.getApplicationContext<Context>())
+        v.keyboardLayout = Layouts.koreanSingle
+        v.theme = KeyboardThemes.byId(id)!!.theme
+        v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+        return v
+    }
+
+    @Test fun gradientThemePaintsAShaderBackgroundAndKeyBorders() {
+        val r = Rec(); viewWith("sunset").draw(r)
+        assertEquals(1, r.gradientRects)
+        assertTrue(r.borders > 20)
+    }
+
+    @Test fun plainThemeHasNeitherGradientNorBorders() {
+        val r = Rec(); viewWith("cream").draw(r)
+        assertEquals(0, r.gradientRects)
+        assertEquals(0, r.borders)
+    }
+}

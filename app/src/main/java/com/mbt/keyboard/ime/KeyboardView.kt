@@ -359,8 +359,22 @@ class KeyboardView(context: Context) : View(context) {
 
     // ---------------------------------------------------------------- 그리기
 
+    private val bgPaint = Paint()
+    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+
+    private fun drawBackground(canvas: Canvas) {
+        val shader = theme.backgroundShader(width.toFloat(), height.toFloat())
+        if (shader == null) {
+            canvas.drawColor(theme.background)
+        } else {
+            bgPaint.shader = shader
+            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
+            bgPaint.shader = null
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
-        canvas.drawColor(theme.background)
+        drawBackground(canvas)
         val gap = 3 * density
         val radius = 7 * density
         for (cell in cells) {
@@ -374,7 +388,19 @@ class KeyboardView(context: Context) : View(context) {
                 else -> theme.key
             }
             val r = cell.inner
+            if (theme.keyShadow) {
+                val keep = paint.color
+                paint.color = 0x26000000
+                canvas.drawRoundRect(r.left, r.top + 1.5f * density, r.right, r.bottom + 1.5f * density, radius, radius, paint)
+                paint.color = keep
+            }
             canvas.drawRoundRect(r, radius, radius, paint)
+            if (theme.keyBorder != 0) {
+                borderPaint.strokeWidth = density
+                borderPaint.color = theme.keyBorder
+                val h = density / 2f
+                canvas.drawRoundRect(r.left + h, r.top + h, r.right - h, r.bottom - h, radius, radius, borderPaint)
+            }
 
             // 스페이스바: 글자 대신 언어 표시. 나눠쓰기에서 스페이스바가 둘로 갈라져도 왼쪽에만 그린다
             if (key.type == KeyType.SPACE) {
@@ -510,11 +536,11 @@ class KeyboardView(context: Context) : View(context) {
         bounds.inset(-gap, -gap)
 
         // 배경 + 테두리
-        paint.color = theme.key
+        paint.color = theme.solid(theme.key)            // 말풍선은 뒤가 비치지 않게 불투명하게
         canvas.drawRoundRect(bounds, radius + gap, radius + gap, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 1.5f * density
-        paint.color = theme.keyPressed
+        paint.color = theme.solid(theme.keyPressed)
         canvas.drawRoundRect(bounds, radius + gap, radius + gap, paint)
         paint.style = Paint.Style.FILL
 

@@ -61,7 +61,7 @@ class QuickPanel(
 
     init {
         orientation = VERTICAL
-        setBackgroundColor(theme.background)
+        background = theme.backgroundDrawable()
 
         val header = LinearLayout(context).apply { orientation = HORIZONTAL }
         header.addView(phrasesTab, LayoutParams(0, dp(40), 1f))
@@ -217,8 +217,8 @@ class QuickPanel(
     /** 불투명 칸 배경 */
     private fun box() = GradientDrawable().apply {
         cornerRadius = 10 * density
-        setColor(theme.key)
-        setStroke(dp(1), theme.keyPressed)
+        setColor(theme.solid(theme.key))
+        setStroke(dp(1), theme.solid(theme.keyPressed))
     }
 
     private fun tabView(label: String, onClick: () -> Unit) = TextView(context).apply {

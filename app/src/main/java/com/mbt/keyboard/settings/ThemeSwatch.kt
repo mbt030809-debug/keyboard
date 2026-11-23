@@ -21,7 +21,9 @@ class ThemeSwatch(context: Context, val theme: KeyboardTheme) : View(context) {
         val r = 10 * d
         paint.style = Paint.Style.FILL
         paint.color = theme.background
+        paint.shader = theme.backgroundShader(w, h)
         canvas.drawRoundRect(RectF(0f, 0f, w, h), r, r, paint)
+        paint.shader = null
 
         // 키 2줄: 일반 키 4개 + (둘째 줄) 기능키 + 강조색 엔터
         val pad = 8 * d
@@ -41,6 +43,12 @@ class ThemeSwatch(context: Context, val theme: KeyboardTheme) : View(context) {
                 }
                 val left = pad + i * (keyW + gap)
                 canvas.drawRoundRect(RectF(left, top, left + keyW, top + keyH), 4 * d, 4 * d, paint)
+                if (theme.keyBorder != 0) {
+                    val keep = paint.color
+                    paint.style = Paint.Style.STROKE; paint.strokeWidth = d; paint.color = theme.keyBorder
+                    canvas.drawRoundRect(RectF(left + d / 2, top + d / 2, left + keyW - d / 2, top + keyH - d / 2), 4 * d, 4 * d, paint)
+                    paint.style = Paint.Style.FILL; paint.color = keep
+                }
             }
         }
         // 글자색 표시: 첫 키 가운데 작은 점

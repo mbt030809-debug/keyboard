@@ -68,7 +68,7 @@ class EmojiPanel(
 
     init {
         orientation = VERTICAL
-        setBackgroundColor(theme.background)
+        background = theme.backgroundDrawable()
 
         val tabs = LinearLayout(context).apply { orientation = HORIZONTAL }
         tabs.addView(tabEmoticon, LayoutParams(0, dp(40), 1f))
@@ -170,7 +170,7 @@ class EmojiPanel(
                     textSize = 20f
                     gravity = Gravity.CENTER
                     alpha = if (i == emojiCategory) 1f else 0.45f
-                    background = if (i == emojiCategory) rounded(theme.keyPressed, 0, 10f) else null
+                    background = if (i == emojiCategory) rounded(theme.solid(theme.keyPressed), 0, 10f) else null
                     setOnClickListener { emojiCategory = i; render() }
                 },
                 LayoutParams(dp(44), dp(40)),
@@ -206,7 +206,7 @@ class EmojiPanel(
         textSize = sizeSp
         setTextColor(theme.text)
         setPadding(dp(14), dp(9), dp(14), dp(9))
-        background = rounded(theme.key, color, 20f)      // 불투명 배경
+        background = rounded(theme.solid(theme.key), color, 20f)      // 뒤가 비치지 않게 불투명하게
         isSingleLine = true
         setOnClickListener { onClick() }
     }

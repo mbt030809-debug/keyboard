@@ -34,28 +34,50 @@ class KeyboardThemesTest {
         return if (h < 0) h + 360 else h
     }
 
-    @Test fun twentyThemesWithUniqueIdsAndNames() {
-        assertEquals(20, KeyboardThemes.all.size)
-        assertEquals(20, KeyboardThemes.all.map { it.id }.toSet().size)
-        assertEquals(20, KeyboardThemes.all.map { it.name }.toSet().size)
-        assertEquals(20, KeyboardThemes.all.map { it.theme.background }.toSet().size)
+    @Test fun twentyEightThemesWithUniqueIdsAndNames() {
+        assertEquals(28, KeyboardThemes.all.size)
+        assertEquals(28, KeyboardThemes.all.map { it.id }.toSet().size)
+        assertEquals(28, KeyboardThemes.all.map { it.name }.toSet().size)
+        assertEquals(28, KeyboardThemes.all.map { it.theme.background }.toSet().size)
+    }
+
+    /** 반투명 [fg]를 불투명 [bg] 위에 올린 색 */
+    private fun over(fg: Int, bg: Int): Int {
+        val a = ((fg ushr 24) and 0xFF) / 255f
+        fun ch(sh: Int) = (((fg shr sh) and 0xFF) * a + ((bg shr sh) and 0xFF) * (1 - a)).toInt()
+        return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
     }
 
     @Test fun everyThemeIsReadable() {
         KeyboardThemes.all.forEach { n ->
             val t = n.theme
-            listOf(t.background, t.key, t.specialKey, t.keyPressed).forEach {
-                assertTrue("${n.id} 글자/바탕 ${contrast(t.text, it)}", contrast(t.text, it) >= 4.5)
+            // 그라데이션이면 시작·가운데·끝 어디서든 읽혀야 한다. 반투명 키는 그 배경 위에 올린 모습으로 본다
+            t.backgroundStops.forEach { stop ->
+                listOf(stop, over(t.key, stop), over(t.specialKey, stop), over(t.keyPressed, stop)).forEach {
+                    assertTrue("${n.id} 글자/바탕 ${contrast(t.text, it)}", contrast(t.text, it) >= 4.5)
+                }
+                assertTrue("${n.id} 강조/배경", contrast(t.accent, stop) >= 3.0)
             }
-            assertTrue("${n.id} 강조/배경", contrast(t.accent, t.background) >= 3.0)
             assertTrue("${n.id} 강조 위 글자", contrast(t.onAccent, t.accent) >= 4.5)
             assertTrue("${n.id} 눌림이 키와 구분", t.keyPressed != t.key)
         }
     }
 
+    @Test fun glassThemesHaveGradientsOrTranslucentKeys() {
+        val glass = listOf("sunset", "pinkcloud", "aurora", "mintsoda", "buttercream", "film", "midnightglass", "monoline")
+        glass.forEach { assertTrue(it, KeyboardThemes.byId(it) != null) }
+        assertTrue(KeyboardThemes.byId("sunset")!!.theme.hasGradient)
+        assertEquals(3, KeyboardThemes.byId("sunset")!!.theme.backgroundStops.size)
+        assertTrue(((KeyboardThemes.byId("aurora")!!.theme.key ushr 24) and 0xFF) < 0xFF)     // 반투명 키
+        assertTrue(!KeyboardThemes.byId("cream")!!.theme.hasGradient)                           // 기존 테마는 단색
+        // 말풍선용 불투명 색은 알파가 255
+        val t = KeyboardThemes.byId("aurora")!!.theme
+        assertEquals(0xFF, (t.solid(t.key) ushr 24) and 0xFF)
+    }
+
     @Test fun toneOnToneKeepsOneHuePerTheme() {
         // 채도가 있는 테마는 배경·키·기능키·눌림이 모두 같은 색상(hue) 계열
-        KeyboardThemes.all.filter { it.id !in setOf("charcoal", "cloud", "oat", "neon") }.forEach { n ->
+        KeyboardThemes.all.filter { it.id !in setOf("charcoal", "cloud", "oat", "neon") && !it.theme.hasGradient && ((it.theme.key ushr 24) and 0xFF) == 0xFF }.forEach { n ->
             val t = n.theme
             val hs = listOf(t.background, t.key, t.specialKey, t.keyPressed).map { hue(it) }
             assertTrue("${n.id} $hs", hs.max() - hs.min() < 12f)
