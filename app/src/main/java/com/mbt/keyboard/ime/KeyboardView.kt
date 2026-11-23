@@ -369,6 +369,13 @@ class KeyboardView(context: Context) : View(context) {
             val inStrip = hasSide && r < layout.rows.size - 1
             val rowStartX = if (inStrip) padL + stripPx else padL
             val rowUsableW = if (inStrip) usableW - stripPx else usableW
+            if (hasSide && r == layout.rows.size - 1) {
+                // 모아키 맨 아래 줄: 전체·복사·붙임 키의 가로 폭을 숫자 키 한 칸(띠 폭의 절반)과 똑같이 맞춘다
+                val rest = halves.left.filter { it.key.type !in FN_TYPES }.sumOf { it.weight.toDouble() }.toFloat()
+                val f = (stripPx / 2f) / usableW
+                val fnWeight = f * rest / (1f - 3f * f)
+                halves = Split.Halves(halves.left.map { if (it.key.type in FN_TYPES) Split.Part(it.key, fnWeight) else it }, halves.right)
+            }
             val gapW = if (doSplit) rowUsableW * splitGapFraction else 0f
             for (pl in Split.place(halves, rowStartX, rowUsableW, gapW)) {
                 if (pl.part.key.type == KeyType.SPACER) continue
@@ -394,6 +401,12 @@ class KeyboardView(context: Context) : View(context) {
                 val row = i / 2; val col = i % 2
                 val rect = RectF(padL + col * colW, sideTop + row * cellH, padL + (col + 1) * colW, sideTop + (row + 1) * cellH)
                 side += Cell(k, rect, RectF(rect.left + gx, rect.top + gy, rect.right - gx, rect.bottom - gy))
+            }
+            // 맨 아래 줄의 전체·복사·붙임 키는 높이도 숫자 키와 같게 (줄 가운데에 맞춰 그린다)
+            val nbh = side.first().inner.height()
+            rows.last().filter { it.key.type in FN_TYPES }.forEach {
+                val cy = it.rect.centerY()
+                it.inner.set(it.inner.left, cy - nbh / 2f, it.inner.right, cy + nbh / 2f)
             }
             sideCells = side
             sideBottomPx = sideBottom
@@ -1011,6 +1024,7 @@ class KeyboardView(context: Context) : View(context) {
         /** 갈라진 자판의 복제 키 가로 비중 (원래 키는 1) */
         /** 왼쪽 세로 띠(숫자 2열)가 줄 폭에서 차지하는 비율 */
         const val SIDE_STRIP_FRACTION = 0.19f
+        val FN_TYPES = setOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE)
         const val DEFAULT_NUMBER_ROW_SCALE = 0.8f
         const val UNDO_MARK_DP = 52f
         const val UNDO_MARK_MS = 900L

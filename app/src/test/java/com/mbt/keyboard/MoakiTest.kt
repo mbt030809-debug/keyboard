@@ -150,6 +150,23 @@ class MoakiTest {
         assertEquals(h1.toDouble(), h2.toDouble(), 1.0)
     }
 
+    @Test fun selectAllCopyPasteHaveTheSameSizeAsTheDigitKeys() {
+        val digit = view.keyInnerRects().first { it.first.label == "5" }.second
+        listOf("전체", "복사", "붙임").forEach { label ->
+            val k = view.keyInnerRects().first { it.first.label == label }.second
+            assertEquals("$label 가로", digit.width(), k.width(), 1.0f)
+            assertEquals("$label 세로", digit.height(), k.height(), 1.0f)
+        }
+        // 숫자 띠 폭을 바꿔도 따라간다
+        view.frame = com.mbt.keyboard.ime.KeyboardFrame(numberRowScale = 1.2f); relayout()
+        val d2 = view.keyInnerRects().first { it.first.label == "5" }.second
+        val k2 = view.keyInnerRects().first { it.first.label == "복사" }.second
+        assertEquals(d2.width(), k2.width(), 1.0f)
+        // 아래 줄의 나머지 키는 남는 폭을 쓴다 (스페이스가 여전히 가장 넓다)
+        val space = view.keyRects().first { it.first.type == KeyType.SPACE }.second
+        assertTrue(space.width() > view.keyRects().first { it.first.label == "복사" }.second.width())
+    }
+
     @Test fun tappingASideDigitTypesIt() {
         fun tapKey(label: String) {
             downTime = SystemClock.uptimeMillis()
