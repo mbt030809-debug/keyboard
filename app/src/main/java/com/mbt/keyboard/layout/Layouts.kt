@@ -17,7 +17,7 @@ object Layouts {
     val PAIRS = setOf("()", "[]", "{}", "<>", "\"\"", "''")
 
     /**
-     * 꾹 누르기 기호 묶음 (줄별로 8개·8개·6개 + 두벌식·영어용 보조 4개). 어느 줄에 어느 묶음이 가는지는 [ROW1_GROUPS] 등 참고.
+     * 꾹 누르기 기호 묶음 (줄별로 8개·8개·6개 + 두벌식·영어 가운데 보조 키용 4개). 어느 줄에 어느 묶음이 가는지는 [ROW1_GROUPS] 등 참고.
      * 각 묶음의 첫 항목이 기본값(꾹 누르고 그대로 떼면 입력), 나머지는 밀어서 선택.
      * 자주 쓰는 것을 앞쪽 키에 두었고, 괄호·따옴표는 쌍이 기본이다.
      * 숫자는 맨 윗줄에 있으므로 제외.
@@ -37,37 +37,44 @@ object Layouts {
         listOf("#"),
         listOf("&"),
         listOf("%", "°"),
-        listOf("+", "="),
+        listOf("+", "=", "±"),             // ± 는 + 의 하위 후보
         listOf("*", "×"),
         listOf(":", ";"),
         listOf("/", "|", "\\"),             // | \ 는 / 의 하위 후보
         listOf("❤\uFE0F", "♡", "💕", "💖", "💙", "💔"),   // 하트 6개 (한 줄 말풍선)
-        listOf("$", "₩"),
+        listOf("$", "₩", "€", "£", "¥"),   // 금액 단위는 $ 의 하위 후보
         listOf("`"),
         listOf("@"),                       // ☆ 키를 없애고 한 칸씩 당김: ● 가 있던 자리에 골뱅이
         listOf("_", "-", "—"),            // - 는 _ 의 하위 후보
         listOf("?"),
         listOf("!"),
-        // 이하 4개는 두벌식·영어(글자 키 26개)에서만 사용
-        listOf("€", "£", "¥"),
-        listOf("±"),
-        listOf("©", "®", "™"),
-        listOf("¿", "¡"),
+        // 이하 4개는 두벌식·영어(글자 키 26개)의 가운데 보조 키에만 놓는다 (단모음은 * 와 ~ 의 하위 후보로 들어 있음)
+        listOf("★"),
+        listOf("☆"),
+        listOf("※"),
+        listOf("♪"),
     )
 
     /**
-     * 줄별 기호 묶음. **같은 줄·같은 순서(왼쪽부터 몇 번째 글자 키)에는 어느 자판이든 같은 기호**가 온다.
-     * 단모음(8·8·6키)을 기준으로 정하고, 두벌식·영어(10·9·7키)는 그 줄의 앞쪽 키에 같은 기호를 놓은 뒤
-     * 남는 맨 오른쪽 키에만 보조 기호([EXTRA_GROUPS])를 놓는다.
+     * 줄별 기호 묶음. 단모음(8·8·6키)을 기준으로 정하고, 두벌식·영어(10·9·7키)는 **같은 묶음을 가운데에서 갈라**
+     * 왼쪽 절반은 왼쪽 끝에서부터, 오른쪽 절반은 오른쪽 끝에서부터 똑같이 놓는다. 그래서 양 끝(특히 지우기 옆)은
+     * 어느 자판이든 같은 기호이고, 가운데 보조 키([EXTRA_GROUPS])에만 자판별 차이가 있다.
      */
     private val ROW1_GROUPS = SYMBOL_GROUPS.subList(0, 8)
     private val ROW2_GROUPS = SYMBOL_GROUPS.subList(8, 16)
     private val ROW3_GROUPS = SYMBOL_GROUPS.subList(16, 22)
     private val EXTRA_GROUPS = SYMBOL_GROUPS.subList(22, 26)
 
-    private val wideRow1Groups = ROW1_GROUPS + EXTRA_GROUPS.subList(0, 2)     // 10키: 뒤 2키가 보조 기호
-    private val wideRow2Groups = ROW2_GROUPS + EXTRA_GROUPS.subList(2, 3)     // 9키: 뒤 1키가 보조 기호
-    private val wideRow3Groups = ROW3_GROUPS + EXTRA_GROUPS.subList(3, 4)     // 7키: 뒤 1키가 보조 기호
+    /** 단모음에는 가운데 보조 키가 없으니 그 기호들을 비슷한 키의 하위 후보로 넣는다: * → ※ ★ ☆, ~ → ♪ */
+    private val singleRow1Groups = ROW1_GROUPS.map { if (it[0] == "~") it + EXTRA_GROUPS[3] else it }
+    private val singleRow2Groups = ROW2_GROUPS.map { if (it[0] == "*") it + EXTRA_GROUPS[2] + EXTRA_GROUPS[0] + EXTRA_GROUPS[1] else it }
+
+    private fun <T> splitMiddle(base: List<T>, extra: List<T>) =
+        base.take(base.size / 2) + extra + base.drop(base.size / 2)
+
+    private val wideRow1Groups = splitMiddle(ROW1_GROUPS, EXTRA_GROUPS.subList(0, 2))   // 10키: 가운데 2키 ★ ☆
+    private val wideRow2Groups = splitMiddle(ROW2_GROUPS, EXTRA_GROUPS.subList(2, 3))   // 9키: 가운데 1키 ※
+    private val wideRow3Groups = splitMiddle(ROW3_GROUPS, EXTRA_GROUPS.subList(3, 4))   // 7키: 가운데 1키 ♪
 
     private fun spacer(w: Float) = Key(label = "", type = KeyType.SPACER, weight = w)
 
@@ -168,12 +175,12 @@ object Layouts {
             letters(
                 listOf("ㅂ", "ㅈ", "ㄷ", "ㄱ", "ㅅ", "ㅗ", "ㅐ", "ㅔ"),
                 listOf("ㅃ", "ㅉ", "ㄸ", "ㄲ", "ㅆ", "ㅛ", "ㅒ", "ㅖ"),
-                ROW1_GROUPS,
+                singleRow1Groups,
             ),
             letters(
                 listOf("ㅁ", "ㄴ", "ㅇ", "ㄹ", "ㅎ", "ㅓ", "ㅏ", "ㅣ"),
                 listOf(null, null, null, null, null, "ㅕ", "ㅑ", null),
-                ROW2_GROUPS,
+                singleRow2Groups,
             ),
             // 쉬프트는 이 줄의 맨 왼쪽 (예전 하단 왼쪽에서 한 줄 위로)
             listOf(shiftNarrow) +

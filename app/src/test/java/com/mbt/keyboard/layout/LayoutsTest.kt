@@ -92,10 +92,11 @@ class LayoutsTest {
 
     private fun keyWithHint(l: KeyboardLayout, hint: String) = l.rows.flatten().first { hint in it.hints }
 
-    @Test fun starsCirclesAndReferenceMarkAreRemoved() {
+    @Test fun circlesAreRemovedButStarsAndReferenceMarkAreBack() {
         Layouts.all.forEach { l ->
             val hints = allHints(l)
-            assertTrue(listOf("★", "☆", "○", "●", "※").none { it in hints })
+            assertTrue(listOf("○", "●").none { it in hints })
+            assertTrue(listOf("★", "☆", "※").all { it in hints })      // 많이 쓰는 기호라 다시 넣었다
         }
         // 빈 모양 하트 ♡ 는 하트 목록으로 옮겨 왔다
         assertTrue("♡" in keyWithHint(Layouts.koreanSingle, "❤\uFE0F").hints)
@@ -103,7 +104,8 @@ class LayoutsTest {
 
     @Test fun ellipsisIsNoLongerUnderTheTildeKey() {
         Layouts.all.forEach { l ->
-            assertEquals(listOf("~"), keyWithHint(l, "~").hints)
+            assertEquals("~", keyWithHint(l, "~").hints[0])
+            assertTrue("…" !in keyWithHint(l, "~").hints)
             // … 는 마침표 키에만 있다
             assertEquals(1, l.rows.flatten().count { "…" in it.hints })
             assertTrue("…" in keyWithHint(l, ".com").hints)
@@ -165,7 +167,7 @@ class LayoutsTest {
         assertEquals(listOf("_", "-", "—"), m["ㅍ"])           // 한 칸 당겨짐
         assertEquals(listOf("?"), m["ㅜ"])
         assertEquals(listOf("!"), m["ㅡ"])                     // 비워진 마지막 키에 느낌표
-        assertEquals(listOf("~"), m["ㅐ"])
+        assertEquals(listOf("~", "♪"), m["ㅐ"])                // ♪ 는 ~ 의 하위 후보
     }
 
     @Test fun questionAndExclamationSitOnNeighbouringKeys() {
@@ -180,7 +182,10 @@ class LayoutsTest {
         // 글자 키 묶음 안에서는 같은 기호가 중복되지 않는다
         val flat = Layouts.SYMBOL_GROUPS.flatten()
         assertEquals(flat.size, flat.toSet().size)
-        assertTrue(flat.none { it in listOf("★", "☆", "○", "●", "※", "·", "…") })
+        assertTrue(flat.none { it in listOf("○", "●", "·", "…") })
+        // 잘 안 쓰는 기호(¿ ¡ © ® ™)는 뺐고, 많이 쓰는 ★ ☆ ※ ♪ 는 넣었다
+        assertTrue(flat.none { it in listOf("¿", "¡", "©", "®", "™") })
+        assertTrue(flat.containsAll(listOf("★", "☆", "※", "♪")))
     }
 
     @Test fun rowHeightsMatchRows() {
@@ -337,16 +342,45 @@ class LayoutsTest {
 
     private fun letterRowChars(l: KeyboardLayout, row: Int) = l.rows[row].filter { it.type == KeyType.CHAR }
 
-    @Test fun sameRowAndSameOrderHasTheSameSymbolsInEveryLetterLayout() {
+    /** 두벌식·영어의 가운데 보조 키 위치 (줄 번호 → 글자 키 순번들) */
+    private val centerIdx = mapOf(1 to listOf(4, 5), 2 to listOf(4), 3 to listOf(3))
+
+    @Test fun wideLayoutsAreTheSingleLayoutSplitInTheMiddleSoBothEndsMatch() {
         for (r in Layouts.LETTER_ROW_START until Layouts.LETTER_ROW_START + 3) {
             val single = letterRowChars(Layouts.koreanSingle, r)
             listOf(Layouts.korean, Layouts.english).forEach { wide ->
                 val w = letterRowChars(wide, r)
-                single.forEachIndexed { i, key ->
-                    assertEquals("${wide.id} 줄$r ${i}번째 키", key.hints, w[i].hints)
+                val main = w.filterIndexed { i, _ -> i !in centerIdx.getValue(r) }
+                assertEquals(single.size, main.size)
+                main.forEachIndexed { i, key ->
+                    // 같은 줄, 왼쪽(오른쪽) 끝에서 같은 순서의 키는 같은 기호가 기본값
+                    assertEquals("${wide.id} 줄$r ${i}번째", single[i].hints[0], key.hints[0])
+                    // 단모음의 하위 후보는 두벌식·영어보다 많거나 같다 (★ ☆ ※ ♪ 는 가운데 키가 맡음)
+                    assertTrue(single[i].hints.containsAll(key.hints))
                 }
             }
         }
+    }
+
+    @Test fun keysNextToBackspaceHoldTheMostUsedSymbolsOnEveryLayout() {
+        // 지우기 옆 오른쪽 끝: 윗줄 ~ →, 가운데줄 : / ❤, 아랫줄 ? !
+        val tails = mapOf(1 to listOf("~", "→"), 2 to listOf(":", "/", "❤\uFE0F"), 3 to listOf("?", "!"))
+        for ((r, expected) in tails) {
+            Layouts.all.forEach { l ->
+                assertEquals("${l.id} 줄$r", expected, letterRowChars(l, r).takeLast(expected.size).map { it.hints[0] })
+            }
+        }
+    }
+
+    @Test fun similarSymbolsShareAKeyAsSubCandidates() {
+        val hints = Layouts.english.rows.flatten().filter { it.hints.isNotEmpty() }.associate { it.label to it.hints }
+        assertTrue(hints.values.any { h -> h[0] == "+" && "±" in h })
+        assertTrue(hints.values.any { h -> h[0] == "$" && h.containsAll(listOf("₩", "€", "£", "¥")) })
+    }
+
+    @Test fun singleLayoutKeepsStarsNotesAsSubCandidates() {
+        val hints = Layouts.koreanSingle.rows.flatten().flatMap { it.hints }
+        assertTrue(hints.containsAll(listOf("※", "★", "☆", "♪")))
     }
 
     @Test fun koreanDubeolsikAndEnglishHaveIdenticalSymbolsKeyByKey() {
@@ -358,18 +392,14 @@ class LayoutsTest {
         }
     }
 
-    @Test fun extraKeysOnWideLayoutsOnlyHoldTheAuxiliarySymbolsAtTheRowEnd() {
+    @Test fun extraKeysOnWideLayoutsHoldTheAuxiliarySymbolsInTheMiddleOfTheRow() {
         val extras = Layouts.SYMBOL_GROUPS.subList(22, 26)
-        // 단모음보다 키가 많은 줄: 1줄 +2, 2줄 +1, 3줄 +1 (모두 줄의 맨 오른쪽)
-        val expectedExtra = mapOf(1 to extras.subList(0, 2), 2 to extras.subList(2, 3), 3 to extras.subList(3, 4))
-        for ((row, ex) in expectedExtra) {
+        val expected = mapOf(1 to extras.subList(0, 2), 2 to extras.subList(2, 3), 3 to extras.subList(3, 4))
+        for ((row, ex) in expected) {
             listOf(Layouts.korean, Layouts.english).forEach { wide ->
-                val tail = letterRowChars(wide, row).takeLast(ex.size).map { it.hints }
-                assertEquals("${wide.id} 줄$row", ex, tail)
+                val keys = letterRowChars(wide, row)
+                assertEquals("${wide.id} 줄$row", ex, centerIdx.getValue(row).map { keys[it].hints })
             }
-            // 단모음에는 보조 기호가 없다
-            val singleHints = letterRowChars(Layouts.koreanSingle, row).flatMap { it.hints }
-            assertTrue(ex.flatten().none { it in singleHints })
         }
     }
 
