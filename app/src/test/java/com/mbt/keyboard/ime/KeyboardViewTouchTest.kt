@@ -233,6 +233,48 @@ class KeyboardViewTouchTest {
         assertEquals(0, rec.enterLongPress)
     }
 
+    // ---- 꾹 누르기 기호: 오른쪽 절반 키는 대표 기호가 맨 오른쪽
+
+    /** [label] 키를 꾹 눌러 말풍선을 열고, 가로로 [dxCells]칸(말풍선 한 칸 폭 기준) 밀어 뗀 뒤 입력된 기호 */
+    private fun longPressSelect(label: String, dxCells: Int): String? {
+        downTime = SystemClock.uptimeMillis()
+        val r = view.keyRects().first { it.first.label == label }.second
+        val x = r.centerX(); val y = r.centerY()
+        rec.texts.clear()
+        send(ev(MotionEvent.ACTION_DOWN, Triple(0, x, y)))
+        idleFor(view.longPressMs + 50)
+        val cellW = maxOf(r.width(), 44 * density)
+        val tx = x + dxCells * cellW
+        send(ev(MotionEvent.ACTION_MOVE, Triple(0, tx, y)))
+        send(ev(MotionEvent.ACTION_UP, Triple(0, tx, y)))
+        return rec.texts.firstOrNull()
+    }
+
+    @Test fun leftHalfKeyKeepsTheMainSymbolOnTheLeftAndSlidesRightForOthers() {
+        assertEquals("()", longPressSelect("ㅂ", 0))                   // 안 밀고 떼면 대표 기호
+        assertEquals("(", longPressSelect("ㅂ", 1))                    // 오른쪽으로 한 칸 → 둘째
+        assertEquals(")", longPressSelect("ㅂ", 2))
+    }
+
+    @Test fun rightHalfKeyPutsTheMainSymbolOnTheRightAndSlidesLeftForOthers() {
+        assertEquals("→", longPressSelect("ㅔ", 0))                    // 안 밀고 떼면 대표 기호 (맨 오른쪽)
+        assertEquals("←", longPressSelect("ㅔ", -1))                   // 왼쪽(안쪽)으로 한 칸 → 둘째
+        assertEquals("↑", longPressSelect("ㅔ", -2))
+        assertEquals("↓", longPressSelect("ㅔ", -3))
+    }
+
+    @Test fun rightHalfPopupSitsAboveTheKeyEndingAtItsRightEdge() {
+        // 대표 기호 칸이 눌린 키 바로 위에 오도록 말풍선의 오른쪽 끝을 키 오른쪽에 맞춘다 (화면 안으로는 유지)
+        val r = view.keyRects().first { it.first.label == "ㅣ" }.second     // 맨 오른쪽 모음
+        downTime = SystemClock.uptimeMillis()
+        send(ev(MotionEvent.ACTION_DOWN, Triple(0, r.centerX(), r.centerY())))
+        idleFor(view.longPressMs + 50)
+        val shot = android.graphics.Bitmap.createBitmap(view.width, view.height, android.graphics.Bitmap.Config.ARGB_8888)
+        view.draw(android.graphics.Canvas(shot))        // 말풍선을 그려도 예외 없이 동작
+        send(ev(MotionEvent.ACTION_UP, Triple(0, r.centerX(), r.centerY())))
+        assertEquals(listOf("❤\uFE0F"), rec.texts)       // 대표 기호(하트)가 기본 선택
+    }
+
     @Test fun tappingPasteStillPastes() {
         downTime = SystemClock.uptimeMillis()
         val a = p(0, "붙임")

@@ -762,10 +762,14 @@ class KeyboardView(context: Context) : View(context) {
                 var cellW = max(max(cell.rect.width(), 44 * density), widest)
                 cellW = min(cellW, (width - padL - padR) / n)
                 val total = cellW * n
-                val left = cell.rect.left.coerceAtMost(width - padR - total).coerceAtLeast(padL)
+                // 화면 오른쪽 절반의 키는 기본(대표) 기호를 맨 오른쪽에 놓는다: 손가락을 안쪽(왼쪽)으로 밀어 다른 기호를 고른다.
+                // 왼쪽 절반은 지금처럼 대표 기호가 맨 왼쪽이고 오른쪽으로 민다
+                val rightSide = cell.rect.centerX() > width / 2f
+                val left = if (rightSide) (cell.rect.right - total).coerceAtMost(width - padR - total).coerceAtLeast(padL)
+                else cell.rect.left.coerceAtMost(width - padR - total).coerceAtLeast(padL)
                 val top = (cell.rect.top - keyH).coerceAtLeast(0f)
                 val rects = List(n) { RectF(left + it * cellW, top, left + (it + 1) * cellW, top + keyH) }
-                Popup(key.hints, rects, selected = 0)
+                if (rightSide) Popup(key.hints.reversed(), rects, selected = n - 1) else Popup(key.hints, rects, selected = 0)
             }
             else -> null
         }
