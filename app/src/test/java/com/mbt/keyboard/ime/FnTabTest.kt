@@ -324,7 +324,8 @@ class FrostThemeTest {
         v.layout(0, 0, v.measuredWidth, v.measuredHeight)
         val tab = FnTab(ctx, v)
         tab.theme = theme
-        measure(tab, 1000)
+        tab.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        tab.layout(0, 0, tab.measuredWidth, tab.measuredHeight)
         var paths = 0
         tab.draw(object : android.graphics.Canvas() { override fun drawPath(p: android.graphics.Path, paint: android.graphics.Paint) { paths++ } })
         assertEquals(1, paths)
