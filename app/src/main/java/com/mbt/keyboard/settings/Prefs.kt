@@ -89,6 +89,7 @@ object Prefs {
             p.getInt(geoKey(large, "kg"), KeyboardGeometry.KEY_GAP_DEFAULT),
             p.getInt(geoKey(large, "rg"), KeyboardGeometry.ROW_GAP_DEFAULT),
             p.getInt(geoKey(large, "nh"), KeyboardGeometry.NUM_HEIGHT_DEFAULT),
+            p.getInt(geoKey(large, "nrg"), KeyboardGeometry.NUM_ROW_GAP_DEFAULT),
         ).clamped()
     }
 
@@ -107,6 +108,7 @@ object Prefs {
             .putInt(geoKey(large, "kg"), c.keyGapDp)
             .putInt(geoKey(large, "rg"), c.rowGapDp)
             .putInt(geoKey(large, "nh"), c.numHeightPct)
+            .putInt(geoKey(large, "nrg"), c.numRowGapDp)
             .apply()
     }
     private const val KEY_DOUBLE_TAP_MS = "double_tap_ms"

@@ -18,6 +18,7 @@ import kotlin.math.roundToInt
  * @param padBottomDp 아래쪽 여백
  * @param keyGapDp 글자 키(숫자 줄 아래 모든 줄)의 키와 키 사이 간격 (0~16dp)
  * @param rowGapDp 줄과 줄 사이 세로 여백 (0~24dp). 넓혀도 키 크기는 그대로, 키보드가 세로로 길어진다
+ * @param numRowGapDp 숫자 줄과 그 아래 첫 글자 줄 사이 세로 여백 (0~40dp). 키 크기는 그대로
  * @param numHeightPct 맨 윗줄(숫자 줄) 높이: 일반 키 높이 대비 % (40~120, 기본 80)
  */
 data class KeyboardGeometry(
@@ -33,6 +34,7 @@ data class KeyboardGeometry(
     val keyGapDp: Int = KEY_GAP_DEFAULT,
     val rowGapDp: Int = ROW_GAP_DEFAULT,
     val numHeightPct: Int = NUM_HEIGHT_DEFAULT,
+    val numRowGapDp: Int = NUM_ROW_GAP_DEFAULT,
 ) {
     /** 범위를 벗어난 값을 허용 범위 안으로 */
     fun clamped() = KeyboardGeometry(
@@ -48,6 +50,7 @@ data class KeyboardGeometry(
         keyGapDp.coerceIn(KEY_GAP_MIN, KEY_GAP_MAX),
         rowGapDp.coerceIn(ROW_GAP_MIN, ROW_GAP_MAX),
         numHeightPct.coerceIn(NUM_HEIGHT_MIN, NUM_HEIGHT_MAX),
+        numRowGapDp.coerceIn(NUM_ROW_GAP_MIN, NUM_ROW_GAP_MAX),
     )
 
     fun widerBy(steps: Int) = copy(widthPct = widthPct + steps * WIDTH_STEP).clamped()
@@ -60,6 +63,7 @@ data class KeyboardGeometry(
     fun padRightBy(steps: Int) = copy(padRightDp = padRightDp + steps * PAD_STEP).clamped()
     fun padBottomBy(steps: Int) = copy(padBottomDp = padBottomDp + steps * PAD_STEP).clamped()
     fun keyGapBy(steps: Int) = copy(keyGapDp = keyGapDp + steps * KEY_GAP_STEP).clamped()
+    fun numRowGapBy(steps: Int) = copy(numRowGapDp = numRowGapDp + steps * ROW_GAP_STEP).clamped()
     fun rowGapBy(steps: Int) = copy(rowGapDp = rowGapDp + steps * ROW_GAP_STEP).clamped()
     fun numHeightBy(steps: Int) = copy(numHeightPct = numHeightPct + steps * NUM_HEIGHT_STEP).clamped()
 
@@ -162,6 +166,10 @@ data class KeyboardGeometry(
         const val ROW_GAP_MAX = 24
         const val ROW_GAP_STEP = 1
         const val ROW_GAP_DEFAULT = 6
+
+        const val NUM_ROW_GAP_MIN = 0
+        const val NUM_ROW_GAP_MAX = 40
+        const val NUM_ROW_GAP_DEFAULT = 6
 
         const val NUM_HEIGHT_MIN = 40
         const val NUM_HEIGHT_MAX = 120

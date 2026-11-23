@@ -40,6 +40,8 @@ data class KeyboardFrame(
     val rowGapDp: Int = 6,
     /** 맨 윗줄(전체·복사·붙임·숫자) 키 높이: 일반 키 높이 대비 배율 (기본 0.8) */
     val numberRowScale: Float = 0.8f,
+    /** 숫자 줄과 그 아래 첫 글자 줄 사이 세로 여백 (키 크기는 그대로) */
+    val numberGapDp: Int = 6,
 )
 
 /**
@@ -256,8 +258,19 @@ class KeyboardView(context: Context) : View(context) {
         return base * scale
     }
 
-    /** 한 줄이 차지하는 세로 길이 = 키 높이 + 줄 사이 세로 여백 */
-    private fun rowHeightPx(r: Int) = keyBodyPx(r) + frame.rowGapDp * density
+    /**
+     * [r]줄과 그 아랫줄 사이 세로 여백(px). 숫자 줄 바로 아래는 따로 정한 값, 나머지는 줄 사이 여백.
+     * 맨 윗줄 위·맨 아랫줄 아래 가장자리 여백은 줄 사이 여백과 같은 값을 쓴다.
+     */
+    private fun gapBelowPx(r: Int): Float {
+        val dp = if (isNumberRow(r) && r + 1 < rowCount) frame.numberGapDp else frame.rowGapDp
+        return dp * density
+    }
+
+    private fun gapAbovePx(r: Int) = if (r == 0) frame.rowGapDp * density else gapBelowPx(r - 1)
+
+    /** 한 줄이 차지하는 세로 길이 = 키 높이 + 위아래 여백의 절반씩 (이웃 줄과 여백을 반반 나눠 가진다) */
+    private fun rowHeightPx(r: Int) = keyBodyPx(r) + gapAbovePx(r) / 2f + gapBelowPx(r) / 2f
 
     private fun contentHeight() = (0 until rowCount).sumOf { rowHeightPx(it).toDouble() }.toFloat()
 
@@ -284,7 +297,8 @@ class KeyboardView(context: Context) : View(context) {
             val rowH = rowHeightPx(r)
             // 가로: 키 사이 간격의 절반씩 / 세로: 줄 사이 여백의 절반씩 비운다
             val gapX = frame.keyGapDp / 2f * density
-            val gapY = frame.rowGapDp / 2f * density
+            val gapTop = gapAbovePx(r) / 2f
+            val gapBottom = gapBelowPx(r) / 2f
             rowTops[r] = top
             val rowList = ArrayList<Cell>()
             // 나눠쓰기 아닐 때는 틈 0인 한 묶음, 나눠쓰기일 때는 두 묶음 + 가운데 틈. 키 크기 비율은 항상 원래 레이아웃 그대로
@@ -306,7 +320,7 @@ class KeyboardView(context: Context) : View(context) {
             for (pl in Split.place(halves, padL, usableW, gapW)) {
                 if (pl.part.key.type == KeyType.SPACER) continue
                 val rect = RectF(pl.left, top, pl.right, top + rowH)
-                val cell = Cell(pl.part.key, rect, RectF(rect).apply { inset(gapX, gapY) }, pl.part in dups)
+                val cell = Cell(pl.part.key, rect, RectF(rect.left + gapX, rect.top + gapTop, rect.right - gapX, rect.bottom - gapBottom), pl.part in dups)
                 out += cell
                 rowList += cell
             }

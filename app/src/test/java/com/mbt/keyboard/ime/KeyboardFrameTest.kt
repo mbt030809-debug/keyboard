@@ -296,11 +296,30 @@ class RowGapFrameTest {
         view.frame = KeyboardFrame(rowGapDp = 14); relayout()
         assertEquals(keyH, inner("ㅂ").height(), 0.01f)                // 키 높이는 그대로
         assertEquals(14f, (inner("ㅁ").top - inner("ㅂ").bottom) / density, 0.05f)
-        // 줄이 5개라 여백이 (14-6)dp씩 늘어난 만큼 키보드가 길어진다
-        assertEquals(heightBefore + 5 * 8 * density, view.measuredHeight.toFloat(), 2f)
+        // 위·아래 가장자리 반 칸씩(+4+4)과 글자 줄 사이 3곳(+8씩)이 늘어난다. 숫자 줄 아래 여백은 따로라 그대로
+        assertEquals(heightBefore + (4 + 4 + 3 * 8) * density, view.measuredHeight.toFloat(), 2f)
         view.frame = KeyboardFrame(rowGapDp = 0); relayout()
         assertEquals(keyH, inner("ㅂ").height(), 0.01f)
         assertEquals(0f, (inner("ㅁ").top - inner("ㅂ").bottom) / density, 0.05f)
+    }
+
+    @Test fun gapBetweenNumberRowAndLetterRowIsSeparate() {
+        fun numGap() = (inner("ㅂ").top - inner("1").bottom) / density
+        fun letterGap() = (inner("ㅁ").top - inner("ㅂ").bottom) / density
+        assertEquals(6f, numGap(), 0.05f)
+        val keyH = inner("ㅂ").height(); val numH = inner("1").height()
+        val before = view.measuredHeight
+        view.frame = KeyboardFrame(numberGapDp = 20); relayout()
+        assertEquals(20f, numGap(), 0.05f)
+        assertEquals(6f, letterGap(), 0.05f)                            // 글자 줄 사이는 그대로
+        assertEquals(keyH, inner("ㅂ").height(), 0.01f)                 // 키 크기 그대로
+        assertEquals(numH, inner("1").height(), 0.01f)
+        assertEquals(before + 14 * density, view.measuredHeight.toFloat(), 2f)
+        view.frame = KeyboardFrame(rowGapDp = 12, numberGapDp = 0); relayout()
+        assertEquals(0f, numGap(), 0.05f)
+        assertEquals(12f, letterGap(), 0.05f)
+        // 맨 위 키는 가장자리 여백 안쪽에서 시작 (위쪽 여백 4dp + 줄 사이 여백의 절반)
+        assertEquals(4f + 6f, inner("1").top / density, 0.1f)
     }
 
     @Test fun horizontalGapStaysIndependentOfTheRowGap() {

@@ -160,5 +160,8 @@ class NumberRowGeometryTest {
         assertEquals(40, g.numHeightBy(-99).numHeightPct)
         assertEquals(120, g.numHeightBy(99).numHeightPct)
         assertEquals(85, g.numHeightBy(1).numHeightPct)            // 5%씩
+        assertEquals(6, g.numRowGapDp)
+        assertEquals(0, g.numRowGapBy(-99).numRowGapDp)
+        assertEquals(40, g.numRowGapBy(99).numRowGapDp)
     }
 }
