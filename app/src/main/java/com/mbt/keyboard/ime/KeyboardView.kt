@@ -522,12 +522,7 @@ class KeyboardView(context: Context) : View(context) {
             -135f to 'ㅣ', -45f to 'ㅣ', 45f to 'ㅡ', 135f to 'ㅡ',
         )
         val cx = c.rect.centerX(); val cy = c.rect.centerY()
-        // 첫 획이 → ← ↑ ↓ 로 정해지면 8방향 안내 대신, 이어서 그을 방향마다 거기에 "무슨 모음이 되는지" 안내를 띄운다
-        val prefix = moaPrefix(p, c)
-        val options = if (p.moaVowel != null && prefix.isNotEmpty() && prefix[0] in "RLUD") MoakiGesture.next(prefix) else emptyList()
-        if (options.isNotEmpty()) {
-            drawMoaOptions(canvas, p, options)
-        } else for ((deg, v) in spots) {
+        for ((deg, v) in spots) {
             val rad2 = Math.toRadians(deg.toDouble())
             val x = (cx + rad * kotlin.math.cos(rad2)).toFloat().coerceIn(d / 2f, width - d / 2f)
             val y = (cy + rad * kotlin.math.sin(rad2)).toFloat().coerceAtLeast(d / 2f)
@@ -560,53 +555,6 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
-
-    /** 지금까지 그은 획들 + 지금 긋고 있는 획의 방향 (첫 획이 짧아 아직 없으면 빈 글자) */
-    private fun moaPrefix(p: Pointer, c: Cell): String {
-        val sb = StringBuilder(p.moaStrokes)
-        val t = if (p.moaStrokes.isEmpty()) max(c.rect.width() * 0.30f, 12 * density) else max(c.rect.width() * 0.20f, 9 * density)
-        if (kotlin.math.hypot(p.moaFx - p.moaAx, p.moaFy - p.moaAy) >= t) {
-            sb.append(MoakiGesture.token(degOf(p.moaFx - p.moaAx, p.moaFy - p.moaAy)))
-        }
-        return sb.toString()
-    }
-
-    /**
-     * 모아키: 이어서 그을 수 있는 모음을 "실제로 가야 하는 방향"에 띄운다. 손가락이 있는 곳(획의 끝)에서 다음 획 방향으로
-     * 한 칸 떨어진 자리에 모음과 긋는 방향을 보여준다. 같은 방향으로 시작하는 후보(ㅘ와 ㅙ: 둘 다 →로 시작)는
-     * 그 방향 자리에서 나란히 쌓는다. 지금 해석된 모음의 칸은 강조색.
-     */
-    private fun drawMoaOptions(canvas: Canvas, p: Pointer, options: List<MoakiGesture.Next>) {
-        val d = keyHeightPx * 0.82f
-        val ax = p.moaFx; val ay = p.moaFy                       // 손가락(획의 끝)
-        for (dir in "RLUD") {
-            val group = options.filter { it.dir == dir }
-            if (group.isEmpty()) continue
-            val (ux, uy) = when (dir) { 'R' -> 1f to 0f; 'L' -> -1f to 0f; 'U' -> 0f to -1f; else -> 0f to 1f }
-            group.forEachIndexed { i, o ->
-                val off = (i - (group.size - 1) / 2f) * d * 1.08f      // 같은 방향 후보는 가로/세로로 비껴 쌓는다
-                val cx = (ax + ux * d * 1.15f + (-uy) * off).coerceIn(d / 2f, width - d / 2f)
-                val cy = (ay + uy * d * 1.15f + ux * off).coerceIn(d / 2f, (height - d / 2f).coerceAtLeast(d / 2f))
-                val box = RectF(cx - d / 2f, cy - d / 2f, cx + d / 2f, cy + d / 2f)
-                val chosen = p.moaVowel == o.vowel
-                paint.style = Paint.Style.FILL
-                paint.color = if (chosen) theme.accent else theme.solid(theme.key)
-                canvas.drawRoundRect(box, d * 0.28f, d * 0.28f, paint)
-                paint.style = Paint.Style.STROKE
-                paint.strokeWidth = 1.5f * density
-                paint.color = theme.solid(theme.keyPressed)
-                canvas.drawRoundRect(box, d * 0.28f, d * 0.28f, paint)
-                paint.style = Paint.Style.FILL
-                paint.color = if (chosen) theme.onAccent else theme.text
-                paint.textSize = d * 0.5f
-                drawCentered(canvas, o.vowel.toString(), RectF(box.left, box.top, box.right, box.top + d * 0.68f))
-                paint.textSize = d * 0.24f
-                paint.alpha = if (chosen) 255 else 190
-                drawCentered(canvas, o.path, RectF(box.left, box.top + d * 0.58f, box.right, box.bottom))
-                paint.alpha = 255
-            }
-        }
-    }
 
     /** 키보드 위쪽 가운데의 둥근 ↶ 표시. 완전히 불투명하고 글자는 없다 */
     private fun drawUndoMark(canvas: Canvas) {
