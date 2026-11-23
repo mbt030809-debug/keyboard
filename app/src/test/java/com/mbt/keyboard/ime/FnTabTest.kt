@@ -378,7 +378,7 @@ class FrostThemeTest {
     }
 }
 
-/** 글래스 테마: 키보드 판 맨 위 10dp는 뒤 앱이 비치는 띠 (탭과 같은 불투명도 → 아래로 페이드) */
+/** 글래스 테마: 키보드 판 맨 위 6dp는 뒤 앱이 비치는 띠 (탭과 같은 불투명도 → 아래로 페이드) */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class FrostFadeTest {
@@ -409,14 +409,14 @@ class FrostFadeTest {
         val d = ctx.resources.displayMetrics.density
         val (content, tabH, region) = insetsFor("iosglass_holo", tab = true)
         assertTrue(tabH > 0)
-        assertEquals(tabH + 10 * d, content.toFloat(), 1.5f)           // 탭 높이 + 띠 10dp 만큼 앱을 더 깐다
+        assertEquals(tabH + 6 * d, content.toFloat(), 1.5f)            // 탭 높이 + 띠 6dp 만큼 앱을 더 깐다
     }
 
     @Test fun glassThemeWithoutTabStillGetsTheFadeStrip() {
         val d = ctx.resources.displayMetrics.density
         val (content, tabH, region) = insetsFor("iosglass_holo", tab = false)
         assertEquals(0, tabH)
-        assertEquals(10 * d, content.toFloat(), 1.5f)
+        assertEquals(6 * d, content.toFloat(), 1.5f)
     }
 
     @Test fun tabAndKeyboardAreSeparatedByATwoDpGap() {
@@ -458,7 +458,7 @@ class FrostFadeTest {
         val v = KeyboardView(ctx).also { it.theme = theme; it.keyboardLayout = Layouts.english; it.frostFadeAlpha = 0.5f }
         v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
         v.layout(0, 0, v.measuredWidth, v.measuredHeight)
-        assertEquals(10 * ctx.resources.displayMetrics.density, v.frostFadePx(), 0.01f)
+        assertEquals(6 * ctx.resources.displayMetrics.density, v.frostFadePx(), 0.01f)
         var layers = 0
         v.draw(object : android.graphics.Canvas() {
             override fun saveLayer(l: Float, t: Float, r: Float, b: Float, p: android.graphics.Paint?): Int { layers++; return 1 }

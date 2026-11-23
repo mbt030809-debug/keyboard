@@ -1459,7 +1459,7 @@ class KeyboardView(context: Context) : View(context) {
         const val LABEL_WIDTH_FACTOR = 1.35f
         const val FROST_BLUR_DIV = 10
         const val FROST_KEY_RADIUS_SCALE = 1.15f
-        const val FROST_FADE_DP = 10f
+        const val FROST_FADE_DP = 6f
         const val FN_TAB_GAP_DP = 2f
 
         /** 유리판 위 빛띠: (투명 → 옅은 넓은 띠 → 좁고 밝은 띠 → …) 비스듬한 방향 */
