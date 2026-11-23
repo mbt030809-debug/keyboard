@@ -1008,7 +1008,7 @@ class KeyboardView(context: Context) : View(context) {
     private companion object {
         /** 갈라진 자판의 복제 키 가로 비중 (원래 키는 1) */
         /** 왼쪽 세로 띠(숫자 2열)가 줄 폭에서 차지하는 비율 */
-        const val SIDE_STRIP_FRACTION = 0.19f
+        const val SIDE_STRIP_FRACTION = 0.15f
         const val UNDO_MARK_DP = 52f
         const val UNDO_MARK_MS = 900L
         const val DUPLICATE_WEIGHT = 0.85f

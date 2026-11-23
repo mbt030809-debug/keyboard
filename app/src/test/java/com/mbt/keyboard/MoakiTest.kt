@@ -97,6 +97,16 @@ class MoakiTest {
         assertTrue(rect("전체").left < digits.minOf { it.right })
     }
 
+    @Test fun sideDigitStripIsNarrowerNowAndConsonantsGetTheRoom() {
+        val digits = view.keyRects().filter { it.first.label in "1234567890".map { c -> c.toString() } }.map { it.second }
+        val stripW = digits.maxOf { it.right } - digits.minOf { it.left }
+        val usable = view.width - 2 * 4 * density
+        assertEquals(0.15f, stripW / usable, 0.01f)                           // 줄 폭의 15% (예전 19%)
+        // 자음 키 한 칸은 (남은 폭 / 6): 예전보다 넓다
+        val cons = rect("ㅂ").width()
+        assertTrue(cons > (usable * 0.81f) / 6f)
+    }
+
     @Test fun tappingASideDigitTypesIt() {
         fun tapKey(label: String) {
             downTime = SystemClock.uptimeMillis()
