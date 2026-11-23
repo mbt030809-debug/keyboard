@@ -460,8 +460,8 @@ class KeyboardView(context: Context) : View(context) {
     /** 숫자 띠의 왼쪽 끝 x(키보드 기준): 탭 버튼이 이 선에 맞도록 탭을 놓는다 */
     fun fnTabAnchorPx(): Float = padL
 
-    /** 탭과 키보드 사이의 작은 틈 (약 2dp). 글래스 테마는 탭이 판에 이어 붙으므로 0 */
-    fun fnTabGapPx(): Float = if (theme.frost) 0f else FN_TAB_GAP_DP * density
+    /** 탭과 키보드 사이의 작은 틈 (약 2dp) */
+    fun fnTabGapPx(): Float = FN_TAB_GAP_DP * density
 
     /** 탭 전체 높이 = 위 바탕 + 버튼 + 아래 바탕 */
     fun fnTabHeightPx(): Float = fnTabPadPx() + fnKeyHeightPx() + fnTabPadBottomPx()
@@ -665,7 +665,10 @@ class KeyboardView(context: Context) : View(context) {
 
     private val fadeMaskPaint = Paint().apply { xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN) }
 
-    /** 글래스 테마에서 전복붙 탭이 판 위에 딱 붙어 이어지는가 (탭이 켜져 있고 보일 때. [KeyboardHost]가 정한다) */
+    /**
+     * 글래스 테마에서 전복붙 탭이 판과 "같은 유리 표면"을 쓰는가 (탭이 켜져 있고 보일 때. [KeyboardHost]가 정한다).
+     * 탭은 판과 떨어진 둥근 알약 그대로이고, 번짐 배경·빛·빛띠만 판에서 이어져 한 장의 유리로 보인다.
+     */
     var frostTabAttached: Boolean = false
         set(v) { if (field != v) { field = v; invalidate() } }
 
@@ -676,8 +679,8 @@ class KeyboardView(context: Context) : View(context) {
     /** 탭 전체 폭 (탭 뷰의 onMeasure와 같은 식) */
     fun fnTabWidthPx(): Float = fnTabLeftPx() + 3 * fnKeyWidthPx() + fnTabRightPx()
 
-    /** 판 위쪽에 이어 붙은 탭 높이(px). 이어 붙지 않으면 0 */
-    private fun frostExtraTopPx(): Float = if (frostTabAttached && fnTab && theme.frost) fnTabHeightPx() else 0f
+    /** 판 위쪽에 놓인 탭(과 그 아래 틈)이 차지하는 높이(px). 같은 표면을 쓰지 않으면 0 */
+    private fun frostExtraTopPx(): Float = if (frostTabAttached && fnTab && theme.frost) fnTabHeightPx() + fnTabGapPx() else 0f
 
     /**
      * 유리 표면(흐린 번짐 배경 + 투명 흰색 + 위쪽 빛 + 비스듬한 빛띠)을 판 좌표계의 [l,t,r,b] 칸에 그린다.
@@ -712,8 +715,9 @@ class KeyboardView(context: Context) : View(context) {
     fun drawFrostTabSurface(canvas: Canvas, tabW: Float, tabH: Float, alpha: Int) {
         ensureFrostBitmaps()
         val layer = canvas.saveLayerAlpha(0f, 0f, tabW, tabH, alpha)
-        canvas.translate(-frostTabLeftPx, tabH)
-        drawFrostSurface(canvas, frostTabLeftPx, -tabH, frostTabLeftPx + tabW, 0f)
+        val shift = tabH + fnTabGapPx()                     // 탭 아래 틈만큼 위쪽: 탭 좌표 → 판 좌표
+        canvas.translate(-frostTabLeftPx, shift)
+        drawFrostSurface(canvas, frostTabLeftPx, -shift, frostTabLeftPx + tabW, -shift + tabH)
         canvas.restoreToCount(layer)
     }
 
@@ -723,13 +727,8 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawFrostPlate(canvas: Canvas) {
         ensureFrostBitmaps()
         val w = width.toFloat(); val h = height.toFloat()
-        val extra = frostExtraTopPx()
         val layer = canvas.saveLayer(0f, 0f, w, h, null)
-        var (rl, rr) = frostPlateRadiiPx()
-        // 탭이 맞닿은 모서리는 둥글리지 않는다 (탭과 한 덩어리로 이어지도록)
-        val tabL = frostTabLeftPx; val tabR = frostTabLeftPx + fnTabWidthPx()
-        if (extra > 0f && tabL <= 1f) rl = 0f
-        if (extra > 0f && tabR >= w - 1f) rr = 0f
+        val (rl, rr) = frostPlateRadiiPx()
         glassPath.rewind()
         glassPath.addRoundRect(RectF(0f, 0f, w, h), floatArrayOf(rl, rl, rr, rr, 0f, 0f, 0f, 0f), Path.Direction.CW)
         canvas.save()
@@ -740,9 +739,8 @@ class KeyboardView(context: Context) : View(context) {
         fadeMaskPaint.shader = LinearGradient(0f, 0f, 0f, frostFadePx(), ((frostFadeAlpha * 255f).toInt().coerceIn(0, 255) shl 24) or 0x00FFFFFF, 0xFFFFFFFF.toInt(), Shader.TileMode.CLAMP)
         canvas.drawRect(0f, 0f, w, h, fadeMaskPaint)
         canvas.restoreToCount(layer)
-        // 림: 밝은 가장자리 선 (2dp) + 안쪽 가는 선. 탭이 붙은 위쪽 구간은 선을 긋지 않는다 (탭과 한 덩어리로 보이게)
+        // 림: 밝은 가장자리 선 (2dp) + 안쪽 가는 선
         canvas.save()
-        if (extra > 0f) canvas.clipOutRect(tabL, -1f, tabR, 6 * density)
         glassPaint.style = Paint.Style.STROKE
         glassPaint.strokeWidth = 2 * density
         glassPaint.shader = frostRimShader(w, h)

@@ -467,7 +467,7 @@ class FrostFadeTest {
     }
 }
 
-/** 글래스 테마: 전복붙 탭이 키보드 판 위에 딱 붙어 한 장의 유리로 이어진다 */
+/** 글래스 테마: 전복붙 탭은 판과 떨어진 둥근 알약 그대로, 재질(번짐 배경·빛·빛띠)만 판과 같은 한 장의 유리 */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class FrostTabJoinTest {
@@ -488,39 +488,39 @@ class FrostTabJoinTest {
         return Triple(v, tab, host)
     }
 
-    @Test fun glassThemeTabSitsFlushOnThePlateWithNoGap() {
-        val (v, tab, host) = setup("iosglass_holo")
-        assertEquals(0f, v.fnTabGapPx(), 0.01f)
-        assertEquals(tab.height, (host.layoutParams as FrameLayout.LayoutParams).topMargin)   // 탭 바로 아래가 판 맨 위
-        assertTrue(v.frostTabAttached)
+    @Test fun everyThemeKeepsTheTwoDpGapBetweenTabAndPlate() {
+        for (id in listOf("iosglass_holo", "charcoal")) {
+            val (v, tab, host) = setup(id)
+            assertEquals(id, 2 * d, v.fnTabGapPx(), 0.01f)
+            assertEquals(id, tab.height + (2 * d).toInt(), (host.layoutParams as FrameLayout.LayoutParams).topMargin)
+        }
+        assertTrue(setup("iosglass_holo").first.frostTabAttached)
+        assertTrue(!setup("charcoal").first.frostTabAttached)
     }
 
-    @Test fun otherThemesKeepTheirTwoDpGapAndAreNotAttached() {
-        val (v, tab, host) = setup("charcoal")
-        assertEquals(2 * d, v.fnTabGapPx(), 0.01f)
-        assertEquals(tab.height + (2 * d).toInt(), (host.layoutParams as FrameLayout.LayoutParams).topMargin)
-        assertTrue(!v.frostTabAttached)
-    }
-
-    @Test fun plateSkipsItsTopRimAndCornerUnderTheTabAndTabDrawsTheSameSurface() {
+    @Test fun glassTabStaysARoundedPillOnAllFourCornersAndSharesTheSurface() {
         val (v, tab, _) = setup("iosglass_holo")
-        // 판: 탭이 닿은 위쪽 구간의 림을 건너뛴다 (clipOutRect)
-        var clipOuts = 0; var layerAlphas = 0
         v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
         v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+        // 판: 림을 건너뛰는 일이 없다 (탭은 떨어져 있으므로)
+        var clipOuts = 0
         v.draw(object : android.graphics.Canvas() {
             override fun saveLayer(l: Float, t: Float, r: Float, b: Float, p: android.graphics.Paint?): Int = save()
             override fun clipOutRect(l: Float, t: Float, r: Float, b: Float): Boolean { clipOuts++; return true }
             override fun clipPath(path: android.graphics.Path): Boolean = true
         })
-        assertEquals(1, clipOuts)
-        // 탭: 판과 같은 표면을 알파 레이어로 (뒤 앱이 비치게)
+        assertEquals(0, clipOuts)
+        // 탭: 판과 같은 표면을 알파 레이어로 그리고, 둥근 알약 테두리를 긋는다
         tab.alphaPercent = 50
+        var layerAlphas = 0; var strokes = 0
         tab.draw(object : android.graphics.Canvas() {
             override fun saveLayerAlpha(l: Float, t: Float, r: Float, b: Float, a: Int): Int { layerAlphas++; assertEquals(127, a); return save() }
             override fun clipPath(path: android.graphics.Path): Boolean = true
+            override fun drawPath(path: android.graphics.Path, p: android.graphics.Paint) { strokes++ }
         })
         assertEquals(1, layerAlphas)
+        assertEquals(1, strokes)
+        assertTrue(FnTab.plateRadii(10f, 6f, bottom = true).all { it > 0f })       // 네 모서리 모두 둥글게
     }
 
     @Test fun backdropCoversTheTabAreaToo() {
@@ -534,6 +534,6 @@ class FrostTabJoinTest {
             override fun drawBitmap(b: android.graphics.Bitmap, s: android.graphics.Rect?, dst: android.graphics.RectF, p: android.graphics.Paint?) { sizes += b.height }
         })
         assertTrue(sizes.isNotEmpty())
-        assertTrue("판 높이 + 탭 높이: ${sizes.first()} vs ${v.measuredHeight}", sizes.first() > v.measuredHeight)
+        assertTrue("판 높이 + 탭 + 틈: ${sizes.first()} vs ${v.measuredHeight}", sizes.first() > v.measuredHeight)
     }
 }
