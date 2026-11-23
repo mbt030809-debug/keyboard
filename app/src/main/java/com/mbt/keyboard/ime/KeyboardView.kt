@@ -77,6 +77,10 @@ class KeyboardView(context: Context) : View(context) {
         fun onEnterLongPress()
         /** 지우기 키를 왼쪽으로 밀기: 지운 글자 되돌리기 */
         fun onUndoDelete() {}
+        /** 모아키: 자음 [key]를 누른 채 모음 [vowel] 방향으로 밀었다 */
+        fun onMoaki(key: Key, vowel: Char) {}
+        /** 모아키 모음 키: 탭(ㅣ) 또는 밀기(ㅡ ㅏ ㅗ ㅜ ㅓ) */
+        fun onMoaVowel(vowel: Char) {}
     }
 
     var listener: Listener? = null
@@ -194,6 +198,8 @@ class KeyboardView(context: Context) : View(context) {
     private inner class Pointer(val downX: Float, val downY: Float) {
         var cell: Cell? = null
         var popup: Popup? = null
+        /** 모아키: 지금 미는 방향이 가리키는 모음 (아직 안 밀었으면 null) */
+        var moaVowel: Char? = null
         /** 글자 키 위 스와이프로 커서 이동 중 */
         var cursorDrag = false
         var dragAnchorX = 0f
@@ -455,8 +461,30 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
         for (i in 0 until pointers.size()) pointers.valueAt(i).popup?.let { drawPopup(canvas, it) }
+        for (i in 0 until pointers.size()) drawMoaPreview(canvas, pointers.valueAt(i))
         message?.let { drawMessage(canvas, it) }
         if (undoMark) drawUndoMark(canvas)
+    }
+
+    /** 모아키: 미는 동안 완성될 글자(예: ㄱ→ㅏ 이면 "가")를 키 위에 크게 미리 보여준다 */
+    private fun drawMoaPreview(canvas: Canvas, p: Pointer) {
+        val c = p.cell ?: return
+        val v = p.moaVowel ?: return
+        val text = if (c.key.type == KeyType.MOA_VOWEL) v.toString() else {
+            val comp = com.mbt.keyboard.hangul.HangulComposer()
+            comp.input(c.key.output[0]); comp.input(v); comp.composing
+        }
+        val h = keyHeightPx * 1.05f
+        val w = h * 1.1f
+        val cx = c.rect.centerX().coerceIn(w / 2f + padL, width - padR - w / 2f)
+        val top = (c.rect.top - h - 6 * density).coerceAtLeast(0f)
+        val r = RectF(cx - w / 2f, top, cx + w / 2f, top + h)
+        paint.style = Paint.Style.FILL
+        paint.color = theme.accent
+        canvas.drawRoundRect(r, 12 * density, 12 * density, paint)
+        paint.color = theme.onAccent
+        paint.textSize = h * 0.62f
+        drawCentered(canvas, text, r)
     }
 
     /** 키보드 위쪽 가운데의 둥근 ↶ 표시. 완전히 불투명하고 글자는 없다 */
@@ -663,6 +691,14 @@ class KeyboardView(context: Context) : View(context) {
             }
             return
         }
+        // 모아키: 자음·모음 키 위의 밀기는 커서 이동이 아니라 모음 입력
+        if (keyboardLayout?.moaki == true) {
+            val c = p.cell
+            if (c != null && (isMoaConsonant(c.key) || c.key.type == KeyType.MOA_VOWEL)) {
+                handleMoaDrag(p, c, x, y)
+                return
+            }
+        }
         // 글자 키 위에서 좌우로 밀면 커서 이동
         if (p.cursorDrag || startsCursorDrag(p, x, y)) {
             handleCursorDrag(p, x)
@@ -675,6 +711,44 @@ class KeyboardView(context: Context) : View(context) {
             p.cell = h
             invalidateCell(h)
             onPressedChanged(p, isDown = false)
+        }
+    }
+
+    private fun isMoaConsonant(key: Key) =
+        key.type == KeyType.CHAR && key.output.length == 1 && com.mbt.keyboard.hangul.Jamo.isConsonant(key.output[0])
+
+    /** 모아키 밀기 방향·거리 → 모음. 키 폭의 30% 미만은 그냥 탭, 125% 이상은 "길게"(ㅑㅕㅛㅠ) */
+    private fun handleMoaDrag(p: Pointer, c: Cell, x: Float, y: Float) {
+        val dx = x - p.downX
+        val dy = y - p.downY
+        val kw = c.rect.width()
+        val dist = kotlin.math.hypot(dx, dy)
+        val shortPx = max(kw * 0.30f, 12 * density)
+        val longPx = kw * 1.25f
+        val v: Char? = if (dist < shortPx) null else moaVowelFor(c.key, dx, dy, dist >= longPx)
+        if (v != p.moaVowel) {
+            p.moaVowel = v
+            if (v != null) { p.cancelTimers(); haptics?.tick() }   // 밀기 시작하면 꾹 누르기(기호 말풍선)는 취소
+            invalidate()
+        }
+    }
+
+    private fun moaVowelFor(key: Key, dx: Float, dy: Float, long: Boolean): Char {
+        val horizontal = abs(dx) >= abs(dy)
+        return if (key.type == KeyType.MOA_VOWEL) {
+            when {
+                horizontal && dx > 0 -> 'ㅏ'
+                horizontal -> if (long) 'ㅓ' else 'ㅡ'
+                dy < 0 -> 'ㅗ'
+                else -> 'ㅜ'
+            }
+        } else {
+            when {
+                horizontal && dx > 0 -> if (long) 'ㅑ' else 'ㅏ'
+                horizontal -> if (long) 'ㅕ' else 'ㅓ'
+                dy < 0 -> if (long) 'ㅛ' else 'ㅗ'
+                else -> if (long) 'ㅠ' else 'ㅜ'
+            }
         }
     }
 
@@ -732,6 +806,9 @@ class KeyboardView(context: Context) : View(context) {
                     listener?.onShiftPress(true)
                     listener?.onShiftPress(false)
                 }
+                cell != null && keyboardLayout?.moaki == true && isMoaConsonant(cell.key) && p.moaVowel != null ->
+                    listener?.onMoaki(cell.key, p.moaVowel!!)
+                cell != null && cell.key.type == KeyType.MOA_VOWEL -> listener?.onMoaVowel(p.moaVowel ?: 'ㅣ')
                 cell != null && cell.key.type !in REPEAT_TYPES -> listener?.onKey(cell.key)
             }
         }

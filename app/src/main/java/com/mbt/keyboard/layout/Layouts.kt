@@ -228,6 +228,45 @@ object Layouts {
         splitAt = listOf(null, null, null, 6, null),
     )
 
+    /** 모아키 자판 (한글 자판 선택지) */
+    const val MOA = "moa"
+
+    private fun moaSymbol(c: String, hints: List<String> = emptyList()) = Key(c, hints = hints)
+
+    /** 모아키의 자음 키: 같은 자음의 꾹 누르기 기호는 단모음과 똑같이 둔다 (일관성) */
+    private fun moaConsonant(c: String) =
+        Key(c, hints = koreanSingle.rows.flatten().firstOrNull { it.label == c && it.type == KeyType.CHAR }?.hints.orEmpty())
+
+    /**
+     * 한글 모아키. 삼성 모아키 배열: 윗줄 쌍자음(ㅃㅉㄸㄲㅆ), 그 아래 ㅂㅈㄷㄱㅅ / ㅁㄴㅇㄹㅎ / ㅋㅌㅊㅍ,
+     * 양옆에 기호 키(~ ^ ; * / ! ? .). 숫자는 맨 윗줄에 둔다.
+     * 자음 키를 누른 채 밀면: → ㅏ, ← ㅓ, ↑ ㅗ, ↓ ㅜ (길게 밀면 ㅑ ㅕ ㅛ ㅠ). ㅡ·ㅣ·겹모음은 오른쪽 아래 모음 키.
+     */
+    val moaki: KeyboardLayout by lazy {
+        KeyboardLayout(
+            MOA, "모아키",
+            listOf(
+                numberRow,
+                listOf(moaSymbol("~")) + "ㅃㅉㄸㄲㅆ".map { Key(it.toString()) } + moaSymbol("!"),
+                listOf(moaSymbol("^")) + "ㅂㅈㄷㄱㅅ".map { moaConsonant(it.toString()) } + moaSymbol("?"),
+                listOf(moaSymbol(";")) + "ㅁㄴㅇㄹㅎ".map { moaConsonant(it.toString()) } + moaSymbol(".", listOf("…", ".com", "·")),
+                listOf(moaSymbol("*")) + "ㅋㅌㅊㅍ".map { moaConsonant(it.toString()) } + Key("⌫", KeyType.BACKSPACE, weight = 2f),
+                listOf(
+                    Key("🎤", KeyType.VOICE, weight = 1.0f),
+                    Key("😊", KeyType.EMOJI, weight = 1.3f),
+                    Key(",", hints = listOf("'", "\"")),
+                    Key("", KeyType.SPACE, output = " ", weight = 3.4f),
+                    Key("ㅡㅣ", KeyType.MOA_VOWEL, weight = 1.0f),
+                    Key("⏎", KeyType.ENTER, weight = 1.3f),
+                ),
+            ),
+            List(6) { 1f },
+            hangul = true,
+            splittable = false,
+            moaki = true,
+        )
+    }
+
     /** 숫자 입력칸(숫자·날짜) 전용 키패드 */
     const val NUM = "num"
     /** 전화번호 입력칸 전용 키패드 */
@@ -267,7 +306,7 @@ object Layouts {
     /** 입력칸 종류에 따라 자동으로 뜨는 키패드 */
     val pads = listOf(numberPad, phonePad)
 
-    fun byId(id: String) = (all + pads).first { it.id == id }
+    fun byId(id: String) = (all + pads + moaki).first { it.id == id }
 
     fun isPad(id: String) = id == NUM || id == PHONE
 }

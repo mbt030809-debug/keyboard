@@ -8,6 +8,8 @@ enum class KeyType {
     EMOJI,
     /** 숫자 키패드에서 글자 자판으로 돌아가기 */
     LETTERS,
+    /** 모아키의 모음 키: 탭 ㅣ, 밀기 ㅡ·ㅏ·ㅗ·ㅜ (ㅓ는 왼쪽 길게) */
+    MOA_VOWEL,
 }
 
 /**
@@ -42,4 +44,6 @@ data class KeyboardLayout(
     val splitAt: List<Int?> = emptyList(),
     /** 나눠쓰기(갈라진 자판)를 적용할 수 있는가. 숫자 키패드는 4칸뿐이라 나누지 않는다 */
     val splittable: Boolean = true,
+    /** 모아키: 자음 키를 누른 채 모음 방향으로 밀면 자음+모음이 한 번에 입력된다 */
+    val moaki: Boolean = false,
 )

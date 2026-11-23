@@ -191,7 +191,7 @@ object Prefs {
     /** 한/영 전환 시 사용할 한글 자판 (기본: 단모음) */
     fun koreanLayout(context: Context): String {
         val id = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString(KEY_KOREAN, Layouts.KOS)
-        return if (id == Layouts.KO) Layouts.KO else Layouts.KOS
+        return when (id) { Layouts.KO -> Layouts.KO; Layouts.MOA -> Layouts.MOA; else -> Layouts.KOS }
     }
 
     fun setKoreanLayout(context: Context, id: String) {

@@ -65,6 +65,20 @@ class HangulComposer {
         return null
     }
 
+    /**
+     * 모아키: 마지막 모음에 ㅣ를 더해 ㅏ→ㅐ, ㅓ→ㅔ, ㅑ→ㅒ, ㅕ→ㅖ 로 바꾼다 (ㅗㅏ+ㅣ → ㅙ 도 마찬가지).
+     * 바꿀 수 없으면 null (호출자가 ㅣ를 일반 입력)
+     */
+    fun combineWithI(): Output? {
+        if (buffer.isEmpty()) return null
+        val mapped = I_COMBO[buffer.last()] ?: return null
+        val head = buffer.substring(0, buffer.length - 1)
+        if (parse(head + mapped) == null) return null
+        buffer.setLength(buffer.length - 1)
+        buffer.append(mapped)
+        return Output("", render(buffer.toString()))
+    }
+
     /** 지금 조합 중인 글자가 받침 없이 모음으로 끝나는 완성 글자인가 (예: 어, 가, 와) */
     fun isOpenSyllable(): Boolean {
         val syl = parse(buffer.toString()) ?: return false
@@ -98,6 +112,10 @@ class HangulComposer {
     fun reset() = buffer.clear()
 
     // ---- 내부 ----
+
+    private companion object {
+        val I_COMBO = mapOf('ㅏ' to 'ㅐ', 'ㅓ' to 'ㅔ', 'ㅑ' to 'ㅒ', 'ㅕ' to 'ㅖ')
+    }
 
     private class Syllable(
         val cho: Char?,

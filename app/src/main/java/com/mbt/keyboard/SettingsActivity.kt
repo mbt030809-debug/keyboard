@@ -174,9 +174,18 @@ class SettingsActivity : AppCompatActivity() {
 
         // 한글 자판 선택: 고르는 즉시 저장
         val radio = findViewById<RadioGroup>(R.id.radioLayout)
-        radio.check(if (Prefs.koreanLayout(this) == Layouts.KO) R.id.radioDubeolsik else R.id.radioSingle)
+        radio.check(
+            when (Prefs.koreanLayout(this)) {
+                Layouts.KO -> R.id.radioDubeolsik
+                Layouts.MOA -> R.id.radioMoaki
+                else -> R.id.radioSingle
+            },
+        )
         radio.setOnCheckedChangeListener { _, checked ->
-            Prefs.setKoreanLayout(this, if (checked == R.id.radioDubeolsik) Layouts.KO else Layouts.KOS)
+            Prefs.setKoreanLayout(
+                this,
+                when (checked) { R.id.radioDubeolsik -> Layouts.KO; R.id.radioMoaki -> Layouts.MOA; else -> Layouts.KOS },
+            )
         }
 
         // 상용문구: 입력하는 즉시 저장
