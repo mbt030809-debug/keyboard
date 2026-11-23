@@ -149,6 +149,17 @@ class KeyboardViewTouchTest {
         assertTrue(rec.keys.isEmpty())
     }
 
+    @Test fun swipingLeftOnSpaceTogglesTooSoDirectionDoesNotMatter() {
+        downTime = SystemClock.uptimeMillis()
+        val (x, y) = center("")
+        send(ev(MotionEvent.ACTION_DOWN, Triple(0, x, y)))
+        send(ev(MotionEvent.ACTION_MOVE, Triple(0, x - 60 * density, y)))
+        send(ev(MotionEvent.ACTION_MOVE, Triple(0, x - 90 * density, y)))
+        send(ev(MotionEvent.ACTION_UP, Triple(0, x - 90 * density, y)))
+        assertEquals(1, rec.swipeSpace)
+        assertTrue(rec.keys.isEmpty())
+    }
+
     @Test fun horizontalSwipeOnLetterMovesCursorAndTypesNothing() {
         downTime = SystemClock.uptimeMillis()
         val (x, y) = center("ㅁ")
