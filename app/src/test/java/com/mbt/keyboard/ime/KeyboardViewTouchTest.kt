@@ -162,6 +162,26 @@ class KeyboardViewTouchTest {
         assertTrue(rec.keys.isEmpty())
     }
 
+    private fun backspaceCountAfterHolding(intervalMs: Long, holdMs: Long): Int {
+        view.repeatIntervalMs = intervalMs
+        rec.keys.clear()
+        downTime = SystemClock.uptimeMillis()
+        val back = view.keyRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.BACKSPACE }.second
+        send(ev(MotionEvent.ACTION_DOWN, Triple(0, back.centerX(), back.centerY())))
+        org.robolectric.shadows.ShadowLooper.idleMainLooper(holdMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        val bs = com.mbt.keyboard.layout.Layouts.koreanSingle.rows.flatten().first { it.type == com.mbt.keyboard.layout.KeyType.BACKSPACE }.label
+        val n = rec.keys.count { it == bs }
+        send(ev(MotionEvent.ACTION_UP, Triple(0, back.centerX(), back.centerY())))
+        return n
+    }
+
+    @Test fun holdingBackspaceDeletesFasterWhenTheIntervalIsShorter() {
+        val slow = backspaceCountAfterHolding(200, 400 + 1000)      // 첫 삭제 + 반복 시작(0.4초) 후 1초
+        val fast = backspaceCountAfterHolding(25, 400 + 1000)
+        assertTrue("slow=$slow fast=$fast", fast > slow * 3)
+        assertTrue(slow in 4..8)                                    // 1초에 약 5번 + 첫 번
+    }
+
     @Test fun swipingBackspaceLeftUndoesOnceAndRightDoesNothing() {
         downTime = SystemClock.uptimeMillis()
         val back = view.keyRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.BACKSPACE }.second

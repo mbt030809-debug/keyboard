@@ -114,6 +114,9 @@ class KeyboardView(context: Context) : View(context) {
     /** 꾹 누르기로 인식하는 시간 (설정 화면에서 변경) */
     var longPressMs: Long = Timing.LONG_PRESS_DEFAULT_MS
 
+    /** 지우기 키를 꾹 누를 때 한 글자씩 지우는 간격 (설정 화면에서 변경) */
+    var repeatIntervalMs: Long = Timing.repeatIntervalMs(Timing.REPEAT_CPS_DEFAULT)
+
     var theme: KeyboardTheme = KeyboardTheme.system(context)
         set(v) { field = v; requestLayout(); invalidate() }
 
@@ -216,7 +219,7 @@ class KeyboardView(context: Context) : View(context) {
         val repeat = object : Runnable {
             override fun run() {
                 cell?.let { listener?.onKey(it.key) }
-                handler.postDelayed(this, REPEAT_INTERVAL_MS)
+                handler.postDelayed(this, repeatIntervalMs)
             }
         }
 
@@ -778,7 +781,6 @@ class KeyboardView(context: Context) : View(context) {
         /** 옛 고정 간격(키 높이에서 빼던 값) */
         const val LEGACY_GAP_DP = 6f
         const val REPEAT_DELAY_MS = 400L
-        const val REPEAT_INTERVAL_MS = 45L
         const val SWIPE_THRESHOLD_DP = 40f
         const val SLOP_DP = 8f
         /** 스페이스바의 "한 EN" 표시와 🎤 아이콘을 이만큼(dp) 작게 */

@@ -37,4 +37,13 @@ class TimingTest {
         assertEquals("0.3초", Timing.seconds(300))
         assertTrue(Timing.seconds(200).endsWith("초"))
     }
+
+    @Test fun repeatSpeedMapsToInterval() {
+        assertEquals(45L, Timing.repeatIntervalMs(22))             // 기본은 예전 고정값(45ms)
+        assertEquals(200L, Timing.repeatIntervalMs(5))
+        assertEquals(25L, Timing.repeatIntervalMs(40))
+        assertEquals(25L, Timing.repeatIntervalMs(999))            // 범위 밖은 끝값으로
+        assertEquals(200L, Timing.repeatIntervalMs(0))
+        assertTrue((Timing.REPEAT_CPS_MIN..Timing.REPEAT_CPS_MAX).map { Timing.repeatIntervalMs(it) }.zipWithNext().all { (a, b) -> a >= b })  // 빠를수록 간격이 같거나 짧다
+    }
 }

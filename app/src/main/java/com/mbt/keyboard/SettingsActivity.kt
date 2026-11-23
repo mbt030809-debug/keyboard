@@ -110,6 +110,16 @@ class SettingsActivity : AppCompatActivity() {
             if (fromUser) Prefs.setLongPressMs(this, ms)
         }
 
+        // 지우기 속도: 초당 글자 수
+        val sliderRepeat = findViewById<Slider>(R.id.sliderRepeat)
+        val valueRepeat = findViewById<TextView>(R.id.valueRepeat)
+        sliderRepeat.value = Prefs.repeatCps(this).toFloat()
+        valueRepeat.text = getString(R.string.timing_repeat_value, Prefs.repeatCps(this))
+        sliderRepeat.addOnChangeListener { _, value, fromUser ->
+            valueRepeat.text = getString(R.string.timing_repeat_value, value.toInt())
+            if (fromUser) Prefs.setRepeatCps(this, value.toInt())
+        }
+
         // 진동 피드백: 바꾸는 즉시 저장하고 체험 진동
         val preview = Haptics(this)
         val sw = findViewById<MaterialSwitch>(R.id.switchHaptic)

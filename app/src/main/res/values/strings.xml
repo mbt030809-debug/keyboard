@@ -63,6 +63,9 @@
     <string name="timing_title">입력 타이밍</string>
     <string name="timing_pause_label">연타 기준 (단모음 쌍자음)</string>
     <string name="timing_pause_desc">같은 키를 이 시간 안에 두 번 치면 ㄱ→ㄲ, ㅏ→ㅑ 로 바뀌어요. 이 시간이 지난 뒤에 치면 바뀌지 않고 ㄱ 다음에 ㄱ이 따로 입력돼요 (예: 0.3초)</string>
+    <string name="timing_repeat_label">지우기 속도 (꾹 누를 때)</string>
+    <string name="timing_repeat_desc">백스페이스를 꾹 누르고 있을 때 글자가 지워지는 속도예요. 오른쪽으로 갈수록 빨라요</string>
+    <string name="timing_repeat_value">초당 %1$d자</string>
     <string name="timing_long_label">꾹 누르는 시간</string>
     <string name="timing_long_desc">글자 키의 기호 말풍선, 엔터의 상용구가 열리기까지 누르고 있어야 하는 시간이에요</string>
     <string name="split_title">갈라진 자판</string>

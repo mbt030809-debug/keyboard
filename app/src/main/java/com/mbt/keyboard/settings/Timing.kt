@@ -20,6 +20,16 @@ object Timing {
     const val LONG_PRESS_MAX_MS = 800L
     const val LONG_PRESS_STEP_MS = 50L
 
+    /** 지우기 키를 꾹 누를 때 초당 지워지는 글자 수 (기본 22자 ≈ 45ms 간격) */
+    const val REPEAT_CPS_DEFAULT = 22
+    const val REPEAT_CPS_MIN = 5
+    const val REPEAT_CPS_MAX = 40
+
+    fun snapRepeatCps(cps: Int) = cps.coerceIn(REPEAT_CPS_MIN, REPEAT_CPS_MAX)
+
+    /** 초당 글자 수 → 반복 간격(밀리초) */
+    fun repeatIntervalMs(cps: Int): Long = (1000.0 / snapRepeatCps(cps)).roundToLong()
+
     fun snapDoubleTap(ms: Long) = snap(ms, DOUBLE_TAP_MIN_MS, DOUBLE_TAP_MAX_MS, DOUBLE_TAP_STEP_MS)
 
     fun snapLongPress(ms: Long) = snap(ms, LONG_PRESS_MIN_MS, LONG_PRESS_MAX_MS, LONG_PRESS_STEP_MS)

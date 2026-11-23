@@ -112,6 +112,17 @@ object Prefs {
             .apply()
     }
     private const val KEY_DOUBLE_TAP_MS = "double_tap_ms"
+    const val KEY_REPEAT_CPS = "repeat_cps"
+
+    /** 지우기 키를 꾹 누를 때 초당 지워지는 글자 수 (기본 22) */
+    fun repeatCps(context: Context): Int =
+        Timing.snapRepeatCps(
+            context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_REPEAT_CPS, Timing.REPEAT_CPS_DEFAULT),
+        )
+
+    fun setRepeatCps(context: Context, cps: Int) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_REPEAT_CPS, Timing.snapRepeatCps(cps)).apply()
     private const val KEY_LONG_PRESS_MS = "long_press_ms"
 
     /** 단모음 연타 기준: 이 시간 안에 같은 키를 다시 치면 쌍자음·쌍모음 (기본 0.35초) */
