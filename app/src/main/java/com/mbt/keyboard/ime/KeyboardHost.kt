@@ -35,7 +35,9 @@ object KeyboardHost {
         val top = if (on) (keyboard.fnTabHeightPx() + keyboard.fnTabGapPx()).toInt().coerceAtLeast(1) else 0
         if (hostLp.topMargin != top) { hostLp.topMargin = top; host.layoutParams = hostLp }
         val tabLp = tab.layoutParams as FrameLayout.LayoutParams
-        if (tabLp.leftMargin != hostLp.leftMargin) { tabLp.leftMargin = hostLp.leftMargin; tab.layoutParams = tabLp }
+        // 탭 버튼이 숫자 띠와 같은 선에 오도록: 탭 바탕이 여백만큼 왼쪽으로 나온다 (화면 밖이면 거기까지만)
+        val tabLeft = (hostLp.leftMargin + keyboard.fnTabAnchorPx() - keyboard.fnTabPadPx()).toInt().coerceAtLeast(0)
+        if (tabLp.leftMargin != tabLeft) { tabLp.leftMargin = tabLeft; tab.layoutParams = tabLp }
         tab.visibility = when {
             !on -> View.GONE
             keyboardVisible -> View.VISIBLE

@@ -109,11 +109,10 @@ class FnTabTest {
         colors.forEach { assertEquals(127f, (it ushr 24).toFloat(), 1f) }                // 바탕·버튼 같은 반투명
     }
 
-    @Test fun plateIsRoundedOnTopAndSquareAtTheBottom() {
+    @Test fun plateIsDrawnAsOnePathWithLeftAndRightCornerRadii() {
         val r = FnTab.plateRadii(10f)
         assertEquals(listOf(10f, 10f, 10f, 10f), r.take(4))      // 좌상·우상
         assertEquals(listOf(10f, 10f, 4f, 4f), FnTab.plateRadii(10f, 4f).take(4))
-        assertEquals(listOf(0f, 0f, 0f, 0f), r.drop(4))          // 우하·좌하 = 사각
         // 실제로 바탕은 경로로 그려진다 (둥근 사각형 호출이 아니라)
         val v = keyView(true, true)
         val tab = FnTab(ctx, v)
@@ -126,21 +125,29 @@ class FnTabTest {
         assertEquals(1, paths)
     }
 
-    @Test fun plateMarginsFollowTheKeyboardSettings() {
-        for (f in listOf(KeyboardFrame(), KeyboardFrame(leftDp = 10, topDp = 12, rightDp = 2, rowGapDp = 14, keyGapDp = 2))) {
-            val v = KeyboardView(ctx).also { it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english; it.frame = f; measure(it) }
-            val d = ctx.resources.displayMetrics.density
-            // 키보드의 키 둘레와 똑같다: 첫 숫자 키는 키보드 왼쪽에서 (왼쪽 여백 + 키 간격/2), 위에서는 (위 여백 + 줄 여백/2)
+    @Test fun tabButtonsLineUpWithTheDigitStripWhateverTheTabPadIs() {
+        val d = ctx.resources.displayMetrics.density
+        for (pad in listOf(0, 4, 9)) {
+            val v = KeyboardView(ctx).also {
+                it.numberLeft = true; it.fnTab = true; it.fnTabPadDp = pad; it.keyboardLayout = Layouts.english
+                it.frame = KeyboardFrame(leftDp = 12); measure(it)
+            }
+            val host = FrameLayout(ctx).also { it.layoutParams = FrameLayout.LayoutParams(1000, -2).also { lp -> lp.leftMargin = 6 } }
+            val tab = FnTab(ctx, v)
+            FrameLayout(ctx).also { it.addView(host); it.addView(tab, FrameLayout.LayoutParams(-2, -2)) }
+            com.mbt.keyboard.ime.KeyboardHost.applyFnTab(host, tab, v, true)
             val digit = v.keyInnerRects().first { it.first.label == "1" }.second
-            assertEquals(digit.left, v.fnTabLeftPx() + v.fnTabInsetPx(), 1f)
-            assertEquals(digit.top, v.fnTabPadPx(), 1f)
-            assertEquals(f.rightDp * d, v.fnTabRightPx() + v.fnTabInsetPx(), 0.5f)
+            val tabLeft = (tab.layoutParams as FrameLayout.LayoutParams).leftMargin
+            // 탭 버튼의 눈에 보이는 왼쪽 = 탭 왼쪽 + 탭 여백 = 숫자 키 왼쪽 + 호스트 왼쪽 여백
+            assertEquals("pad=$pad", 6 + digit.left, tabLeft + pad * d, 1f)
+            assertEquals(pad * d, v.fnTabLeftPx() + v.fnTabInsetPx(), 0.01f)
+            assertEquals(pad * d, v.fnTabRightPx() + v.fnTabInsetPx(), 0.01f)
         }
     }
 
     @Test fun noLeftoverSpaceWhenAllMarginSettingsAreZero() {
         val f = KeyboardFrame(leftDp = 0, topDp = 0, rightDp = 0, bottomDp = 0, keyGapDp = 0, rowGapDp = 0)
-        val v = KeyboardView(ctx).also { it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english; it.frame = f; measure(it) }
+        val v = KeyboardView(ctx).also { it.numberLeft = true; it.fnTab = true; it.fnTabPadDp = 0; it.keyboardLayout = Layouts.english; it.frame = f; measure(it) }
         assertEquals(0f, v.fnTabPadPx(), 0.01f)
         assertEquals(0f, v.fnTabPadBottomPx(), 0.01f)
         assertEquals(0f, v.fnTabLeftPx() + v.fnTabInsetPx(), 0.01f)
@@ -165,10 +172,13 @@ class FnTabTest {
         assertEquals(plate[3], first[3], 0.5f)
     }
 
-    @Test fun tabPaddingOnAllFourSidesFollowsTheFourMarginSettings() {
-        for (f in listOf(KeyboardFrame(), KeyboardFrame(leftDp = 10, topDp = 12, rightDp = 2, bottomDp = 7, keyGapDp = 2, rowGapDp = 14))) {
-            val v = KeyboardView(ctx).also { it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english; it.frame = f; measure(it) }
-            val d = ctx.resources.displayMetrics.density
+    @Test fun tabPaddingIsItsOwnSettingEqualOnAllFourSides() {
+        val ctxd = ctx.resources.displayMetrics.density
+        assertEquals(4, Prefs.fnTabPadDp(ctx))
+        Prefs.setFnTabPadDp(ctx, 99); assertEquals(Prefs.FN_TAB_PAD_MAX, Prefs.fnTabPadDp(ctx))
+        Prefs.setFnTabPadDp(ctx, -3); assertEquals(Prefs.FN_TAB_PAD_MIN, Prefs.fnTabPadDp(ctx))
+        for (pad in listOf(0, 4, 11)) for (f in listOf(KeyboardFrame(), KeyboardFrame(leftDp = 10, topDp = 12, rightDp = 2, bottomDp = 7, keyGapDp = 2, rowGapDp = 14))) {
+            val v = KeyboardView(ctx).also { it.numberLeft = true; it.fnTab = true; it.fnTabPadDp = pad; it.keyboardLayout = Layouts.english; it.frame = f; measure(it) }
             val tab = FnTab(ctx, v)
             measure(tab, 1000)
             val rects = ArrayList<FloatArray>()
@@ -179,10 +189,11 @@ class FnTabTest {
                 override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { rects += floatArrayOf(l, t, r, b) }
             })
             val plate = rects.first(); val buttons = rects.drop(1)
-            assertEquals("${f} 위", f.topDp * d, buttons.minOf { it[1] } - plate[1], 0.6f)
-            assertEquals("${f} 아래", f.bottomDp * d, plate[3] - buttons.maxOf { it[3] }, 0.6f)
-            assertEquals("${f} 왼쪽", f.leftDp * d, buttons.minOf { it[0] } - plate[0], 0.6f)
-            assertEquals("${f} 오른쪽", f.rightDp * d, plate[2] - buttons.maxOf { it[2] }, 1.01f)
+            val want = pad * ctxd
+            assertEquals("pad=$pad 위", want, buttons.minOf { it[1] } - plate[1], 0.6f)
+            assertEquals("pad=$pad 아래", want, plate[3] - buttons.maxOf { it[3] }, 0.6f)
+            assertEquals("pad=$pad 왼쪽", want, buttons.minOf { it[0] } - plate[0], 0.6f)
+            assertEquals("pad=$pad 오른쪽", want, plate[2] - buttons.maxOf { it[2] }, 1.01f)
         }
     }
 
@@ -316,11 +327,9 @@ class FrostThemeTest {
         }
     }
 
-    @Test fun glassThemeTabIsRoundedOnTheBottomToo() {
-        val sq = FnTab.plateRadii(10f, 10f)
-        assertEquals(listOf(0f, 0f, 0f, 0f), sq.drop(4))                           // 일반 테마: 아래 사각
+    @Test fun tabIsRoundedOnTheBottomInEveryTheme() {
         val round = FnTab.plateRadii(10f, 6f, bottom = true)
-        assertTrue(round.all { it > 0f })                                          // 글래스 테마: 네 모서리 모두 둥글게
+        assertTrue(round.all { it > 0f })                                          // 네 모서리 모두 둥글게
         // 실제 탭도 글래스 테마에서는 경로를 4모서리 둥글게 그린다
         val theme = com.mbt.keyboard.ime.KeyboardThemes.byId("iosglass_holo")!!.theme
         val v = KeyboardView(ctx).also { it.theme = theme; it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english }

@@ -441,20 +441,24 @@ class KeyboardView(context: Context) : View(context) {
         return ((region - (n - 1) * rowGap - bottomHalf) / n).coerceAtLeast(1f)
     }
 
-    /** 탭 버튼 칸이 시작하는 x (숫자 띠 칸과 같은 선). 버튼 자체는 여기서 키 간격/2만큼 안쪽 = 왼쪽 여백 위치 */
-    fun fnTabLeftPx(): Float = padL - halfKeyGapPx
+    /** 전복붙 탭 바탕이 버튼 둘레로 내미는 폭(dp). 위·아래·왼쪽·오른쪽 모두 같다 (전복붙 설정에서 따로 정한다) */
+    var fnTabPadDp: Int = 4
+        set(v) { if (field != v) { field = v; requestLayout(); invalidate() } }
 
-    /**
-     * 탭 바탕의 둘레 여백은 키보드 설정을 그대로 따른다: 키보드가 키 둘레에 두는 것과 똑같이
-     * 위·왼쪽·오른쪽 = 각 여백 설정 그대로 (키 사이 간격/2는 버튼 칸 안쪽에 이미 들어 있다)
-     */
-    fun fnTabPadPx(): Float = frame.topDp * density
+    /** 탭 버튼 칸이 시작하는 x (탭 안쪽 기준). 버튼 자체는 여기서 키 간격/2만큼 안쪽 = 탭 여백 위치 */
+    fun fnTabLeftPx(): Float = fnTabPadPx() - halfKeyGapPx
 
-    /** 탭 바탕의 오른쪽 여백 */
-    fun fnTabRightPx(): Float = padR - halfKeyGapPx
+    /** 탭 바탕의 둘레 여백 (네 방향 동일): 전복붙 설정의 "탭 여백" */
+    fun fnTabPadPx(): Float = fnTabPadDp * density
 
-    /** 탭 버튼 아래 바탕 폭 = "아래쪽 여백" 설정 (위·왼쪽·오른쪽 여백과 똑같이 설정을 그대로 따른다) */
-    fun fnTabPadBottomPx(): Float = frame.bottomDp * density
+    /** 탭 바탕의 오른쪽 여백 (키 간격/2는 버튼 칸 안쪽에 이미 들어 있다) */
+    fun fnTabRightPx(): Float = fnTabPadPx() - halfKeyGapPx
+
+    /** 탭 버튼 아래 바탕 폭 (네 방향 동일) */
+    fun fnTabPadBottomPx(): Float = fnTabPadPx()
+
+    /** 숫자 띠의 왼쪽 끝 x(키보드 기준): 탭 버튼이 이 선에 맞도록 탭을 놓는다 */
+    fun fnTabAnchorPx(): Float = padL
 
     /** 탭과 키보드 사이의 작은 틈 (둘이 딱 붙어 보이지 않게 약 2dp) */
     fun fnTabGapPx(): Float = FN_TAB_GAP_DP * density

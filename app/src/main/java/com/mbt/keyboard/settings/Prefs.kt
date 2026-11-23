@@ -147,6 +147,18 @@ object Prefs {
             .putInt(geoKey(large, "h3"), c.hit3Dp)
             .apply()
     }
+    const val KEY_FN_TAB_PAD = "fn_tab_pad_dp"
+    const val FN_TAB_PAD_MIN = 0
+    const val FN_TAB_PAD_MAX = 20
+
+    /** 전복붙 탭 바탕이 버튼 둘레(위·아래·왼쪽·오른쪽)로 내미는 폭 dp. 네 방향 모두 같은 값 (기본 4) */
+    fun fnTabPadDp(context: Context): Int =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_FN_TAB_PAD, 4).coerceIn(FN_TAB_PAD_MIN, FN_TAB_PAD_MAX)
+
+    fun setFnTabPadDp(context: Context, dp: Int) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_FN_TAB_PAD, dp.coerceIn(FN_TAB_PAD_MIN, FN_TAB_PAD_MAX)).apply()
+
     const val KEY_FN_TAB = "fn_tab"
     const val KEY_FN_TAB_ALPHA = "fn_tab_alpha_pct"
     const val KEY_FN_TAB_HEIGHT = "fn_tab_height_pct"

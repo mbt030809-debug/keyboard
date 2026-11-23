@@ -82,7 +82,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (::host.isInitialized && key == Prefs.KEY_THEME) applyTheme()
-        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE || key == Prefs.KEY_NUMBER_LEFT || key == Prefs.KEY_FONT_SCALE || key == Prefs.KEY_FN_TAB || key == Prefs.KEY_FN_TAB_ALPHA || key == Prefs.KEY_FN_TAB_HEIGHT)) loadTimings()
+        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE || key == Prefs.KEY_NUMBER_LEFT || key == Prefs.KEY_FONT_SCALE || key == Prefs.KEY_FN_TAB || key == Prefs.KEY_FN_TAB_ALPHA || key == Prefs.KEY_FN_TAB_HEIGHT || key == Prefs.KEY_FN_TAB_PAD)) loadTimings()
         if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen" || key == Prefs.KEY_SPLIT_DUP)) {
             updateSplit(resources.configuration)
             applyGeometry(resources.configuration)
@@ -209,6 +209,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.numberLeft = Prefs.numberKeysLeft(this)
         view.fontScale = Prefs.fontScalePercent(this) / 100f
         view.fnTabHeightScale = Prefs.fnTabHeightPercent(this) / 100f
+        view.fnTabPadDp = Prefs.fnTabPadDp(this)
         view.frostFadeAlpha = Prefs.fnTabAlphaPercent(this) / 100f
         refreshFnTab()
     }

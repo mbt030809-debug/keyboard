@@ -146,6 +146,10 @@ class ResizeActivity : AppCompatActivity() {
                     { Prefs.setFnTabHeightPercent(this, Prefs.fnTabHeightPercent(this) + it * FN_TAB_HEIGHT_STEP) },
                     { "${Prefs.fnTabHeightPercent(this)}%" },
                     { Prefs.fnTabHeightPercent(this) > Prefs.FN_TAB_HEIGHT_MIN }, { Prefs.fnTabHeightPercent(this) < Prefs.FN_TAB_HEIGHT_MAX })
+                addStepper(R.string.resize_tab_pad,
+                    { Prefs.setFnTabPadDp(this, Prefs.fnTabPadDp(this) + it) },
+                    { "${Prefs.fnTabPadDp(this)}dp" },
+                    { Prefs.fnTabPadDp(this) > Prefs.FN_TAB_PAD_MIN }, { Prefs.fnTabPadDp(this) < Prefs.FN_TAB_PAD_MAX })
             },
             Page(R.string.resize_page_hit, R.string.resize_title_hit, R.string.resize_badge_hit, R.string.resize_desc_hit, ResizeDiagram.Part.HIT) {
                 addStepper(R.string.resize_hit0, { geometry = geometry.hit0By(it) }, { signedDp(geometry.hit0Dp) },
@@ -178,6 +182,7 @@ class ResizeActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.resetButton).setOnClickListener {
             geometry = KeyboardGeometry()
             Prefs.setFnTabHeightPercent(this, 100)
+            Prefs.setFnTabPadDp(this, 4)
             refresh()
         }
         findViewById<MaterialButton>(R.id.doneButton).setOnClickListener { finish() }
@@ -278,6 +283,7 @@ class ResizeActivity : AppCompatActivity() {
         val tabOn = Prefs.fnTabEnabled(this) && keyboard.hasSideStrip
         keyboard.fnTab = tabOn
         keyboard.fnTabHeightScale = Prefs.fnTabHeightPercent(this) / 100f
+        keyboard.fnTabPadDp = Prefs.fnTabPadDp(this)
         fnTab.alphaPercent = Prefs.fnTabAlphaPercent(this)
         KeyboardHost.applyFnTab(host, fnTab, keyboard, tabOn)
         steppers.forEach {

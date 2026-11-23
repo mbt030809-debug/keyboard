@@ -67,7 +67,7 @@
     <string name="resize_title_gap">③ 키 사이 간격</string>
     <string name="resize_title_numrow">④ 숫자줄 크기</string>
     <string name="resize_title_numgap">⑤ 숫자줄 여백</string>
-    <string name="resize_title_tab">⑥ 전복붙 높이</string>
+    <string name="resize_title_tab">⑥ 전복붙 높이·여백</string>
     <string name="resize_title_hit">⑦ 터치 인식 영역 (고급)</string>
     <string name="resize_badge_base">기준</string>
     <string name="resize_badge_1">① 고정</string>
@@ -81,12 +81,13 @@
     <string name="resize_desc_gap">키와 키 사이의 가로·세로 빈칸이에요 (주황색 부분). 바깥 여백은 안 변하고 키 크기만 달라져요</string>
     <string name="resize_desc_numrow">숫자 줄의 크기예요. 숫자가 왼쪽 띠에 있으면 띠의 가로 길이, 위 줄에 있으면 줄 높이가 돼요</string>
     <string name="resize_desc_numgap">숫자 줄(띠)과 글자 키 사이의 빈칸이에요 (주황색 부분). 왼쪽 띠면 가로, 위 줄이면 세로 간격이에요</string>
-    <string name="resize_desc_tab">키보드 위에 떠 있는 반투명 전복붙(전체·복사·붙임) 버튼의 높이예요. 숫자 키 높이를 100%로 봐요</string>
+    <string name="resize_desc_tab">키보드 위에 떠 있는 반투명 전복붙(전체·복사·붙임) 탭이에요. 버튼 높이는 숫자 키 높이를 100%로 보고, 탭 여백은 버튼 둘레(위·아래·왼쪽·오른쪽)의 바탕 폭이에요</string>
     <string name="resize_desc_hit">화면에는 안 보이지만 손가락이 닿았을 때 어느 줄로 볼지 정하는 경계예요. + 면 아래로 넓히고 − 면 위로 좁혀요</string>
     <string name="resize_note_tab">숫자 키를 왼쪽에 둔 자판에서만 보여요. 설정 앱 › 화면 탭에서 탭을 켜고 끌 수 있어요</string>
     <string name="resize_prev">◀ 이전</string>
     <string name="resize_next">다음 ▶</string>
     <string name="resize_tab_height">탭 버튼 높이</string>
+    <string name="resize_tab_pad">탭 여백 (상하좌우 같게)</string>
     <string name="resize_reset">초기화</string>
     <string name="resize_done">완료</string>
     <string name="version_label">버전 %1$s (빌드 %2$d)</string>

@@ -156,11 +156,14 @@ class ResizeActivityTest {
                 goTo(a, 3); step(a, 0, plus = true)                                          // ④ 숫자줄 크기 +5%
                 goTo(a, 4); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑤ 숫자줄 여백 +2
                 goTo(a, 5); step(a, 0, plus = false)                                         // ⑥ 전복붙 높이 -5%
+                step(a, 1, plus = true); step(a, 1, plus = true)                             // 탭 여백 +2
                 val g = Prefs.geometry(a, large = false)
                 assertEquals(7, g.keyGapDp); assertEquals(4, g.rowGapDp)
                 assertEquals(85, g.numHeightPct); assertEquals(8, g.numRowGapDp)
                 assertEquals(95, Prefs.fnTabHeightPercent(a))
+                assertEquals(6, Prefs.fnTabPadDp(a))
                 assertEquals("95%", value(a, 0))
+                assertEquals("6dp", value(a, 1))
                 assertEquals(View.VISIBLE, a.findViewById<View>(R.id.pageNote).visibility)    // 전복붙 안내
             }
         }
@@ -177,6 +180,7 @@ class ResizeActivityTest {
                 a.findViewById<View>(R.id.resetButton).performClick()
                 assertEquals(KeyboardGeometry(), Prefs.geometry(a, large = false))
                 assertEquals(100, Prefs.fnTabHeightPercent(a))
+                assertEquals(4, Prefs.fnTabPadDp(a))
             }
         }
     }
