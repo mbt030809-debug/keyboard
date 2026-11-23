@@ -20,9 +20,6 @@ object MoakiGesture {
         "EI" to 'ㅢ', "EU" to 'ㅢ',
     )
 
-    /** 한 획만 길게 밀었을 때의 ㅑㅕㅛㅠ (예전 방식, 왕복과 함께 쓸 수 있다) */
-    private val LONG: Map<Char, Char> = mapOf('ㅏ' to 'ㅑ', 'ㅓ' to 'ㅕ', 'ㅗ' to 'ㅛ', 'ㅜ' to 'ㅠ')
-
     /** 각도(화면 기준, 아래가 +90°) → 획 글자. 위쪽 대각선=ㅣ(I), 아래쪽 대각선=ㅡ(E), 나머지는 45° 칸의 가운데 */
     fun token(deg: Float): Char = when {
         deg in -157.5f..-112.5f || deg in -67.5f..-22.5f -> 'I'
@@ -35,17 +32,11 @@ object MoakiGesture {
 
     /**
      * 획 순서 → 모음. 표에 없으면 가장 긴 앞부분으로 해석한다 (예: "RU"는 "R" → ㅏ). 해석할 수 없으면 null.
-     * @param longSingle 한 획을 길게 밀었는가 (ㅏ→ㅑ 등)
      */
-    fun decode(strokes: String, longSingle: Boolean = false): Char? {
+    fun decode(strokes: String): Char? {
         if (strokes.isEmpty()) return null
-        TABLE[strokes]?.let { base ->
-            return if (strokes.length == 1 && longSingle) LONG[base] ?: base else base
-        }
-        for (n in strokes.length - 1 downTo 1) {
-            val base = TABLE[strokes.substring(0, n)] ?: continue
-            return if (n == 1 && longSingle) LONG[base] ?: base else base
-        }
+        TABLE[strokes]?.let { return it }
+        for (n in strokes.length - 1 downTo 1) TABLE[strokes.substring(0, n)]?.let { return it }
         return null
     }
 }

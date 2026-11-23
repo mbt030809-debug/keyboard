@@ -176,7 +176,6 @@ class MoakiTest {
         assertEquals('ㅢ', gesture(0.45f to 0.45f, 0f to 0f))                   // 5시로 갔다가 11시 방향으로 돌아옴 (ㅡ → ㅣ)
         assertEquals('ㅏ', gesture(0.5f to 0f))
         assertEquals('ㅜ', gesture(0f to 0.5f))
-        assertEquals('ㅑ', gesture(1.5f to 0f))                                  // 길게 밀기(예전 방식)도 유지
     }
 
     @Test fun smallWigglesDoNotSplitStrokes() {
@@ -208,11 +207,12 @@ class MoakiTest {
         drag("ㄴ", dxKeys = -0.15f, dyKeys = 0.6f); assertEquals("ㄴ" to 'ㅜ', moa.last())    // 6시 근처
     }
 
-    @Test fun longDragMakesTheYVowels() {
-        drag("ㅎ", dxKeys = 1.5f); assertEquals("ㅎ" to 'ㅑ', moa.last())
-        drag("ㅎ", dxKeys = -1.5f); assertEquals("ㅎ" to 'ㅕ', moa.last())
-        drag("ㅎ", dyKeys = -1.5f); assertEquals("ㅎ" to 'ㅛ', moa.last())
-        drag("ㅎ", dyKeys = 1.5f); assertEquals("ㅎ" to 'ㅠ', moa.last())
+    @Test fun aSingleLongDragIsStillJustTheBasicVowel() {
+        // 예전의 "길게 밀기 = ㅑㅕㅛㅠ"는 없앴다: 길게 밀어도 ㅏ ㅓ ㅗ ㅜ
+        drag("ㅎ", dxKeys = 1.5f); assertEquals("ㅎ" to 'ㅏ', moa.last())
+        drag("ㅎ", dxKeys = -1.5f); assertEquals("ㅎ" to 'ㅓ', moa.last())
+        drag("ㅎ", dyKeys = -1.5f); assertEquals("ㅎ" to 'ㅗ', moa.last())
+        drag("ㅎ", dyKeys = 1.5f); assertEquals("ㅎ" to 'ㅜ', moa.last())
     }
 
     @Test fun doubleConsonantRowAlsoTakesVowelDrags() {

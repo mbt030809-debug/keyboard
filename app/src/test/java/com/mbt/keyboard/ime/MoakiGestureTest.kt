@@ -27,11 +27,4 @@ class MoakiGestureTest {
         assertNull(MoakiGesture.decode(""))
         assertEquals('ㅣ', MoakiGesture.decode("IR"))      // 표에 없는 뒤 획은 버리고 앞부분만
     }
-
-    @Test fun longSingleStrokeMakesTheYVowel() {
-        assertEquals('ㅑ', MoakiGesture.decode("R", longSingle = true))
-        assertEquals('ㅠ', MoakiGesture.decode("D", longSingle = true))
-        assertEquals('ㅣ', MoakiGesture.decode("I", longSingle = true))          // 대각선은 길게 밀어도 그대로
-        assertEquals('ㅐ', MoakiGesture.decode("RL", longSingle = true))         // 여러 획이면 길게 밀기는 무시
-    }
 }

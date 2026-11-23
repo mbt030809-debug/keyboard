@@ -792,7 +792,8 @@ class KeyboardView(context: Context) : View(context) {
      * 획 순서를 [MoakiGesture]로 해석한다: → ㅏ, ↑→ ㅘ, ↑↓ ㅚ, →←→ ㅑ …
      */
     private fun trackMoaStrokes(p: Pointer, c: Cell, x: Float, y: Float) {
-        val t = max(c.rect.width() * 0.30f, 12 * density)
+        val t = max(c.rect.width() * 0.30f, 12 * density)       // 첫 획의 최소 길이
+        val tn = max(c.rect.width() * 0.20f, 9 * density)       // 이어지는 획(겹모음·왕복)은 조금 짧아도 인정
         if (!p.moaInit) {
             p.moaInit = true
             p.moaAx = p.downX; p.moaAy = p.downY; p.moaFx = p.downX; p.moaFy = p.downY
@@ -809,7 +810,8 @@ class KeyboardView(context: Context) : View(context) {
             } else {
                 val vx = x - p.moaFx; val vy = y - p.moaFy
                 val vl = kotlin.math.hypot(vx, vy)
-                if (fa >= t && vl >= t && (vx * ux + vy * uy) / vl < 0.5f) {
+                val minFa = if (p.moaStrokes.isEmpty()) t else tn
+                if (fa >= minFa && vl >= tn && (vx * ux + vy * uy) / vl < 0.5f) {
                     p.moaStrokes.append(MoakiGesture.token(degOf(p.moaFx - p.moaAx, p.moaFy - p.moaAy)))
                     p.moaAx = p.moaFx; p.moaAy = p.moaFy; p.moaFx = x; p.moaFy = y
                 }
@@ -817,13 +819,12 @@ class KeyboardView(context: Context) : View(context) {
         }
         val s = StringBuilder(p.moaStrokes)
         val cur = kotlin.math.hypot(p.moaFx - p.moaAx, p.moaFy - p.moaAy)
-        if (cur >= t) {
+        if (cur >= (if (p.moaStrokes.isEmpty()) t else tn)) {
             val d = degOf(p.moaFx - p.moaAx, p.moaFy - p.moaAy)
             if (p.moaStrokes.isEmpty()) p.moaDeg = d
             s.append(MoakiGesture.token(d))
         }
-        val long = p.moaStrokes.isEmpty() && cur >= c.rect.width() * 1.25f
-        val v = MoakiGesture.decode(s.toString(), long)
+        val v = MoakiGesture.decode(s.toString())
         if (v != p.moaVowel) {
             p.moaVowel = v
             if (v != null) { p.cancelTimers(); haptics?.tick() }   // 긋기 시작하면 꾹 누르기(기호 말풍선)는 취소
