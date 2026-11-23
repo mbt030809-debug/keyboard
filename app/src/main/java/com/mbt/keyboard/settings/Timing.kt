@@ -23,7 +23,7 @@ object Timing {
     /** 지우기 키를 꾹 누를 때 초당 지워지는 글자 수 (기본 22자 ≈ 45ms 간격) */
     const val REPEAT_CPS_DEFAULT = 22
     const val REPEAT_CPS_MIN = 5
-    const val REPEAT_CPS_MAX = 40
+    const val REPEAT_CPS_MAX = 200
 
     fun snapRepeatCps(cps: Int) = cps.coerceIn(REPEAT_CPS_MIN, REPEAT_CPS_MAX)
 
