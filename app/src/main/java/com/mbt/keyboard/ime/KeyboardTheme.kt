@@ -21,12 +21,20 @@ data class KeyboardTheme(
     val keyBorder: Int = 0,
     /** 키 아래에 옅은 그림자를 깐다 */
     val keyShadow: Boolean = false,
+    /**
+     * 프로스티드 글래스: 연한 레인보우 번짐 배경 위에 키보드 전체를 투명한 흰색 판 한 장으로 덮고, 키는 얇은 흰 테두리만 둔다.
+     * 뒤가 비치는 느낌은 약한 블러 대신 부드러운 번짐 배경 + 반투명 흰색으로 낸다.
+     */
+    val frost: Boolean = false,
+    /** 0이 아니면 숫자 키 배경으로 이 색을 그대로 쓴다 (투명한 키 테마용) */
+    val numberKeyOverride: Int = 0,
 ) {
     val hasGradient: Boolean get() = backgroundEnd != 0
 
     /** 숫자 키 배경: 테마 바탕색과 글자 키 배경색의 중간색 */
     val numberKey: Int
         get() {
+            if (numberKeyOverride != 0) return numberKeyOverride
             fun mix(sh: Int) = ((((key ushr sh) and 0xFF) + ((background ushr sh) and 0xFF)) / 2f + 0.5f).toInt().coerceIn(0, 255)
             return (mix(24) shl 24) or (mix(16) shl 16) or (mix(8) shl 8) or mix(0)
         }

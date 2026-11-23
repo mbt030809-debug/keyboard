@@ -58,6 +58,15 @@ object KeyboardThemes {
     /** 총 28가지: 감성(그라데이션) 8 + 밝은 12 + 어두운 8 (모두 같은 색의 명도만 달리한 톤온톤, 네온 나이트만 예외) */
     val all: List<NamedTheme> = listOf(
         // 감성 테마: 그라데이션 배경 + 반투명 유리 키
+        NamedTheme(
+            "rainbowfrost", "레인보우 프로스트 (유리)",
+            KeyboardTheme(
+                background = 0xFFFFD9E8.toInt(), backgroundMid = 0xFFD9F6E4.toInt(), backgroundEnd = 0xFFE4D6FF.toInt(),
+                key = 0x38FFFFFF, specialKey = 0x24FFFFFF, keyPressed = 0x8CB4C6FF.toInt(),
+                text = 0xFF37405A.toInt(), accent = 0xFF3A50C8.toInt(), onAccent = 0xFFFFFFFF.toInt(),
+                keyBorder = 0x99FFFFFF.toInt(), keyShadow = false, frost = true, numberKeyOverride = 0x2EFFFFFF,
+            ),
+        ),
         NamedTheme("sunset", "선셋 글로우", glass(0xFFB48A, 0xB79CFF, 0x66FFFFFF, 0x99FFFFFF, 0x33FFFFFF, 0x99FFFFFF, 0x4A1F5E, 0x7A2CBF, 0xFFFFFF, mid = 0xFF8FA3)),
         NamedTheme("pinkcloud", "핑크 클라우드", glass(0xFFE3EE, 0xE1D3FF, 0xD9FFFFFF, 0xFFFFFFFF, 0x99FFFFFF, 0xFFF6BFD6, 0x7B3A5E, 0xC22A6B, 0xFFFFFF, mid = 0xFFD0E6)),
         NamedTheme("aurora", "오로라", glass(0x0B1030, 0x3B2A7A, 0x1AFFFFFF, 0x47FFFFFF, 0x0FFFFFFF, 0x40FFFFFF, 0xEAF6FF, 0x6EF3D6, 0x04201A, mid = 0x14305A, shadow = false)),

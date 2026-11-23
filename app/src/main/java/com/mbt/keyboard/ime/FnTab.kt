@@ -60,7 +60,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val radius = 7 * d
         // 키보드 바탕: 버튼 상하좌우로 같은 폭만큼, 버튼과 똑같이 반투명
         val plateLeft = 0f
-        paint.color = withAlpha(theme.background, alphaPercent)
+        paint.color = withAlpha(if (theme.frost) 0xFFFFFFFF.toInt() else theme.background, alphaPercent)
         // 위쪽 모서리만 둥글게, 아래쪽(키보드와 맞닿는 쪽)은 사각
         // 모서리는 버튼 모서리와 같은 중심(동심원): 여백이 0이면 버튼 모서리와 똑같이 맞물려 빈틈이 남지 않는다
         val gx = src.fnTabInsetPx()

@@ -267,6 +267,7 @@ class NumberKeyShadeTest {
     @Test fun numberKeyColorIsTheMidpointOfThemeBackgroundAndLetterKeyForEveryTheme() {
         KeyboardThemes.all.forEach { n ->
             val t = n.theme
+            if (t.numberKeyOverride != 0) { assertEquals(t.numberKeyOverride, t.numberKey); return@forEach }   // 투명한 유리 키 테마는 지정색
             val nk = t.numberKey
             listOf(24, 16, 8, 0).forEach { sh ->
                 val expected = (((t.key shr sh) and 0xFF) + ((t.background shr sh) and 0xFF)) / 2f

@@ -2,7 +2,11 @@ package com.mbt.keyboard.ime
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.LinearGradient
+import android.graphics.Path
+import android.graphics.Shader
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
@@ -594,7 +598,93 @@ class KeyboardView(context: Context) : View(context) {
     private val bgPaint = Paint()
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
 
+    /** 프로스티드 글래스 뒷배경: 연한 레인보우 번짐 (선명한 원본). 키 사이로 이게 그대로 보인다 */
+    private fun drawFrostBackdrop(canvas: Canvas, w: Float, h: Float) {
+        bgPaint.shader = theme.backgroundShader(w, h)
+        canvas.drawRect(0f, 0f, w, h, bgPaint)
+        val r = max(w, h) * 0.42f
+        for ((fx, fy, c) in FROST_BLOBS) {
+            bgPaint.shader = android.graphics.RadialGradient(w * fx, h * fy, r, c, c and 0x00FFFFFF, Shader.TileMode.CLAMP)
+            canvas.drawRect(0f, 0f, w, h, bgPaint)
+        }
+        bgPaint.shader = null
+    }
+
+    private var frostSharp: Bitmap? = null
+    private var frostBlur: Bitmap? = null
+    private var frostKey: Triple<Int, Int, KeyboardTheme>? = null
+
+    /** 뒷배경 원본과, 그걸 약하게 흐린 사본(키 안쪽에 비치는 용도)을 만든다. 크기·테마가 바뀔 때만 다시 만든다 */
+    private fun ensureFrostBitmaps() {
+        val key = Triple(width, height, theme)
+        if (frostKey == key && frostSharp != null) return
+        frostSharp?.recycle(); frostBlur?.recycle()
+        val sharp = Bitmap.createBitmap(max(width, 1), max(height, 1), Bitmap.Config.ARGB_8888)
+        drawFrostBackdrop(Canvas(sharp), sharp.width.toFloat(), sharp.height.toFloat())
+        // 1/4로 줄였다가 부드럽게 늘리면 약한 블러(반경 몇 dp)가 된다
+        val small = Bitmap.createScaledBitmap(sharp, max(sharp.width / FROST_BLUR_DIV, 1), max(sharp.height / FROST_BLUR_DIV, 1), true)
+        val blur = Bitmap.createScaledBitmap(small, sharp.width, sharp.height, true)
+        if (small !== sharp && small !== blur) small.recycle()
+        frostSharp = sharp; frostBlur = blur; frostKey = key
+    }
+
+    private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val glassBitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val glassPath = Path()
+    private val edgeColors = intArrayOf(0xF2FFFFFF.toInt(), 0x66FFFFFF, 0xB3FFFFFF.toInt())
+    private val edgeStops = floatArrayOf(0f, 0.55f, 1f)
+    private val glowColors = intArrayOf(0x00FFFFFF, 0x00FFFFFF, 0x38FFFFFF)
+
+    /**
+     * 유리 키 하나: ① 부드러운 그림자 ② 뒷배경을 약하게 흐려 비춤 ③ 투명한 흰색 ④ 위쪽 광택과 아래쪽 빛 번짐
+     * ⑤ 위쪽 가는 빛줄 ⑥ 왼쪽 위는 밝고 오른쪽 아래는 옅은 흰 테두리. [tint]는 키 면의 ARGB 색.
+     */
+    private fun drawGlassKey(canvas: Canvas, r: RectF, radius: Float, tint: Int, pressed: Boolean) {
+        ensureFrostBitmaps()
+        val h = r.height()
+        // ① 그림자 (넓고 옅은 것 + 가깝고 진한 것)
+        glassPaint.shader = null
+        glassPaint.style = Paint.Style.FILL
+        glassPaint.color = 0x0F2A3C64
+        canvas.drawRoundRect(r.left - density, r.top + 1.5f * density, r.right + density, r.bottom + 4 * density, radius + density, radius + density, glassPaint)
+        glassPaint.color = 0x1A2A3C64
+        canvas.drawRoundRect(r.left, r.top + density, r.right, r.bottom + 2 * density, radius, radius, glassPaint)
+
+        glassPath.rewind()
+        glassPath.addRoundRect(r, radius, radius, Path.Direction.CW)
+        canvas.save()
+        canvas.clipPath(glassPath)
+        // ② 약하게 흐린 뒷배경 (키가 놓인 바로 그 자리)
+        frostBlur?.let { canvas.drawBitmap(it, Rect(r.left.toInt(), r.top.toInt(), r.right.toInt() + 1, r.bottom.toInt() + 1), r, glassBitmapPaint) }
+        // ③ 투명한 흰색
+        glassPaint.color = if (pressed) theme.keyPressed else tint
+        canvas.drawRoundRect(r, radius, radius, glassPaint)
+        // ④ 위쪽 광택(위→아래로 옅어짐)과 아래쪽 빛 번짐
+        glassPaint.shader = LinearGradient(0f, r.top, 0f, r.top + h * 0.5f, 0x4DFFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP)
+        canvas.drawRect(r.left, r.top, r.right, r.top + h * 0.5f, glassPaint)
+        glassPaint.shader = LinearGradient(0f, r.top, 0f, r.bottom, glowColors, edgeStops, Shader.TileMode.CLAMP)
+        canvas.drawRect(r, glassPaint)
+        glassPaint.shader = null
+        // ⑤ 위쪽 가는 빛줄
+        glassPaint.color = 0xA6FFFFFF.toInt()
+        canvas.drawRect(r.left + radius * 0.6f, r.top + density, r.right - radius * 0.6f, r.top + 2 * density, glassPaint)
+        canvas.restore()
+        // ⑥ 테두리: 왼쪽 위 밝음 → 오른쪽 아래 옅음
+        glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, edgeColors, edgeStops, Shader.TileMode.CLAMP)
+        glassPaint.style = Paint.Style.STROKE
+        glassPaint.strokeWidth = density
+        val hh = density / 2f
+        canvas.drawRoundRect(r.left + hh, r.top + hh, r.right - hh, r.bottom - hh, radius, radius, glassPaint)
+        glassPaint.shader = null
+        glassPaint.style = Paint.Style.FILL
+    }
+
     private fun drawBackground(canvas: Canvas) {
+        if (theme.frost) {
+            ensureFrostBitmaps()
+            frostSharp?.let { canvas.drawBitmap(it, 0f, 0f, null) }
+            return
+        }
         val shader = theme.backgroundShader(width.toFloat(), height.toFloat())
         if (shader == null) {
             canvas.drawColor(theme.background)
@@ -622,14 +712,16 @@ class KeyboardView(context: Context) : View(context) {
                 else -> theme.key
             }
             val r = cell.inner
-            if (theme.keyShadow) {
+            if (theme.frost) {
+                drawGlassKey(canvas, r, radius * 1.15f, paint.color, isPressed(cell))
+            } else if (theme.keyShadow) {
                 val keep = paint.color
                 paint.color = 0x26000000
                 canvas.drawRoundRect(r.left, r.top + 1.5f * density, r.right, r.bottom + 1.5f * density, radius, radius, paint)
                 paint.color = keep
             }
-            canvas.drawRoundRect(r.left, r.top, r.right, r.bottom, radius, radius, paint)
-            if (theme.keyBorder != 0) {
+            if (!theme.frost) canvas.drawRoundRect(r.left, r.top, r.right, r.bottom, radius, radius, paint)
+            if (theme.keyBorder != 0 && !theme.frost) {
                 borderPaint.strokeWidth = density
                 borderPaint.color = theme.keyBorder
                 val h = density / 2f
@@ -1228,6 +1320,14 @@ class KeyboardView(context: Context) : View(context) {
         val FN_TYPES = setOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE)
         const val DEFAULT_NUMBER_ROW_SCALE = 0.8f
         const val LABEL_WIDTH_FACTOR = 1.35f
+        const val FROST_BLUR_DIV = 4
+
+        /** 연한 레인보우 번짐: (가로 위치, 세로 위치, 색) 비율 */
+        private val FROST_BLOBS = listOf(
+            Triple(0.12f, 0.15f, 0xCCFFB6D2.toInt()), Triple(0.88f, 0.10f, 0xCCFFE29A.toInt()),
+            Triple(0.80f, 0.60f, 0xCCA8ECC4.toInt()), Triple(0.15f, 0.65f, 0xCCA9D4FF.toInt()),
+            Triple(0.55f, 0.95f, 0xCCCDB8FF.toInt()),
+        )
         const val LABEL_BONUS_DP = 1f
         const val DEFAULT_NUMBER_GAP_DP = 6f
         const val UNDO_MARK_DP = 52f

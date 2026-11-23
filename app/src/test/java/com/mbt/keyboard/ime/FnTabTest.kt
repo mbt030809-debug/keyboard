@@ -281,3 +281,39 @@ class FnTabTest {
         assertEquals(View.GONE, root.getChildAt(1).visibility)
     }
 }
+
+/** 프로스티드 글래스(레인보우) 테마: 키마다 약하게 흐린 뒷배경 + 투명 흰색 + 테두리 */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class FrostThemeTest {
+    private val ctx get() = ApplicationProvider.getApplicationContext<Context>()
+
+    @Test fun everyKeyIsDrawnAsAGlassKeyOverASharpBackdrop() {
+        val theme = com.mbt.keyboard.ime.KeyboardThemes.byId("rainbowfrost")!!.theme
+        assertTrue(theme.frost)
+        val v = KeyboardView(ctx).also { it.theme = theme; it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english }
+        v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+        var bitmaps = 0; var strokes = 0
+        val canvas = object : android.graphics.Canvas() {
+            override fun drawBitmap(b: android.graphics.Bitmap, l: Float, t: Float, p: android.graphics.Paint?) { bitmaps++ }
+            override fun drawBitmap(b: android.graphics.Bitmap, s: android.graphics.Rect?, d: android.graphics.RectF, p: android.graphics.Paint?) { bitmaps++ }
+            override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { strokes++ }
+            override fun drawRoundRect(r: android.graphics.RectF, rx: Float, ry: Float, p: android.graphics.Paint) { strokes++ }
+            override fun clipPath(path: android.graphics.Path): Boolean = true
+        }
+        v.draw(canvas)
+        val keys = v.keyRects().size
+        assertTrue("배경 1 + 키마다 흐린 배경: $bitmaps / $keys", bitmaps >= keys + 1)
+        assertTrue("키마다 그림자·면·테두리: $strokes", strokes >= keys * 3)
+    }
+
+    @Test fun backdropIsRainbowAndThemeIsListedFirstInThePicker() {
+        val all = com.mbt.keyboard.ime.KeyboardThemes.all
+        assertEquals("rainbowfrost", all.first { it.theme.frost }.id)
+        val t = all.first { it.id == "rainbowfrost" }.theme
+        assertTrue(t.hasGradient)
+        assertEquals(3, t.backgroundStops.size)
+        assertEquals(0x2EFFFFFF, t.numberKey)
+    }
+}
