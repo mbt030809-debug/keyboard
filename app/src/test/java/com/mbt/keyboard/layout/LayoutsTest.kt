@@ -165,8 +165,8 @@ class LayoutsTest {
         assertEquals(listOf("→", "←", "↑", "↓"), m["ㅔ"])      // ? 와 → 가 자리를 바꿈
         assertEquals(listOf("@", "@naver.com", "@gmail.com"), m["ㅊ"])   // 골뱅이 + 이메일 뒷부분
         assertEquals(listOf("_", "-", "—"), m["ㅍ"])           // 한 칸 당겨짐
-        assertEquals(listOf("?"), m["ㅜ"])
-        assertEquals(listOf("!"), m["ㅡ"])                     // 비워진 마지막 키에 느낌표
+        assertEquals(listOf("!"), m["ㅜ"])
+        assertEquals(listOf("?"), m["ㅡ"])                     // ? 와 ! 는 맞바꿈: ? 가 지우기 바로 옆
         assertEquals(listOf("~", "♪", "♩", "♫", "♬", "🎵", "🎶"), m["ㅐ"])   // 음표는 ~ 의 하위 후보
     }
 
@@ -175,7 +175,7 @@ class LayoutsTest {
         val row = Layouts.koreanSingle.rows[3].filter { it.type == KeyType.CHAR }
         val q = row.indexOfFirst { "?" in it.hints }
         val e = row.indexOfFirst { "!" in it.hints }
-        assertEquals(1, e - q)
+        assertEquals(1, kotlin.math.abs(e - q))
     }
 
     @Test fun noSymbolIsOnTwoKeysExceptIntentionalDuplicates() {
@@ -364,7 +364,7 @@ class LayoutsTest {
 
     @Test fun keysNextToBackspaceHoldTheMostUsedSymbolsOnEveryLayout() {
         // 지우기 옆 오른쪽 끝: 윗줄 ~ →, 가운데줄 : / ❤, 아랫줄 ? !
-        val tails = mapOf(1 to listOf("~", "→"), 2 to listOf(":", "/", "❤\uFE0F"), 3 to listOf("?", "!"))
+        val tails = mapOf(1 to listOf("~", "→"), 2 to listOf(":", "/", "❤\uFE0F"), 3 to listOf("!", "?"))
         for ((r, expected) in tails) {
             Layouts.all.forEach { l ->
                 assertEquals("${l.id} 줄$r", expected, letterRowChars(l, r).takeLast(expected.size).map { it.hints[0] })
