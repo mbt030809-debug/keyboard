@@ -57,6 +57,12 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** 설정 화면에서 바꾸는 입력 타이밍 */
 
     /** 연타 변환 판정용: 직전에 친 자모 키와 시각 */
+    /** 지운 글자 기록 (지우기 키를 왼쪽으로 밀면 되돌린다) */
+    private val deletions = DeletionHistory()
+    private var lastBackspaceTime = 0L
+    /** 가장 최근 지우기가 새 묶음의 시작이었는가 (되돌리기 제스처의 첫 터치가 만든 삭제를 함께 되돌리기 위함) */
+    private var backspaceStartedRun = false
+
     private val doubleTap = DoubleTapDetector(Timing.DOUBLE_TAP_DEFAULT_MS)
 
     private val layout get() = Layouts.byId(layoutId)
@@ -116,10 +122,12 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
         /** 말하는 중 인식된 글자는 조합 중 텍스트로 보여준다 */
         override fun onPartial(text: String) {
+            endDeletionRun()
             currentInputConnection?.setComposingText(text, 1)
         }
 
         override fun onResult(text: String) {
+            endDeletionRun()
             currentInputConnection?.commitText(text, 1)
         }
 
@@ -214,7 +222,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         // 가로 모드처럼 화면이 낮으면 키 높이를 자동으로 줄인다 (사용자가 정한 세로 길이에 곱해진다)
         view.heightScale = g.heightScale * ScreenProfile.heightFactor(config.screenHeightDp)
         view.splitGapFraction = g.gapFraction
-        view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp)
+        view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp, g.numGapDp, g.numHeightScale)
     }
 
     /** 가장 짧은 변이 600dp 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
@@ -229,6 +237,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private val emojiListener = object : EmojiPanel.Listener {
         override fun onInsert(text: String) {
             haptics.key()
+            endDeletionRun()
             currentInputConnection?.commitText(text, 1)
         }
 
@@ -263,6 +272,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private val quickListener = object : QuickPanel.Listener {
         override fun onInsert(text: String) {
             haptics.key()
+            endDeletionRun()
             currentInputConnection?.commitText(text, 1)
             hideEmojiPanel()      // 입력하면 키보드로 돌아간다
         }
@@ -296,6 +306,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        if (!restarting) deletions.clear()
         composer.reset()
         hideEmojiPanel()
         recordClipboard(info.inputType)      // 키보드가 꺼져 있는 동안 복사한 내용도 놓치지 않고 기록
@@ -322,6 +333,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onFinishInput() {
+        deletions.clear()
         composer.reset()
         doubleTap.reset()
         voice.cancel()
@@ -353,6 +365,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         lastEditTime = SystemClock.uptimeMillis()
         if (key.type != KeyType.VOICE) abortVoice()
         if (key.type != KeyType.CHAR) doubleTap.reset()
+        if (key.type != KeyType.BACKSPACE) endDeletionRun()
         when (key.type) {
             KeyType.CHAR -> onChar(key)
             KeyType.SPACE -> { flushComposing(); commit(" "); refreshAutoCaps() }
@@ -372,6 +385,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** 꾹 누르기 팝업에서 고른 기호·상용문구: 조합 중인 글자를 확정하고 그대로 입력 */
     override fun onText(text: String) {
         lastEditTime = SystemClock.uptimeMillis()
+        endDeletionRun()
         abortVoice()
         doubleTap.reset()
         val ic = currentInputConnection ?: return
@@ -416,6 +430,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** 조합 중인 글자를 확정한 뒤 커서를 [steps]칸 이동 (음수=왼쪽) */
     private fun moveCursor(steps: Int) {
         abortVoice()
+        endDeletionRun()
         flushComposing()
         val code = if (steps < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
         // 쉬프트가 켜져 있으면 이동하면서 글자 선택 (쉬프트 + 방향키)
@@ -525,7 +540,56 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         ic.endBatchEdit()
     }
 
+    private fun textBeforeCursor(): String =
+        currentInputConnection?.getTextBeforeCursor(DeletionHistory.WINDOW, 0)?.toString().orEmpty()
+
+    /** 지우기 묶음을 끝내고 기록에 남긴다 (다른 입력이 시작되기 전에 불러야 한다). 기록이 생겼으면 true */
+    private fun endDeletionRun(): Boolean = deletions.hasRun && deletions.finish(textBeforeCursor())
+
+    /** 지우기 키를 누를 때마다: 연속으로 지우는 중이면 같은 묶음, 쉬었다가 다시 지우면 새 묶음 */
+    private fun noteBackspace() {
+        val now = SystemClock.uptimeMillis()
+        val startsRun = !deletions.hasRun || now - lastBackspaceTime > DELETE_RUN_GAP_MS
+        if (startsRun) {
+            endDeletionRun()
+            val ic = currentInputConnection
+            if (ic != null) deletions.begin(textBeforeCursor() + (ic.getSelectedText(0)?.toString().orEmpty()))
+        }
+        backspaceStartedRun = startsRun
+        lastBackspaceTime = now
+    }
+
+    /** 지우기 키를 왼쪽으로 밀었다: 지운 글자를 커서 자리에 되살린다 */
+    override fun onUndoDelete() {
+        abortVoice()
+        // 이 제스처의 첫 터치가 새로 만든 삭제도 같이 되돌리고, 그 앞에 지웠던 것 하나를 더 되살린다
+        val touchDeleted = endDeletionRun()
+        val times = if (backspaceStartedRun && touchDeleted) 2 else 1
+        backspaceStartedRun = false
+        var restored = 0
+        repeat(times) { if (restoreLastDeletion()) restored++ }
+        say(if (restored > 0) "↶ 되돌렸어요" else "되돌릴 글자가 없어요")
+    }
+
+    private fun restoreLastDeletion(): Boolean {
+        val chunk = deletions.pop() ?: return false
+        val ic = currentInputConnection ?: return false
+        flushComposing()
+        composer.reset()
+        doubleTap.reset()
+        if (chunk.removeLen > 0 && ic.getTextBeforeCursor(chunk.removeLen, 0)?.toString() != chunk.expectTail) {
+            deletions.clear()          // 그 사이 글이 바뀌었다: 위치가 맞지 않으니 기록을 버린다
+            return false
+        }
+        ic.beginBatchEdit()
+        if (chunk.removeLen > 0) ic.deleteSurroundingText(chunk.removeLen, 0)
+        ic.commitText(chunk.restore, 1)
+        ic.endBatchEdit()
+        return true
+    }
+
     private fun onBackspace() {
+        noteBackspace()
         val ic = currentInputConnection ?: return
         val out = composer.backspace()
         if (out != null) {
@@ -613,6 +677,9 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     private companion object {
+        /** 이 시간 안에 이어서 지우면 한 묶음으로 본다 */
+        const val DELETE_RUN_GAP_MS = 1200L
+
 
         val LATIN_VARIATIONS = setOf(
             InputType.TYPE_TEXT_VARIATION_PASSWORD,

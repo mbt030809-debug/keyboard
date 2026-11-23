@@ -25,10 +25,12 @@ class KeyboardViewTouchTest {
         val texts = ArrayList<String>()
         var shiftEvents = ArrayList<Boolean>()
         var swipeSpace = 0
+        var undo = 0
         var cursorSteps = 0
         override fun onKey(key: Key) { keys += key.label }
         override fun onText(text: String) { texts += text }
         override fun onSwipeSpace() { swipeSpace++ }
+        override fun onUndoDelete() { undo++ }
         override fun onCursorMove(steps: Int) { cursorSteps += steps }
         override fun onCursorMoveEnd() {}
         override fun onShiftPress(down: Boolean) { shiftEvents += down }
@@ -158,6 +160,23 @@ class KeyboardViewTouchTest {
         send(ev(MotionEvent.ACTION_UP, Triple(0, x - 90 * density, y)))
         assertEquals(1, rec.swipeSpace)
         assertTrue(rec.keys.isEmpty())
+    }
+
+    @Test fun swipingBackspaceLeftUndoesOnceAndRightDoesNothing() {
+        downTime = SystemClock.uptimeMillis()
+        val back = view.keyRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.BACKSPACE }.second
+        val x = back.centerX(); val y = back.centerY()
+        send(ev(MotionEvent.ACTION_DOWN, Triple(0, x, y)))
+        send(ev(MotionEvent.ACTION_MOVE, Triple(0, x - 30 * density, y)))
+        send(ev(MotionEvent.ACTION_MOVE, Triple(0, x - 60 * density, y)))
+        send(ev(MotionEvent.ACTION_MOVE, Triple(0, x - 90 * density, y)))
+        send(ev(MotionEvent.ACTION_UP, Triple(0, x - 90 * density, y)))
+        assertEquals(1, rec.undo)
+        // 오른쪽으로 밀기는 되돌리기가 아니다
+        send(ev(MotionEvent.ACTION_DOWN, Triple(0, x - 20 * density, y)))
+        send(ev(MotionEvent.ACTION_MOVE, Triple(0, x + 5 * density, y)))
+        send(ev(MotionEvent.ACTION_UP, Triple(0, x + 5 * density, y)))
+        assertEquals(1, rec.undo)
     }
 
     @Test fun horizontalSwipeOnLetterMovesCursorAndTypesNothing() {

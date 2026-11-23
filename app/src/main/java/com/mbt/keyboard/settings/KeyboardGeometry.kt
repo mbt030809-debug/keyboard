@@ -16,7 +16,9 @@ import kotlin.math.roundToInt
  * @param padTopDp 위쪽 여백
  * @param padRightDp 오른쪽 여백
  * @param padBottomDp 아래쪽 여백
- * @param keyGapDp 키와 키 사이 간격 (0~16dp)
+ * @param keyGapDp 글자 키(숫자 줄 아래 모든 줄)의 키와 키 사이 간격 (0~16dp)
+ * @param numGapDp 맨 윗줄(전체·복사·붙임·숫자)의 키 사이 간격 (0~16dp)
+ * @param numHeightPct 맨 윗줄(숫자 줄) 높이: 일반 키 높이 대비 % (40~120, 기본 80)
  */
 data class KeyboardGeometry(
     val widthPct: Int = WIDTH_DEFAULT,
@@ -29,6 +31,8 @@ data class KeyboardGeometry(
     val padRightDp: Int = PAD_DEFAULT,
     val padBottomDp: Int = PAD_DEFAULT,
     val keyGapDp: Int = KEY_GAP_DEFAULT,
+    val numGapDp: Int = KEY_GAP_DEFAULT,
+    val numHeightPct: Int = NUM_HEIGHT_DEFAULT,
 ) {
     /** 범위를 벗어난 값을 허용 범위 안으로 */
     fun clamped() = KeyboardGeometry(
@@ -42,6 +46,8 @@ data class KeyboardGeometry(
         padRightDp.coerceIn(PAD_MIN, PAD_MAX),
         padBottomDp.coerceIn(PAD_MIN, PAD_MAX),
         keyGapDp.coerceIn(KEY_GAP_MIN, KEY_GAP_MAX),
+        numGapDp.coerceIn(KEY_GAP_MIN, KEY_GAP_MAX),
+        numHeightPct.coerceIn(NUM_HEIGHT_MIN, NUM_HEIGHT_MAX),
     )
 
     fun widerBy(steps: Int) = copy(widthPct = widthPct + steps * WIDTH_STEP).clamped()
@@ -54,6 +60,11 @@ data class KeyboardGeometry(
     fun padRightBy(steps: Int) = copy(padRightDp = padRightDp + steps * PAD_STEP).clamped()
     fun padBottomBy(steps: Int) = copy(padBottomDp = padBottomDp + steps * PAD_STEP).clamped()
     fun keyGapBy(steps: Int) = copy(keyGapDp = keyGapDp + steps * KEY_GAP_STEP).clamped()
+    fun numGapBy(steps: Int) = copy(numGapDp = numGapDp + steps * KEY_GAP_STEP).clamped()
+    fun numHeightBy(steps: Int) = copy(numHeightPct = numHeightPct + steps * NUM_HEIGHT_STEP).clamped()
+
+    /** 숫자 줄 높이 배율 (0.8 = 일반 키의 80%) */
+    val numHeightScale: Float get() = numHeightPct / 100f
 
     /** 틈의 비율 (0.18 = 키보드 가로폭의 18%) */
     val gapFraction: Float get() = gapPct / 100f
@@ -146,6 +157,11 @@ data class KeyboardGeometry(
         const val KEY_GAP_MAX = 16
         const val KEY_GAP_STEP = 1
         const val KEY_GAP_DEFAULT = 6
+
+        const val NUM_HEIGHT_MIN = 40
+        const val NUM_HEIGHT_MAX = 120
+        const val NUM_HEIGHT_STEP = 5
+        const val NUM_HEIGHT_DEFAULT = 80          // 예전 고정값(0.8배)
 
         /** 폴드 안쪽 화면·태블릿처럼 넓은 화면의 기준 (가장 짧은 변, dp) */
         const val LARGE_SCREEN_DP = 600

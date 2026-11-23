@@ -264,3 +264,58 @@ class SplitDuplicateTest {
         }
     }
 }
+
+/** 숫자 줄(맨 윗줄)의 키 간격·높이를 글자 줄과 따로 조절 */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class NumberRowFrameTest {
+    private lateinit var view: KeyboardView
+    private val density get() = view.resources.displayMetrics.density
+
+    @Before fun setUp() {
+        view = KeyboardView(ApplicationProvider.getApplicationContext<Context>())
+        view.keyboardLayout = Layouts.koreanSingle
+        relayout()
+    }
+
+    private fun relayout() {
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+    }
+
+    private fun gapBetween(a: String, b: String): Float {
+        val inner = view.keyInnerRects().filter { it.first.label == a || it.first.label == b }.map { it.second }
+        return (inner[1].left - inner[0].right) / density
+    }
+
+    @Test fun numberRowAndLetterRowGapsAreIndependent() {
+        assertEquals(6f, gapBetween("1", "2"), 0.05f)
+        assertEquals(6f, gapBetween("ㅂ", "ㅈ"), 0.05f)
+        view.frame = KeyboardFrame(numberKeyGapDp = 0); relayout()
+        assertEquals(0f, gapBetween("1", "2"), 0.05f)
+        assertEquals(6f, gapBetween("ㅂ", "ㅈ"), 0.05f)            // 글자 줄은 그대로
+        view.frame = KeyboardFrame(keyGapDp = 12, numberKeyGapDp = 3); relayout()
+        assertEquals(3f, gapBetween("1", "2"), 0.05f)
+        assertEquals(12f, gapBetween("ㅂ", "ㅈ"), 0.05f)
+    }
+
+    @Test fun numberRowHeightIsRelativeToANormalKey() {
+        fun h(label: String) = view.keyRects().first { it.first.label == label }.second.height()
+        assertEquals(0.8f, h("1") / h("ㅂ"), 0.01f)                 // 기본: 일반 키의 80%
+        view.frame = KeyboardFrame(numberRowScale = 1.2f); relayout()
+        assertEquals(1.2f, h("1") / h("ㅂ"), 0.01f)
+        view.frame = KeyboardFrame(numberRowScale = 0.5f); relayout()
+        assertEquals(0.5f, h("1") / h("ㅂ"), 0.01f)
+    }
+
+    @Test fun keypadsHaveNoNumberRowSoTheyAreUnaffected() {
+        view.keyboardLayout = Layouts.numberPad
+        view.frame = KeyboardFrame(numberRowScale = 0.4f, numberKeyGapDp = 0); relayout()
+        val rows = view.keyRects().groupBy { it.second.top }.keys.sorted()
+        val heights = rows.zipWithNext { a, b -> b - a }
+        assertTrue(heights.all { kotlin.math.abs(it - heights[0]) < 1f })   // 키패드 4줄 높이는 모두 같다
+    }
+}

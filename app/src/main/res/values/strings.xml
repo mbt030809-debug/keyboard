@@ -41,7 +41,9 @@
     <string name="resize_pad_bottom">아래쪽 여백</string>
     <string name="resize_pad_left">왼쪽 여백</string>
     <string name="resize_pad_right">오른쪽 여백</string>
-    <string name="resize_key_gap">키 사이 간격</string>
+    <string name="resize_key_gap">글자 키 간격</string>
+    <string name="resize_num_gap">숫자 줄 키 간격</string>
+    <string name="resize_num_height">숫자 줄 높이 (일반 키 대비)</string>
     <string name="resize_gap">갈라진 정도</string>
     <string name="resize_move">위치 이동</string>
     <string name="resize_move_hint_x">◀ ▶로 %2$ddp씩 옮겨요 · 바닥에서 %1$ddp 위</string>

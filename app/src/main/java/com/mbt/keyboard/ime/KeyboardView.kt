@@ -36,6 +36,10 @@ data class KeyboardFrame(
     val rightDp: Int = 4,
     val bottomDp: Int = 4,
     val keyGapDp: Int = 6,
+    /** 맨 윗줄(전체·복사·붙임·숫자)의 키 사이 간격 */
+    val numberKeyGapDp: Int = 6,
+    /** 맨 윗줄 높이: 일반 키 높이 대비 배율 (기본 0.8) */
+    val numberRowScale: Float = 0.8f,
 )
 
 /**
@@ -67,6 +71,8 @@ class KeyboardView(context: Context) : View(context) {
         fun onShiftPress(down: Boolean)
         /** 엔터 꾹 누르기: 상용문구·최근기록 패널 열기 */
         fun onEnterLongPress()
+        /** 지우기 키를 왼쪽으로 밀기: 지운 글자 되돌리기 */
+        fun onUndoDelete() {}
     }
 
     var listener: Listener? = null
@@ -237,7 +243,12 @@ class KeyboardView(context: Context) : View(context) {
     private val padR get() = frame.rightDp * density
     private val padB get() = frame.bottomDp * density
 
-    private fun rowHeightPx(r: Int) = keyHeightPx * (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
+    /** 맨 윗줄이 전체·복사·붙임 + 숫자 줄인가 (글자 자판만. 키패드는 해당 없음) */
+    private fun isNumberRow(r: Int) = r == 0 && keyboardLayout?.rows?.getOrNull(0)?.any { it.type == KeyType.SELECT_ALL } == true
+
+    private fun rowHeightPx(r: Int) =
+        if (isNumberRow(r)) keyHeightPx * frame.numberRowScale
+        else keyHeightPx * (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
 
     private fun contentHeight() = (0 until rowCount).sumOf { rowHeightPx(it).toDouble() }.toFloat()
 
@@ -257,12 +268,13 @@ class KeyboardView(context: Context) : View(context) {
         if (width == 0) return
         val out = ArrayList<Cell>()
         val rows = ArrayList<List<Cell>>()
-        val gap = frame.keyGapDp / 2f * density          // 키마다 사방으로 이만큼 비운다 = 키 사이 간격의 절반
         val usableW = width - padL - padR
         rowTops = FloatArray(layout.rows.size)
         var top = padT
         layout.rows.forEachIndexed { r, row ->
             val rowH = rowHeightPx(r)
+            // 키마다 사방으로 이만큼 비운다 = 키 사이 간격의 절반 (숫자 줄은 따로 정한 간격)
+            val gap = (if (isNumberRow(r)) frame.numberKeyGapDp else frame.keyGapDp) / 2f * density
             rowTops[r] = top
             val rowList = ArrayList<Cell>()
             // 나눠쓰기 아닐 때는 틈 0인 한 묶음, 나눠쓰기일 때는 두 묶음 + 가운데 틈. 키 크기 비율은 항상 원래 레이아웃 그대로
@@ -526,6 +538,17 @@ class KeyboardView(context: Context) : View(context) {
                 invalidateCell(p.cell)
                 haptics?.tick()
                 listener?.onSwipeSpace()
+            }
+            return
+        }
+        // 지우기 키: 왼쪽으로 충분히 밀면 지운 글자 되돌리기 (한 제스처에 1회)
+        if (p.cell?.key?.type == KeyType.BACKSPACE) {
+            if (p.downX - x > SWIPE_THRESHOLD_DP * density) {
+                p.ignore = true
+                p.cancelTimers()              // 꾹 눌러 반복 삭제 중이었다면 멈춘다
+                invalidateCell(p.cell)
+                haptics?.tick()
+                listener?.onUndoDelete()
             }
             return
         }
