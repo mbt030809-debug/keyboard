@@ -606,7 +606,10 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawFrostBackdrop(canvas: Canvas, w: Float, h: Float) {
         bgPaint.shader = theme.backgroundShader(w, h)
         canvas.drawRect(0f, 0f, w, h, bgPaint)
-        val blobs = when (theme.frostStyle) { 1 -> TAUPE_BLOBS; 2 -> NAVY_BLOBS; else -> HOLO_BLOBS }
+        val blobs = when (theme.frostStyle) {
+            1 -> TAUPE_BLOBS; 2 -> NAVY_BLOBS; 3 -> SUNSET_BLOBS; 4 -> PINK_BLOBS; 5 -> AURORA_BLOBS; 6 -> MINT_BLOBS
+            else -> HOLO_BLOBS
+        }
         for ((fx, fy, rr, c) in blobs) {
             val r = max(w, h) * rr
             bgPaint.shader = android.graphics.RadialGradient(w * fx, h * fy, r, c, c and 0x00FFFFFF, Shader.TileMode.CLAMP)
@@ -1467,6 +1470,30 @@ class KeyboardView(context: Context) : View(context) {
         private val TAUPE_BLOBS = listOf(
             Blob(0.20f, 0.20f, 0.55f, 0xCCC9BFAE.toInt()), Blob(0.80f, 0.10f, 0.50f, 0xCCD8D0C4.toInt()),
             Blob(0.70f, 0.95f, 0.55f, 0xCC8C91A3.toInt()), Blob(0.05f, 0.95f, 0.35f, 0x99A89A86.toInt()),
+        )
+
+        /** 선셋 글로우: 노을빛 살구·핑크·보라 */
+        private val SUNSET_BLOBS = listOf(
+            Blob(0.15f, 0.12f, 0.45f, 0xE6FFC896.toInt()), Blob(0.88f, 0.20f, 0.42f, 0xD9FF96AA.toInt()),
+            Blob(0.70f, 0.95f, 0.50f, 0xE6B79CFF.toInt()),
+        )
+
+        /** 핑크 클라우드: 솜사탕 핑크·라벤더에 하얀 구름빛 */
+        private val PINK_BLOBS = listOf(
+            Blob(0.12f, 0.10f, 0.38f, 0xE6FFFFFF.toInt()), Blob(0.90f, 0.85f, 0.50f, 0xF2E1D3FF.toInt()),
+            Blob(0.50f, 0.50f, 0.30f, 0x99FFB6D8.toInt()),
+        )
+
+        /** 오로라: 밤하늘에 청록·보라·파랑 빛 */
+        private val AURORA_BLOBS = listOf(
+            Blob(0.20f, 0.15f, 0.42f, 0x996EF3D6.toInt()), Blob(0.85f, 0.25f, 0.45f, 0x99966EFF.toInt()),
+            Blob(0.60f, 0.95f, 0.50f, 0x8C3C78C8.toInt()),
+        )
+
+        /** 민트 소다: 시원한 민트·하늘빛 */
+        private val MINT_BLOBS = listOf(
+            Blob(0.15f, 0.12f, 0.38f, 0xD9FFFFFF.toInt()), Blob(0.85f, 0.80f, 0.50f, 0xE6A0D7FF.toInt()),
+            Blob(0.40f, 0.50f, 0.30f, 0x99A6ECDC.toInt()),
         )
 
         /** 딥 네이비: 어두운 남색에 보랏빛·청록빛 */

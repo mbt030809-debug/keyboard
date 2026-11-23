@@ -82,7 +82,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (::host.isInitialized && key == Prefs.KEY_THEME) applyTheme()
-        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE || key == Prefs.KEY_NUMBER_LEFT || key == Prefs.KEY_FONT_SCALE || key == Prefs.KEY_FN_TAB || key == Prefs.KEY_FN_TAB_ALPHA || key == Prefs.KEY_FN_TAB_HEIGHT || key == Prefs.KEY_FN_TAB_PAD)) loadTimings()
+        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE || key == Prefs.KEY_NUMBER_LEFT || key == Prefs.KEY_FONT_SCALE || key == Prefs.KEY_FN_TAB || key == Prefs.KEY_FN_TAB_ALPHA)) loadTimings()
         if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen" || key == Prefs.KEY_SPLIT_DUP)) {
             updateSplit(resources.configuration)
             applyGeometry(resources.configuration)
@@ -208,8 +208,6 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.swipeDouble = Prefs.singleSwipeDouble(this)
         view.numberLeft = Prefs.numberKeysLeft(this)
         view.fontScale = Prefs.fontScalePercent(this) / 100f
-        view.fnTabHeightScale = Prefs.fnTabHeightPercent(this) / 100f
-        view.fnTabPadDp = Prefs.fnTabPadDp(this)
         view.frostFadeAlpha = Prefs.fnTabAlphaPercent(this) / 100f
         refreshFnTab()
     }
@@ -274,6 +272,8 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         // 가로 모드처럼 화면이 낮으면 키 높이를 자동으로 줄인다 (사용자가 정한 세로 길이에 곱해진다)
         view.heightScale = g.heightScale * ScreenProfile.heightFactor(config.screenHeightDp)
         view.splitGapFraction = g.gapFraction
+        view.fnTabHeightScale = g.fnTabHeightPct / 100f            // 전복붙 탭 높이·여백도 화면 상태별(펼침/접힘 × 세로/가로) 설정
+        view.fnTabPadDp = g.fnTabPadDp
         view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp, g.rowGapDp, g.numHeightScale, g.numRowGapDp, g.hitShifts)
         refreshFnTab()
     }

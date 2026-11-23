@@ -463,7 +463,7 @@ class GlassThemeDrawTest {
     }
 
     @Test fun gradientThemePaintsAShaderBackgroundAndKeyBorders() {
-        val r = Rec(); viewWith("sunset").draw(r)
+        val r = Rec(); viewWith("midnightglass").draw(r)
         assertEquals(1, r.gradientRects)
         assertTrue(r.borders > 20)
     }

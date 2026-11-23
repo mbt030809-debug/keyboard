@@ -90,89 +90,78 @@ object Prefs {
 
     private fun geoKey(large: Boolean, field: String) = "geo_${if (large) "large" else "normal"}_$field"
 
+    /** 가로 모드 키: 세로 키 이름 앞에 land_ 를 붙인다 (예전 "갈라진 정도"의 land_g와 같은 방식) */
+    private fun geoKey(large: Boolean, landscape: Boolean, field: String) = geoKey(large, if (landscape) "land_$field" else field)
+
     /**
-     * 키보드 크기·위치. [large]가 true면 폴드를 펼친 넓은 화면용, false면 접힘(일반) 화면용.
-     * "갈라진 정도"만 [landscape](가로 모드)일 때 따로 저장한다. 가로 값이 아직 없으면
-     * 펼침 화면은 세로 값을, 접힘 화면은 0(나누지 않음)을 쓴다.
+     * 키보드 크기·여백·간격·숫자줄·전복붙 설정. [large]가 true면 폴드를 펼친 넓은 화면용, false면 접힘(일반) 화면용이고,
+     * [landscape]는 가로 모드다. 이 네 가지(펼침/접힘 × 세로/가로)가 값마다 각각 따로 저장된다.
+     * 가로 값이 아직 없으면 같은 화면의 세로 값을 이어받는다. "갈라진 정도"는 접힘 가로에서만 기본 0(나누지 않음)이다.
      */
     fun geometry(context: Context, large: Boolean, landscape: Boolean = false): KeyboardGeometry {
         val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        fun int(field: String, default: Int): Int {
+            val portrait = p.getInt(geoKey(large, field), default)
+            return if (landscape && p.contains(geoKey(large, true, field))) p.getInt(geoKey(large, true, field), portrait) else portrait
+        }
         val portraitGap = p.getInt(geoKey(large, "g"), KeyboardGeometry.GAP_DEFAULT)
         val gap = when {
             !landscape -> portraitGap
-            p.contains(geoKey(large, "land_g")) -> p.getInt(geoKey(large, "land_g"), portraitGap)
+            p.contains(geoKey(large, true, "g")) -> p.getInt(geoKey(large, true, "g"), portraitGap)
             large -> portraitGap
             else -> KeyboardGeometry.GAP_NORMAL_LANDSCAPE_DEFAULT
         }
         return KeyboardGeometry(
-            p.getInt(geoKey(large, "w"), KeyboardGeometry.WIDTH_DEFAULT),
-            p.getInt(geoKey(large, "h"), KeyboardGeometry.HEIGHT_DEFAULT),
-            p.getInt(geoKey(large, "xd"), KeyboardGeometry.X_DEFAULT),
-            p.getInt(geoKey(large, "r"), KeyboardGeometry.RAISE_DEFAULT),
+            int("w", KeyboardGeometry.WIDTH_DEFAULT),
+            int("h", KeyboardGeometry.HEIGHT_DEFAULT),
+            int("xd", KeyboardGeometry.X_DEFAULT),
+            int("r", KeyboardGeometry.RAISE_DEFAULT),
             gap,
-            p.getInt(geoKey(large, "pl"), KeyboardGeometry.PAD_DEFAULT),
-            p.getInt(geoKey(large, "pt"), KeyboardGeometry.PAD_DEFAULT),
-            p.getInt(geoKey(large, "pr"), KeyboardGeometry.PAD_DEFAULT),
-            p.getInt(geoKey(large, "pb"), KeyboardGeometry.PAD_DEFAULT),
-            p.getInt(geoKey(large, "kg"), KeyboardGeometry.KEY_GAP_DEFAULT),
-            p.getInt(geoKey(large, "rg"), KeyboardGeometry.ROW_GAP_DEFAULT),
-            p.getInt(geoKey(large, "nh"), KeyboardGeometry.NUM_HEIGHT_DEFAULT),
-            p.getInt(geoKey(large, "nrg"), KeyboardGeometry.NUM_ROW_GAP_DEFAULT),
-            p.getInt(geoKey(large, "h0"), KeyboardGeometry.HIT_DEFAULT),
-            p.getInt(geoKey(large, "h1"), KeyboardGeometry.HIT_DEFAULT),
-            p.getInt(geoKey(large, "h2"), KeyboardGeometry.HIT_DEFAULT),
-            p.getInt(geoKey(large, "h3"), KeyboardGeometry.HIT_DEFAULT),
+            int("pl", KeyboardGeometry.PAD_DEFAULT),
+            int("pt", KeyboardGeometry.PAD_DEFAULT),
+            int("pr", KeyboardGeometry.PAD_DEFAULT),
+            int("pb", KeyboardGeometry.PAD_DEFAULT),
+            int("kg", KeyboardGeometry.KEY_GAP_DEFAULT),
+            int("rg", KeyboardGeometry.ROW_GAP_DEFAULT),
+            int("nh", KeyboardGeometry.NUM_HEIGHT_DEFAULT),
+            int("nrg", KeyboardGeometry.NUM_ROW_GAP_DEFAULT),
+            int("h0", KeyboardGeometry.HIT_DEFAULT),
+            int("h1", KeyboardGeometry.HIT_DEFAULT),
+            int("h2", KeyboardGeometry.HIT_DEFAULT),
+            int("h3", KeyboardGeometry.HIT_DEFAULT),
+            int("ft", KeyboardGeometry.FN_TAB_HEIGHT_DEFAULT),
+            int("fp", KeyboardGeometry.FN_TAB_PAD_DEFAULT),
         ).clamped()
     }
 
     fun setGeometry(context: Context, large: Boolean, g: KeyboardGeometry, landscape: Boolean = false) {
         val c = g.clamped()
+        fun k(field: String) = geoKey(large, landscape, field)
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-            .putInt(geoKey(large, "w"), c.widthPct)
-            .putInt(geoKey(large, "h"), c.heightPct)
-            .putInt(geoKey(large, "xd"), c.xDp)
-            .putInt(geoKey(large, "r"), c.raiseDp)
-            .putInt(if (landscape) geoKey(large, "land_g") else geoKey(large, "g"), c.gapPct)
-            .putInt(geoKey(large, "pl"), c.padLeftDp)
-            .putInt(geoKey(large, "pt"), c.padTopDp)
-            .putInt(geoKey(large, "pr"), c.padRightDp)
-            .putInt(geoKey(large, "pb"), c.padBottomDp)
-            .putInt(geoKey(large, "kg"), c.keyGapDp)
-            .putInt(geoKey(large, "rg"), c.rowGapDp)
-            .putInt(geoKey(large, "nh"), c.numHeightPct)
-            .putInt(geoKey(large, "nrg"), c.numRowGapDp)
-            .putInt(geoKey(large, "h0"), c.hit0Dp)
-            .putInt(geoKey(large, "h1"), c.hit1Dp)
-            .putInt(geoKey(large, "h2"), c.hit2Dp)
-            .putInt(geoKey(large, "h3"), c.hit3Dp)
+            .putInt(k("w"), c.widthPct)
+            .putInt(k("h"), c.heightPct)
+            .putInt(k("xd"), c.xDp)
+            .putInt(k("r"), c.raiseDp)
+            .putInt(k("g"), c.gapPct)
+            .putInt(k("pl"), c.padLeftDp)
+            .putInt(k("pt"), c.padTopDp)
+            .putInt(k("pr"), c.padRightDp)
+            .putInt(k("pb"), c.padBottomDp)
+            .putInt(k("kg"), c.keyGapDp)
+            .putInt(k("rg"), c.rowGapDp)
+            .putInt(k("nh"), c.numHeightPct)
+            .putInt(k("nrg"), c.numRowGapDp)
+            .putInt(k("h0"), c.hit0Dp)
+            .putInt(k("h1"), c.hit1Dp)
+            .putInt(k("h2"), c.hit2Dp)
+            .putInt(k("h3"), c.hit3Dp)
+            .putInt(k("ft"), c.fnTabHeightPct)
+            .putInt(k("fp"), c.fnTabPadDp)
             .apply()
     }
-    const val KEY_FN_TAB_PAD = "fn_tab_pad_dp"
-    const val FN_TAB_PAD_MIN = 0
-    const val FN_TAB_PAD_MAX = 20
-
-    /** 전복붙 탭 바탕이 버튼 둘레(위·아래·왼쪽·오른쪽)로 내미는 폭 dp. 네 방향 모두 같은 값 (기본 4) */
-    fun fnTabPadDp(context: Context): Int =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_FN_TAB_PAD, 4).coerceIn(FN_TAB_PAD_MIN, FN_TAB_PAD_MAX)
-
-    fun setFnTabPadDp(context: Context, dp: Int) =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-            .putInt(KEY_FN_TAB_PAD, dp.coerceIn(FN_TAB_PAD_MIN, FN_TAB_PAD_MAX)).apply()
 
     const val KEY_FN_TAB = "fn_tab"
     const val KEY_FN_TAB_ALPHA = "fn_tab_alpha_pct"
-    const val KEY_FN_TAB_HEIGHT = "fn_tab_height_pct"
-    const val FN_TAB_HEIGHT_MIN = 50
-    const val FN_TAB_HEIGHT_MAX = 150
-
-    /** 탭 버튼 높이 % (숫자 키 높이 대비, 기본 100) */
-    fun fnTabHeightPercent(context: Context): Int =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_FN_TAB_HEIGHT, 100).coerceIn(FN_TAB_HEIGHT_MIN, FN_TAB_HEIGHT_MAX)
-
-    fun setFnTabHeightPercent(context: Context, pct: Int) =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-            .putInt(KEY_FN_TAB_HEIGHT, pct.coerceIn(FN_TAB_HEIGHT_MIN, FN_TAB_HEIGHT_MAX)).apply()
-
     const val FN_TAB_ALPHA_MIN = 20
     const val FN_TAB_ALPHA_MAX = 90
 

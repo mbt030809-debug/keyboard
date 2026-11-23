@@ -174,9 +174,9 @@ class FnTabTest {
 
     @Test fun tabPaddingIsItsOwnSettingEqualOnAllFourSides() {
         val ctxd = ctx.resources.displayMetrics.density
-        assertEquals(4, Prefs.fnTabPadDp(ctx))
-        Prefs.setFnTabPadDp(ctx, 99); assertEquals(Prefs.FN_TAB_PAD_MAX, Prefs.fnTabPadDp(ctx))
-        Prefs.setFnTabPadDp(ctx, -3); assertEquals(Prefs.FN_TAB_PAD_MIN, Prefs.fnTabPadDp(ctx))
+        assertEquals(4, com.mbt.keyboard.settings.KeyboardGeometry().fnTabPadDp)
+        assertEquals(com.mbt.keyboard.settings.KeyboardGeometry.FN_TAB_PAD_MAX, com.mbt.keyboard.settings.KeyboardGeometry(fnTabPadDp = 99).clamped().fnTabPadDp)
+        assertEquals(com.mbt.keyboard.settings.KeyboardGeometry.FN_TAB_PAD_MIN, com.mbt.keyboard.settings.KeyboardGeometry(fnTabPadDp = -3).clamped().fnTabPadDp)
         for (pad in listOf(0, 4, 11)) for (f in listOf(KeyboardFrame(), KeyboardFrame(leftDp = 10, topDp = 12, rightDp = 2, bottomDp = 7, keyGapDp = 2, rowGapDp = 14))) {
             val v = KeyboardView(ctx).also { it.numberLeft = true; it.fnTab = true; it.fnTabPadDp = pad; it.keyboardLayout = Layouts.english; it.frame = f; measure(it) }
             val tab = FnTab(ctx, v)
@@ -244,9 +244,9 @@ class FnTabTest {
     }
 
     @Test fun tabButtonHeightHasItsOwnScaleSetting() {
-        assertEquals(100, Prefs.fnTabHeightPercent(ctx))
-        Prefs.setFnTabHeightPercent(ctx, 10); assertEquals(Prefs.FN_TAB_HEIGHT_MIN, Prefs.fnTabHeightPercent(ctx))
-        Prefs.setFnTabHeightPercent(ctx, 900); assertEquals(Prefs.FN_TAB_HEIGHT_MAX, Prefs.fnTabHeightPercent(ctx))
+        assertEquals(100, com.mbt.keyboard.settings.KeyboardGeometry().fnTabHeightPct)
+        assertEquals(com.mbt.keyboard.settings.KeyboardGeometry.FN_TAB_HEIGHT_MIN, com.mbt.keyboard.settings.KeyboardGeometry(fnTabHeightPct = 10).clamped().fnTabHeightPct)
+        assertEquals(com.mbt.keyboard.settings.KeyboardGeometry.FN_TAB_HEIGHT_MAX, com.mbt.keyboard.settings.KeyboardGeometry(fnTabHeightPct = 900).clamped().fnTabHeightPct)
         val v = keyView(true, true)
         val base = v.fnKeyHeightPx()
         v.fnTabHeightScale = 0.6f
@@ -366,7 +366,7 @@ class FrostThemeTest {
 
     @Test fun threeThemesAreListedFirstWithWhiteKeysOnAGlassPlate() {
         val all = com.mbt.keyboard.ime.KeyboardThemes.all
-        assertEquals(ids, all.filter { it.theme.frost }.map { it.id })
+        assertEquals(ids + listOf("sunset", "pinkcloud", "aurora", "mintsoda"), all.filter { it.theme.frost }.map { it.id })
         assertEquals(ids, all.take(3).map { it.id })
         ids.forEach { id ->
             val t = all.first { it.id == id }.theme

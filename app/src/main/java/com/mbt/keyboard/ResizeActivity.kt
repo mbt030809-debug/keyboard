@@ -142,14 +142,10 @@ class ResizeActivity : AppCompatActivity() {
                     { geometry.numRowGapDp > KeyboardGeometry.NUM_ROW_GAP_MIN }, { geometry.numRowGapDp < KeyboardGeometry.NUM_ROW_GAP_MAX })
             },
             Page(R.string.resize_page_tab, R.string.resize_title_tab, R.string.resize_badge_tab, R.string.resize_desc_tab, ResizeDiagram.Part.TAB, note = R.string.resize_note_tab) {
-                addStepper(R.string.resize_tab_height,
-                    { Prefs.setFnTabHeightPercent(this, Prefs.fnTabHeightPercent(this) + it * FN_TAB_HEIGHT_STEP) },
-                    { "${Prefs.fnTabHeightPercent(this)}%" },
-                    { Prefs.fnTabHeightPercent(this) > Prefs.FN_TAB_HEIGHT_MIN }, { Prefs.fnTabHeightPercent(this) < Prefs.FN_TAB_HEIGHT_MAX })
-                addStepper(R.string.resize_tab_pad,
-                    { Prefs.setFnTabPadDp(this, Prefs.fnTabPadDp(this) + it) },
-                    { "${Prefs.fnTabPadDp(this)}dp" },
-                    { Prefs.fnTabPadDp(this) > Prefs.FN_TAB_PAD_MIN }, { Prefs.fnTabPadDp(this) < Prefs.FN_TAB_PAD_MAX })
+                addStepper(R.string.resize_tab_height, { geometry = geometry.fnTabHeightBy(it) }, { "${geometry.fnTabHeightPct}%" },
+                    { geometry.fnTabHeightPct > KeyboardGeometry.FN_TAB_HEIGHT_MIN }, { geometry.fnTabHeightPct < KeyboardGeometry.FN_TAB_HEIGHT_MAX })
+                addStepper(R.string.resize_tab_pad, { geometry = geometry.fnTabPadBy(it) }, { "${geometry.fnTabPadDp}dp" },
+                    { geometry.fnTabPadDp > KeyboardGeometry.FN_TAB_PAD_MIN }, { geometry.fnTabPadDp < KeyboardGeometry.FN_TAB_PAD_MAX })
             },
             Page(R.string.resize_page_hit, R.string.resize_title_hit, R.string.resize_badge_hit, R.string.resize_desc_hit, ResizeDiagram.Part.HIT) {
                 addStepper(R.string.resize_hit0, { geometry = geometry.hit0By(it) }, { signedDp(geometry.hit0Dp) },
@@ -181,8 +177,6 @@ class ResizeActivity : AppCompatActivity() {
 
         findViewById<MaterialButton>(R.id.resetButton).setOnClickListener {
             geometry = KeyboardGeometry()
-            Prefs.setFnTabHeightPercent(this, 100)
-            Prefs.setFnTabPadDp(this, 4)
             refresh()
         }
         findViewById<MaterialButton>(R.id.doneButton).setOnClickListener { finish() }
@@ -282,8 +276,8 @@ class ResizeActivity : AppCompatActivity() {
         )
         val tabOn = Prefs.fnTabEnabled(this) && keyboard.hasSideStrip
         keyboard.fnTab = tabOn
-        keyboard.fnTabHeightScale = Prefs.fnTabHeightPercent(this) / 100f
-        keyboard.fnTabPadDp = Prefs.fnTabPadDp(this)
+        keyboard.fnTabHeightScale = geometry.fnTabHeightPct / 100f
+        keyboard.fnTabPadDp = geometry.fnTabPadDp
         fnTab.alphaPercent = Prefs.fnTabAlphaPercent(this)
         KeyboardHost.applyFnTab(host, fnTab, keyboard, tabOn)
         steppers.forEach {
@@ -309,6 +303,5 @@ class ResizeActivity : AppCompatActivity() {
     }
 
     private companion object {
-        const val FN_TAB_HEIGHT_STEP = 5
     }
 }

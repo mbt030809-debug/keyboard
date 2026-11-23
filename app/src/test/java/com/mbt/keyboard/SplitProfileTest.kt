@@ -44,10 +44,11 @@ class SplitProfileTest {
         assertEquals(20, Prefs.geometry(ctx, true, false).gapPct)
         assertEquals(30, Prefs.geometry(ctx, true, true).gapPct)
         assertEquals(12, Prefs.geometry(ctx, false, true).gapPct)
-        // 다른 설정(가로 길이 등)은 방향과 상관없이 함께 쓴다
+        // 가로 길이 등 다른 설정도 세로/가로가 따로 저장된다 (펼침/접힘 × 세로/가로 네 가지)
         Prefs.setGeometry(ctx, large = true, KeyboardGeometry(widthPct = 80, gapPct = 30), landscape = true)
-        assertEquals(80, Prefs.geometry(ctx, true, false).widthPct)
-        assertEquals(20, Prefs.geometry(ctx, true, false).gapPct)                                 // 세로 틈은 그대로
+        assertEquals(100, Prefs.geometry(ctx, true, false).widthPct)                               // 세로는 그대로
+        assertEquals(80, Prefs.geometry(ctx, true, true).widthPct)
+        assertEquals(20, Prefs.geometry(ctx, true, false).gapPct)                                 // 세로 틈도 그대로
     }
 
     @Test fun numberRowSettingsAreSavedAndLoaded() {

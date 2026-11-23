@@ -160,8 +160,8 @@ class ResizeActivityTest {
                 val g = Prefs.geometry(a, large = false)
                 assertEquals(7, g.keyGapDp); assertEquals(4, g.rowGapDp)
                 assertEquals(85, g.numHeightPct); assertEquals(8, g.numRowGapDp)
-                assertEquals(95, Prefs.fnTabHeightPercent(a))
-                assertEquals(6, Prefs.fnTabPadDp(a))
+                assertEquals(95, g.fnTabHeightPct)
+                assertEquals(6, g.fnTabPadDp)
                 assertEquals("95%", value(a, 0))
                 assertEquals("6dp", value(a, 1))
                 assertEquals(View.VISIBLE, a.findViewById<View>(R.id.pageNote).visibility)    // 전복붙 안내
@@ -179,8 +179,6 @@ class ResizeActivityTest {
                 goTo(a, 5); step(a, 0, plus = true)
                 a.findViewById<View>(R.id.resetButton).performClick()
                 assertEquals(KeyboardGeometry(), Prefs.geometry(a, large = false))
-                assertEquals(100, Prefs.fnTabHeightPercent(a))
-                assertEquals(4, Prefs.fnTabPadDp(a))
             }
         }
     }

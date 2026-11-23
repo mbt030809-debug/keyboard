@@ -24,6 +24,10 @@ import kotlin.math.roundToInt
  * @param hit2Dp 둘째 글자 줄(ㅁㄴㅇㄹㅎ) 아래쪽 인식 영역 이동
  * @param hit3Dp 셋째 글자 줄(ㅋㅌㅊㅍ) 아래쪽 인식 영역 이동
  * @param numHeightPct 맨 윗줄(숫자 줄) 높이: 일반 키 높이 대비 % (40~120, 기본 80)
+ * @param fnTabHeightPct 전복붙 탭 버튼 높이: 숫자 키 높이 대비 % (50~150, 기본 100)
+ * @param fnTabPadDp 전복붙 탭 바탕이 버튼 둘레(위·아래·왼쪽·오른쪽)로 내미는 폭 (0~20dp, 기본 4)
+ *
+ * 이 모든 값은 화면 상태(펼침/접힘 × 세로/가로) 네 가지가 각각 따로 저장된다.
  */
 data class KeyboardGeometry(
     val widthPct: Int = WIDTH_DEFAULT,
@@ -43,6 +47,8 @@ data class KeyboardGeometry(
     val hit1Dp: Int = HIT_DEFAULT,
     val hit2Dp: Int = HIT_DEFAULT,
     val hit3Dp: Int = HIT_DEFAULT,
+    val fnTabHeightPct: Int = FN_TAB_HEIGHT_DEFAULT,
+    val fnTabPadDp: Int = FN_TAB_PAD_DEFAULT,
 ) {
     /** 범위를 벗어난 값을 허용 범위 안으로 */
     fun clamped() = KeyboardGeometry(
@@ -63,6 +69,8 @@ data class KeyboardGeometry(
         hit1Dp.coerceIn(HIT_MIN, HIT_MAX),
         hit2Dp.coerceIn(HIT_MIN, HIT_MAX),
         hit3Dp.coerceIn(HIT_MIN, HIT_MAX),
+        fnTabHeightPct.coerceIn(FN_TAB_HEIGHT_MIN, FN_TAB_HEIGHT_MAX),
+        fnTabPadDp.coerceIn(FN_TAB_PAD_MIN, FN_TAB_PAD_MAX),
     )
 
     fun widerBy(steps: Int) = copy(widthPct = widthPct + steps * WIDTH_STEP).clamped()
@@ -79,6 +87,8 @@ data class KeyboardGeometry(
     fun hit1By(steps: Int) = copy(hit1Dp = hit1Dp + steps).clamped()
     fun hit2By(steps: Int) = copy(hit2Dp = hit2Dp + steps).clamped()
     fun hit3By(steps: Int) = copy(hit3Dp = hit3Dp + steps).clamped()
+    fun fnTabHeightBy(steps: Int) = copy(fnTabHeightPct = fnTabHeightPct + steps * FN_TAB_HEIGHT_STEP).clamped()
+    fun fnTabPadBy(steps: Int) = copy(fnTabPadDp = fnTabPadDp + steps).clamped()
 
     /** 숫자 줄 + 글자 줄 3개, 줄 4개의 "아래 경계" 이동량(dp) */
     val hitShifts: List<Int> get() = listOf(hit0Dp, hit1Dp, hit2Dp, hit3Dp)
@@ -195,6 +205,15 @@ data class KeyboardGeometry(
         const val NUM_ROW_GAP_MIN = 0
         const val NUM_ROW_GAP_MAX = 40
         const val NUM_ROW_GAP_DEFAULT = 6
+
+        const val FN_TAB_HEIGHT_MIN = 50
+        const val FN_TAB_HEIGHT_MAX = 150
+        const val FN_TAB_HEIGHT_STEP = 5
+        const val FN_TAB_HEIGHT_DEFAULT = 100
+
+        const val FN_TAB_PAD_MIN = 0
+        const val FN_TAB_PAD_MAX = 20
+        const val FN_TAB_PAD_DEFAULT = 4
 
         const val NUM_HEIGHT_MIN = 40
         const val NUM_HEIGHT_MAX = 120

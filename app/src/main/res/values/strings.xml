@@ -118,7 +118,6 @@
     <string name="layout_dubeolsik">두벌식</string>
     <string name="fn_tab_switch">전체·복사·붙임을 키보드 위 반투명 탭으로</string>
     <string name="fn_tab_desc">숫자 키를 왼쪽에 둔 자판(모아키 포함)에서 맨 아래 줄의 전체·복사·붙임을 키보드 위 왼쪽에 떠 있는 반투명 버튼으로 옮겨요. 뒤의 앱 화면이 비치고, 앱 화면은 키보드 높이만큼만 가려져요</string>
-    <string name="fn_tab_height_label">탭 버튼 높이 (숫자 키 대비)</string>
     <string name="fn_tab_alpha_label">탭 불투명도</string>
     <string name="fn_tab_alpha_value">%1$d%%</string>
     <string name="font_scale_label">키 글자 크기</string>
