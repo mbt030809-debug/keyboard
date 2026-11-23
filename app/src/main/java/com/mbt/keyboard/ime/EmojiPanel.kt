@@ -35,12 +35,24 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
     private val emojis: List<Category> by lazy { EmojiData.emoji(context) }
 
     private var tab = TAB_EMOTICON
-    private var emoticonCategory = -1       // -1: 카테고리 목록
     private var emojiCategory = 0
+
+    /** 이모티콘 탭에서 분류별 블록 (바로가기 칩이 이 위치로 스크롤한다) */
+    private val blocks = ArrayList<View>()
 
     private val tabEmoticon = tabView("이모티콘") { selectTab(TAB_EMOTICON) }
     private val tabEmoji = tabView("이모지") { selectTab(TAB_EMOJI) }
     private val container = LinearLayout(context).apply { orientation = VERTICAL }
+
+    /** 분류 바로가기 칩 줄 (이모티콘 탭에서만 보인다) */
+    private val indexChips = LinearLayout(context).apply {
+        orientation = HORIZONTAL
+        setPadding(dp(6), dp(2), dp(6), dp(2))
+    }
+    private val indexBar = android.widget.HorizontalScrollView(context).apply {
+        isHorizontalScrollBarEnabled = false
+        addView(indexChips, ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    }
     private val scroll = ScrollView(context).apply {
         isFillViewport = false
         addView(container, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -55,6 +67,7 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
         tabs.addView(tabEmoji, LayoutParams(0, dp(40), 1f))
         tabs.addView(closeButton(), LayoutParams(dp(48), dp(40)))
         addView(tabs, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        addView(indexBar, LayoutParams(LayoutParams.MATCH_PARENT, dp(38)))
 
         addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
 
@@ -75,43 +88,57 @@ class EmojiPanel(context: Context, private val listener: Listener) : LinearLayou
         styleTab(tabEmoticon, tab == TAB_EMOTICON)
         styleTab(tabEmoji, tab == TAB_EMOJI)
         container.removeAllViews()
+        blocks.clear()
         scroll.scrollTo(0, 0)
-        if (tab == TAB_EMOTICON) {
-            if (emoticonCategory < 0) showEmoticonCategories() else showEmoticonItems(emoticonCategory)
-        } else {
-            showEmojiGrid()
-        }
+        indexBar.visibility = if (tab == TAB_EMOTICON) View.VISIBLE else View.GONE
+        if (tab == TAB_EMOTICON) showEmoticonsGrouped() else showEmojiGrid()
     }
 
-    private fun showEmoticonCategories() {
-        val flow = flow()
+    /**
+     * 이모티콘: 분류별로 한 화면에 이어서 보여준다. 한 번만 눌러 바로 입력된다.
+     *   행복 (*´∪`) (´▽`) (*^▽^*) …
+     *   화남 (`Д´) ヽ(`Д´)ﾉ (╬ ಠ益ಠ) …
+     * 위쪽 칩(행복·화남·…)을 누르면 그 분류로 바로 스크롤한다.
+     */
+    private fun showEmoticonsGrouped() {
+        indexChips.removeAllViews()
         emoticons.forEachIndexed { i, c ->
-            flow.addView(pill("${c.sample} ${c.name}", PALETTE[i % PALETTE.size], 13f) {
-                emoticonCategory = i
-                render()
-            })
+            val color = PALETTE[i % PALETTE.size]
+            indexChips.addView(
+                TextView(context).apply {
+                    text = c.label
+                    textSize = 13f
+                    gravity = Gravity.CENTER
+                    setTextColor(theme.text)
+                    setPadding(dp(10), 0, dp(10), 0)
+                    background = rounded(0, color, 14f)
+                    setOnClickListener { blocks.getOrNull(i)?.let { b -> scroll.smoothScrollTo(0, b.top) } }
+                },
+                LayoutParams(LayoutParams.WRAP_CONTENT, dp(30)).apply { setMargins(dp(3), dp(4), dp(3), dp(4)) },
+            )
         }
-        container.addView(flow)
+        emoticons.forEachIndexed { i, c ->
+            val color = PALETTE[i % PALETTE.size]
+            val block = flow()
+            // 분류 이름: 색을 채운 알약. 이 줄 맨 앞에 오고, 이모티콘들이 이어서 나열된다
+            block.addView(
+                TextView(context).apply {
+                    text = c.label
+                    textSize = 13f
+                    setTypeface(typeface, Typeface.BOLD)
+                    setTextColor(theme.text)
+                    setPadding(dp(10), dp(9), dp(10), dp(9))
+                    background = rounded(withAlpha(color, 70), 0, 20f)
+                    isSingleLine = true
+                },
+            )
+            c.items.forEach { e -> block.addView(pill(e, color, 15f) { listener.onInsert(e) }) }
+            blocks += block
+            container.addView(block)
+        }
     }
 
-    private fun showEmoticonItems(index: Int) {
-        val cat = emoticons[index]
-        container.addView(
-            TextView(context).apply {
-                text = "‹  ${cat.name}"
-                textSize = 15f
-                setTypeface(typeface, Typeface.BOLD)
-                setTextColor(theme.text)
-                setPadding(dp(14), dp(12), dp(14), dp(6))
-                setOnClickListener { emoticonCategory = -1; render() }
-            },
-        )
-        val flow = flow()
-        cat.items.forEach { e ->
-            flow.addView(pill(e, PALETTE[index % PALETTE.size], 15f) { listener.onInsert(e) })
-        }
-        container.addView(flow)
-    }
+    private fun withAlpha(color: Int, alpha: Int) = (color and 0x00FFFFFF) or (alpha shl 24)
 
     private fun showEmojiGrid() {
         // 카테고리 아이콘 줄

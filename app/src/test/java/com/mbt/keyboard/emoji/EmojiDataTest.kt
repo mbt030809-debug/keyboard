@@ -46,4 +46,24 @@ class EmojiDataTest {
         emoji.forEach { c -> assertTrue("${c.name}", c.items.size >= 20) }
         assertEquals(7, emoji.size)
     }
+
+    @Test fun parsesShortLabelBeforeTheDoubleColon() {
+        val c = EmojiData.parseEmoticons("## 행복 :: 행복해요 | (*´∪`)\n(*´∪`)\n## 숨기 :: 숨어요 | |_•)\n|_•)\n## 기타 | (๑•. •๑)\nㅋ")
+        assertEquals(listOf("행복해요", "숨어요", "기타"), c.map { it.name })
+        assertEquals(listOf("행복", "숨기", "기타"), c.map { it.label })        // 짧은 이름이 없으면 원래 이름
+        assertEquals("|_•)", c[1].sample)                                       // 대표에 '|'가 있어도 안전
+    }
+
+    @Test fun everyEmoticonCategoryHasAShortUniqueLabel() {
+        assertEquals(48, emoticons.size)
+        assertEquals(emoticons.size, emoticons.map { it.label }.toSet().size)
+        emoticons.forEach { assertTrue("${it.name} -> ${it.label}", it.label.isNotBlank() && it.label.length <= 5) }
+    }
+
+    @Test fun happyAndAngryStartWithTheRequestedEmoticonsInOrder() {
+        val happy = emoticons.first { it.label == "행복" }
+        assertEquals(listOf("(*´∪`)", "(´▽`)", "(*^▽^*)", "(๑˃ᴗ˂)ﻭ", "ヽ(´▽`)/"), happy.items.take(5))
+        val angry = emoticons.first { it.label == "화남" }
+        assertEquals(listOf("(`Д´)", "ヽ(`Д´)ﾉ", "(╬ ಠ益ಠ)", "(＃`Д´)"), angry.items.take(4))
+    }
 }

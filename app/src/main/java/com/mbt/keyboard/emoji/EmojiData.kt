@@ -3,13 +3,18 @@ package com.mbt.keyboard.emoji
 import android.content.Context
 import com.mbt.keyboard.R
 
-/** 카테고리 하나. [label]은 알약/탭에 표시되는 글자, [sample]은 대표 이모티콘(또는 이모지) */
-data class Category(val name: String, val sample: String, val items: List<String>)
+/**
+ * 카테고리 하나.
+ * @param name 원래 이름 (예: "행복해요")
+ * @param sample 대표 이모티콘(또는 이모지)
+ * @param label 화면에 짧게 표시하는 이름 (예: "행복"). 따로 없으면 [name]과 같다
+ */
+data class Category(val name: String, val sample: String, val items: List<String>, val label: String = name)
 
 /**
  * 이모티콘(특수문자 얼굴)과 이모지 데이터. `res/raw`의 텍스트 파일에서 읽는다.
  *
- * emoticons.txt:  `## 카테고리명 | 대표 이모티콘` 다음 줄부터 한 줄에 하나씩
+ * emoticons.txt:  `## 짧은이름 :: 카테고리명 | 대표 이모티콘` (`짧은이름 ::`은 생략 가능) 다음 줄부터 한 줄에 하나씩
  * emoji.txt:      `## 대표이모지 카테고리명` 다음 줄에 공백으로 구분된 이모지
  */
 object EmojiData {
@@ -23,16 +28,21 @@ object EmojiData {
     fun parseEmoticons(text: String): List<Category> {
         val out = ArrayList<Category>()
         var name: String? = null
+        var label = ""
         var sample = ""
         var items = ArrayList<String>()
-        fun flush() { name?.let { out += Category(it, sample, items) } }
+        fun flush() { name?.let { out += Category(it, sample, items, label) } }
         for (raw in text.lines()) {
             val line = raw.trimEnd()
             if (line.startsWith("## ")) {
                 flush()
                 val header = line.removePrefix("## ")
-                val bar = header.indexOf('|')
-                name = (if (bar >= 0) header.substring(0, bar) else header).trim()
+                val bar = header.indexOf('|')            // 첫 '|' 앞이 이름, 뒤가 대표 (대표에 '|'가 들어 있어도 안전)
+                val head = (if (bar >= 0) header.substring(0, bar) else header).trim()
+                val sep = head.indexOf(" :: ")
+                label = if (sep >= 0) head.substring(0, sep).trim() else ""
+                name = if (sep >= 0) head.substring(sep + 4).trim() else head
+                if (label.isEmpty()) label = name
                 sample = if (bar >= 0) header.substring(bar + 1).trim() else ""
                 items = ArrayList()
             } else if (line.isNotEmpty() && name != null) {
