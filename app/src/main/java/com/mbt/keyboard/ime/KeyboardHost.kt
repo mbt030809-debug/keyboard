@@ -25,4 +25,23 @@ object KeyboardHost {
         lp.bottomMargin = geometry.raisePx(density)
         host.layoutParams = lp
     }
+
+    /**
+     * 전체·복사·붙임 반투명 탭을 키보드 틀 위에 맞춘다: [on]이면 틀 위쪽에 탭 높이만큼 자리를 비우고 탭을 왼쪽 끝에 붙인다.
+     * 탭과 틀은 같은 [FrameLayout]의 자식이어야 한다. 실제 키보드와 크기 조정 미리보기가 같이 쓴다.
+     */
+    fun applyFnTab(host: View, tab: FnTab, keyboard: KeyboardView, on: Boolean, keyboardVisible: Boolean = true) {
+        val hostLp = host.layoutParams as FrameLayout.LayoutParams
+        val top = if (on) keyboard.fnTabHeightPx().toInt().coerceAtLeast(1) else 0
+        if (hostLp.topMargin != top) { hostLp.topMargin = top; host.layoutParams = hostLp }
+        val tabLp = tab.layoutParams as FrameLayout.LayoutParams
+        if (tabLp.leftMargin != hostLp.leftMargin) { tabLp.leftMargin = hostLp.leftMargin; tab.layoutParams = tabLp }
+        tab.visibility = when {
+            !on -> View.GONE
+            keyboardVisible -> View.VISIBLE
+            else -> View.INVISIBLE      // 이모지·상용구 패널이 떠 있는 동안은 숨기되 자리는 유지
+        }
+        tab.requestLayout()
+        tab.invalidate()
+    }
 }

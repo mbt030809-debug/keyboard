@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
+import com.mbt.keyboard.ime.FnTab
 import com.mbt.keyboard.ime.KeyboardFrame
 import com.mbt.keyboard.ime.KeyboardHost
 import com.mbt.keyboard.ime.KeyboardView
@@ -34,6 +35,7 @@ class ResizeActivity : AppCompatActivity() {
     private lateinit var geometry: KeyboardGeometry
     private lateinit var host: FrameLayout
     private lateinit var keyboard: KeyboardView
+    private lateinit var fnTab: FnTab
 
     /** 갈라진 자판이 적용 중인가 (펼침 화면 + 설정 켬). 아닐 때는 "갈라진 정도" 행을 숨긴다 */
     private var splitActive = false
@@ -76,6 +78,11 @@ class ResizeActivity : AppCompatActivity() {
         val previewContainer = findViewById<FrameLayout>(R.id.previewContainer)
         previewContainer.addView(
             host, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT),
+        )
+        // 실제 키보드처럼 전체·복사·붙임 반투명 탭도 미리보기에 같이 보인다
+        fnTab = FnTab(this, keyboard).also { it.visibility = View.GONE }
+        previewContainer.addView(
+            fnTab, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP or android.view.Gravity.START),
         )
         containerWidthPx = resources.displayMetrics.widthPixels
         // 실제 폭이 정해지거나 바뀌면(분할 화면, 폴드 펼침 등) 그 폭으로 미리보기를 다시 계산
@@ -198,6 +205,10 @@ class ResizeActivity : AppCompatActivity() {
             geometry.padLeftDp, geometry.padTopDp, geometry.padRightDp, geometry.padBottomDp, geometry.keyGapDp,
             geometry.rowGapDp, geometry.numHeightScale, geometry.numRowGapDp, geometry.hitShifts,
         )
+        val tabOn = Prefs.fnTabEnabled(this) && keyboard.hasSideStrip
+        keyboard.fnTab = tabOn
+        fnTab.alphaPercent = Prefs.fnTabAlphaPercent(this)
+        KeyboardHost.applyFnTab(host, fnTab, keyboard, tabOn)
         steppers.forEach {
             it.value.text = it.text()
             it.minus.isEnabled = it.canMinus()

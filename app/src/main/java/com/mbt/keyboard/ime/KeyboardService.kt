@@ -221,18 +221,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.fnTab = on
         fnTab.theme = view.theme
         fnTab.alphaPercent = Prefs.fnTabAlphaPercent(this)
-        val hostLp = host.layoutParams as FrameLayout.LayoutParams
-        val top = if (on) view.fnTabHeightPx().toInt().coerceAtLeast(1) else 0
-        if (hostLp.topMargin != top) { hostLp.topMargin = top; host.layoutParams = hostLp }
-        val tabLp = fnTab.layoutParams as FrameLayout.LayoutParams
-        if (tabLp.leftMargin != hostLp.leftMargin) { tabLp.leftMargin = hostLp.leftMargin; fnTab.layoutParams = tabLp }
-        fnTab.visibility = when {
-            !on -> View.GONE
-            view.visibility == View.VISIBLE -> View.VISIBLE
-            else -> View.INVISIBLE      // 이모지·상용구 패널이 떠 있는 동안은 숨기되 자리는 유지
-        }
-        fnTab.requestLayout()
-        fnTab.invalidate()
+        KeyboardHost.applyFnTab(host, fnTab, view, on, view.visibility == View.VISIBLE)
     }
 
     override fun onComputeInsets(outInsets: InputMethodService.Insets) {

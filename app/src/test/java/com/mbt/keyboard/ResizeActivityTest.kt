@@ -21,6 +21,30 @@ class ResizeActivityTest {
         }
     }
 
+    @Test fun previewShowsTheFloatingFnTabLikeTheRealKeyboard() {
+        val ctx = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        Prefs.setNumberKeysLeft(ctx, true)
+        Prefs.setFnTabEnabled(ctx, true)
+        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                val container = a.findViewById<android.widget.FrameLayout>(R.id.previewContainer)
+                val tab = (0 until container.childCount).map { container.getChildAt(it) }.filterIsInstance<com.mbt.keyboard.ime.FnTab>().single()
+                assertEquals(View.VISIBLE, tab.visibility)
+                val host = container.getChildAt(0)
+                assertTrue((host.layoutParams as android.widget.FrameLayout.LayoutParams).topMargin > 0)
+            }
+        }
+        // 탭을 끄면 미리보기에서도 사라진다
+        Prefs.setFnTabEnabled(ctx, false)
+        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                val container = a.findViewById<android.widget.FrameLayout>(R.id.previewContainer)
+                val tab = (0 until container.childCount).map { container.getChildAt(it) }.filterIsInstance<com.mbt.keyboard.ime.FnTab>().single()
+                assertEquals(View.GONE, tab.visibility)
+            }
+        }
+    }
+
     @Test fun settingsActivityOpensAndResizeButtonLaunchesResize() {
         ActivityScenario.launch(SettingsActivity::class.java).use { sc ->
             sc.onActivity { a -> a.findViewById<View>(R.id.btnResize).performClick() }
