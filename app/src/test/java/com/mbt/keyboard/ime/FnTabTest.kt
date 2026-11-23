@@ -228,6 +228,23 @@ class FnTabTest {
         textColors.forEach { assertEquals(127f, (it ushr 24).toFloat(), 1f) }
     }
 
+    @Test fun tabButtonHeightHasItsOwnScaleSetting() {
+        assertEquals(100, Prefs.fnTabHeightPercent(ctx))
+        Prefs.setFnTabHeightPercent(ctx, 10); assertEquals(Prefs.FN_TAB_HEIGHT_MIN, Prefs.fnTabHeightPercent(ctx))
+        Prefs.setFnTabHeightPercent(ctx, 900); assertEquals(Prefs.FN_TAB_HEIGHT_MAX, Prefs.fnTabHeightPercent(ctx))
+        val v = keyView(true, true)
+        val base = v.fnKeyHeightPx()
+        v.fnTabHeightScale = 0.6f
+        assertEquals(base * 0.6f, v.fnKeyHeightPx(), 0.5f)
+        v.fnTabHeightScale = 1.4f
+        assertEquals(base * 1.4f, v.fnKeyHeightPx(), 0.5f)
+        // 키보드 숫자 키 높이는 그대로 (탭만 변한다)
+        assertEquals(keyView(true, true).keyInnerRects().first { it.first.label == "1" }.second.height(),
+            v.keyInnerRects().first { it.first.label == "1" }.second.height(), 0.5f)
+        // 탭 높이가 변하면 키보드 위에 비우는 자리도 같이 변한다
+        assertEquals(v.fnTabPadPx() + v.fnKeyHeightPx() + v.fnTabPadBottomPx(), v.fnTabHeightPx(), 0.5f)
+    }
+
     @Test fun prefsDefaultsAndClamping() {
         assertTrue(Prefs.fnTabEnabled(ctx))
         assertEquals(50, Prefs.fnTabAlphaPercent(ctx))

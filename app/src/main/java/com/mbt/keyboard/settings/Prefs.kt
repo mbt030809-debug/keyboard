@@ -149,6 +149,18 @@ object Prefs {
     }
     const val KEY_FN_TAB = "fn_tab"
     const val KEY_FN_TAB_ALPHA = "fn_tab_alpha_pct"
+    const val KEY_FN_TAB_HEIGHT = "fn_tab_height_pct"
+    const val FN_TAB_HEIGHT_MIN = 50
+    const val FN_TAB_HEIGHT_MAX = 150
+
+    /** 탭 버튼 높이 % (숫자 키 높이 대비, 기본 100) */
+    fun fnTabHeightPercent(context: Context): Int =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_FN_TAB_HEIGHT, 100).coerceIn(FN_TAB_HEIGHT_MIN, FN_TAB_HEIGHT_MAX)
+
+    fun setFnTabHeightPercent(context: Context, pct: Int) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_FN_TAB_HEIGHT, pct.coerceIn(FN_TAB_HEIGHT_MIN, FN_TAB_HEIGHT_MAX)).apply()
+
     const val FN_TAB_ALPHA_MIN = 20
     const val FN_TAB_ALPHA_MAX = 90
 

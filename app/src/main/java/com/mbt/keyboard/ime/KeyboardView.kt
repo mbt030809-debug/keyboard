@@ -388,7 +388,13 @@ class KeyboardView(context: Context) : View(context) {
     /**
      * 반투명 탭 버튼 높이 = 숫자 키 높이. 숫자 띠(전체 줄)를 숫자 한 열 개수(5)로 나눈 칸에서 줄 여백을 뺀 값이다
      */
-    fun fnKeyHeightPx(): Float {
+    /** 탭 버튼 높이 배율 (숫자 키 높이 대비, 1 = 같음) */
+    var fnTabHeightScale: Float = 1f
+        set(v) { if (field != v) { field = v; requestLayout(); invalidate() } }
+
+    fun fnKeyHeightPx(): Float = digitKeyHeightPx() * fnTabHeightScale
+
+    private fun digitKeyHeightPx(): Float {
         val n = (effective()?.sideKeys?.size ?: 0) / 2
         if (rowCount == 0 || n == 0) return if (rowCount == 0) 0f else keyBodyPx(rowCount - 1)
         val stripH = (0 until rowCount).sumOf { rowHeightPx(it).toDouble() }.toFloat()

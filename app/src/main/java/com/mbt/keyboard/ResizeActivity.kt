@@ -207,6 +207,7 @@ class ResizeActivity : AppCompatActivity() {
         )
         val tabOn = Prefs.fnTabEnabled(this) && keyboard.hasSideStrip
         keyboard.fnTab = tabOn
+        keyboard.fnTabHeightScale = Prefs.fnTabHeightPercent(this) / 100f
         fnTab.alphaPercent = Prefs.fnTabAlphaPercent(this)
         KeyboardHost.applyFnTab(host, fnTab, keyboard, tabOn)
         steppers.forEach {

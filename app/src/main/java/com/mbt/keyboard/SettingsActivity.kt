@@ -133,9 +133,19 @@ class SettingsActivity : AppCompatActivity() {
         sliderFnAlpha.isEnabled = swFnTab.isChecked
         sliderFnAlpha.value = Prefs.fnTabAlphaPercent(this).toFloat()
         valueFnAlpha.text = getString(R.string.fn_tab_alpha_value, Prefs.fnTabAlphaPercent(this))
+        val sliderFnHeight = findViewById<Slider>(R.id.sliderFnTabHeight)
+        val valueFnHeight = findViewById<TextView>(R.id.valueFnTabHeight)
+        sliderFnHeight.isEnabled = swFnTab.isChecked
+        sliderFnHeight.value = Prefs.fnTabHeightPercent(this).toFloat()
+        valueFnHeight.text = getString(R.string.fn_tab_alpha_value, Prefs.fnTabHeightPercent(this))
+        sliderFnHeight.addOnChangeListener { _, value, fromUser ->
+            valueFnHeight.text = getString(R.string.fn_tab_alpha_value, value.toInt())
+            if (fromUser) Prefs.setFnTabHeightPercent(this, value.toInt())
+        }
         swFnTab.setOnCheckedChangeListener { _, on ->
             Prefs.setFnTabEnabled(this, on)
             sliderFnAlpha.isEnabled = on
+            sliderFnHeight.isEnabled = on
         }
         sliderFnAlpha.addOnChangeListener { _, value, fromUser ->
             valueFnAlpha.text = getString(R.string.fn_tab_alpha_value, value.toInt())
