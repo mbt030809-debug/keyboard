@@ -457,7 +457,10 @@ class KeyboardView(context: Context) : View(context) {
      * 탭 버튼 아래 바탕 폭. 버튼과 맨 위 숫자 키 사이가 글자 줄 사이 간격(줄 여백)과 같아지도록,
      * 키보드 위쪽 여백(위 여백)만큼은 뺀다. 위 여백이 줄 여백 이상이면 0이고, 바탕이 키보드에 바로 맞닿는다
      */
-    fun fnTabPadBottomPx(): Float = (frame.rowGapDp - frame.topDp).coerceAtLeast(0).toFloat() * density
+    fun fnTabPadBottomPx(): Float = (frame.rowGapDp - frame.topDp - FN_TAB_GAP_DP).coerceAtLeast(0f) * density
+
+    /** 탭과 키보드 사이의 작은 틈 (둘이 딱 붙어 보이지 않게 약 2dp) */
+    fun fnTabGapPx(): Float = FN_TAB_GAP_DP * density
 
     /** 탭 전체 높이 = 위 바탕 + 버튼 + 아래 바탕 */
     fun fnTabHeightPx(): Float = fnTabPadPx() + fnKeyHeightPx() + fnTabPadBottomPx()
@@ -650,9 +653,19 @@ class KeyboardView(context: Context) : View(context) {
      * 키보드 판 전체가 한 장의 두꺼운 유리: ① 뒷배경을 흐리게 비춤 ② 투명한 흰색 ③ 왼쪽 위 비스듬한 빛과 가는 빛줄
      * ④ 가장자리 림(왼쪽 위·오른쪽 아래가 밝음) ⑤ 안쪽 가는 이중 테두리. 위쪽 모서리만 둥글다.
      */
+    /** 판 맨 위에서 뒤 앱 화면이 비치는 띠의 높이 (아래로 갈수록 불투명해져 판과 이어진다) */
+    fun frostFadePx(): Float = FROST_FADE_DP * density
+
+    /** 위 띠의 시작 불투명도(0~1). 전복붙 탭과 같은 값이라 탭과 판이 같은 재질로 이어져 보인다 */
+    var frostFadeAlpha: Float = 0.5f
+        set(v) { if (field != v) { field = v; invalidate() } }
+
+    private val fadeMaskPaint = Paint().apply { xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN) }
+
     private fun drawFrostPlate(canvas: Canvas) {
         ensureFrostBitmaps()
         val w = width.toFloat(); val h = height.toFloat()
+        val layer = canvas.saveLayer(0f, 0f, w, h, null)
         val (rl, rr) = frostPlateRadiiPx()
         glassPath.rewind()
         glassPath.addRoundRect(RectF(0f, 0f, w, h), floatArrayOf(rl, rl, rr, rr, 0f, 0f, 0f, 0f), Path.Direction.CW)
@@ -663,11 +676,20 @@ class KeyboardView(context: Context) : View(context) {
         glassPaint.shader = null
         glassPaint.color = theme.frostTint
         canvas.drawRect(0f, 0f, w, h, glassPaint)
-        // 왼쪽 위에서 비스듬히 오는 빛 + 그 뒤의 가는 빛줄
-        glassPaint.shader = LinearGradient(0f, 0f, w * 0.55f, h * 1.4f, intArrayOf(0x3DFFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x1AFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.28f, 0.5f, 0.56f, 0.62f), Shader.TileMode.CLAMP)
+        // 위쪽에서 내려오는 은은한 빛
+        glassPaint.shader = LinearGradient(0f, 0f, 0f, h * 0.45f, intArrayOf(0x38FFFFFF, 0x0FFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+        canvas.drawRect(0f, 0f, w, h, glassPaint)
+        // 비스듬히 가로지르는 엷은 빛띠들 (유리 표면에 빛이 반사되는 느낌): 넓고 옅은 띠 + 좁고 밝은 띠가 번갈아
+        glassPaint.shader = LinearGradient(
+            0f, 0f, w * 0.62f, h * 1.9f, GLASS_BAND_COLORS, GLASS_BAND_STOPS, Shader.TileMode.CLAMP,
+        )
         canvas.drawRect(0f, 0f, w, h, glassPaint)
         glassPaint.shader = null
         canvas.restore()
+        // 맨 위 띠는 반투명(뒤 앱이 비침) → 아래로 부드럽게 불투명해져 판과 이어진다
+        fadeMaskPaint.shader = LinearGradient(0f, 0f, 0f, frostFadePx(), ((frostFadeAlpha * 255f).toInt().coerceIn(0, 255) shl 24) or 0x00FFFFFF, 0xFFFFFFFF.toInt(), Shader.TileMode.CLAMP)
+        canvas.drawRect(0f, 0f, w, h, fadeMaskPaint)
+        canvas.restoreToCount(layer)
         // 림: 밝은 가장자리 선 (2dp) + 안쪽 가는 선
         glassPaint.style = Paint.Style.STROKE
         glassPaint.strokeWidth = 2 * density
@@ -1342,6 +1364,14 @@ class KeyboardView(context: Context) : View(context) {
         const val LABEL_WIDTH_FACTOR = 1.35f
         const val FROST_BLUR_DIV = 10
         const val FROST_KEY_RADIUS_SCALE = 1.15f
+        const val FROST_FADE_DP = 6f
+        const val FN_TAB_GAP_DP = 2f
+
+        /** 유리판 위 빛띠: (투명 → 옅은 넓은 띠 → 좁고 밝은 띠 → …) 비스듬한 방향 */
+        private val GLASS_BAND_COLORS = intArrayOf(
+            0x00FFFFFF, 0x2EFFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x20FFFFFF, 0x4DFFFFFF, 0x20FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x1AFFFFFF, 0x00FFFFFF,
+        )
+        private val GLASS_BAND_STOPS = floatArrayOf(0.00f, 0.10f, 0.20f, 0.36f, 0.43f, 0.455f, 0.48f, 0.56f, 0.72f, 0.80f, 0.90f)
 
         /** 번짐 배경 한 덩어리: (가로 위치, 세로 위치, 반지름 비율, 색) */
         private data class Blob(val fx: Float, val fy: Float, val r: Float, val color: Int)

@@ -209,6 +209,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.numberLeft = Prefs.numberKeysLeft(this)
         view.fontScale = Prefs.fontScalePercent(this) / 100f
         view.fnTabHeightScale = Prefs.fnTabHeightPercent(this) / 100f
+        view.frostFadeAlpha = Prefs.fnTabAlphaPercent(this) / 100f
         refreshFnTab()
     }
 
@@ -227,14 +228,17 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     override fun onComputeInsets(outInsets: InputMethodService.Insets) {
         super.onComputeInsets(outInsets)
-        if (!::fnTab.isInitialized || fnTab.visibility == View.GONE || isFullscreenMode) return
-        val tabH = (host.layoutParams as FrameLayout.LayoutParams).topMargin
-        if (tabH <= 0) return
-        // 탭 자리는 앱 화면을 밀어 올리지 않고, 터치도 탭과 키보드에만 반응한다 (탭 옆 빈 곳은 뒤의 앱으로 전달)
-        outInsets.contentTopInsets += tabH
-        outInsets.visibleTopInsets += tabH
+        if (!::fnTab.isInitialized || isFullscreenMode) return
+        val tabH = if (fnTab.visibility == View.GONE) 0 else (host.layoutParams as FrameLayout.LayoutParams).topMargin
+        // 글래스 테마는 판 맨 위 띠(약 6dp)도 뒤 앱이 비치는 영역이라 앱 화면을 그만큼 더 아래까지 깐다
+        val fade = if (view.theme.frost) view.frostFadePx().toInt() else 0
+        if (tabH <= 0 && fade <= 0) return
+        // 탭·띠 자리는 앱 화면을 밀어 올리지 않고, 터치는 탭과 키보드에만 반응한다 (탭 옆 빈 곳은 뒤의 앱으로 전달)
+        val rootTop = outInsets.contentTopInsets
+        outInsets.contentTopInsets = rootTop + tabH + fade
+        outInsets.visibleTopInsets += tabH + fade
         outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_REGION
-        outInsets.touchableRegion.set(0, outInsets.contentTopInsets, root.width, root.height + outInsets.contentTopInsets - tabH)
+        outInsets.touchableRegion.set(0, rootTop + tabH, root.width, rootTop + root.height)
         if (fnTab.visibility == View.VISIBLE) {
             val loc = IntArray(2)
             fnTab.getLocationInWindow(loc)

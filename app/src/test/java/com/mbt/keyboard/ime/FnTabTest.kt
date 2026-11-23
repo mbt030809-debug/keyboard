@@ -177,7 +177,7 @@ class FnTabTest {
         val firstDigitTop = v.keyInnerRects().first { it.first.label == "1" }.second.top
         // 탭 버튼 아래 끝 = 탭 높이 − 아래 바탕. 키보드 맨 위는 탭 높이만큼 아래에서 시작
         val buttonBottom = tab.height - v.fnTabPadBottomPx()
-        val gap = tab.height - buttonBottom + firstDigitTop
+        val gap = tab.height - buttonBottom + v.fnTabGapPx() + firstDigitTop       // + 탭과 키보드 사이 틈
         val letterGap = v.keyInnerRects().let { r -> r.first { it.first.label == "a" }.second.top - r.first { it.first.label == "q" }.second.bottom }
         assertEquals(letterGap, gap, 2.5f * d)
     }
@@ -262,7 +262,7 @@ class FnTabTest {
         val tab = root.getChildAt(1) as FnTab
         assertEquals(View.VISIBLE, tab.visibility)
         assertTrue((host.layoutParams as FrameLayout.LayoutParams).topMargin > 0)
-        assertEquals((host.layoutParams as FrameLayout.LayoutParams).topMargin, tab.height)
+        assertEquals(tab.height + (2 * ctx.resources.displayMetrics.density).toInt(), (host.layoutParams as FrameLayout.LayoutParams).topMargin)
         assertTrue("탭 높이만큼 전체가 더 크다", root.measuredHeight >= host.measuredHeight + tab.height - 1)
 
         // 끄면 탭도, 확보한 자리도 사라진다
@@ -362,5 +362,94 @@ class FrostThemeTest {
             assertTrue("$id 기능키는 키보다 투명", (t.specialKey ushr 24) < (t.key ushr 24))
             assertTrue("$id 숫자키 지정색", t.numberKey == t.numberKeyOverride)
         }
+    }
+}
+
+/** 글래스 테마: 키보드 판 맨 위 6dp는 뒤 앱이 비치는 띠 (탭과 같은 불투명도 → 아래로 페이드) */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class FrostFadeTest {
+    private val ctx get() = ApplicationProvider.getApplicationContext<Context>()
+
+    private fun layout(root: View) {
+        root.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        root.layout(0, 0, root.measuredWidth, root.measuredHeight)
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        root.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        root.layout(0, 0, root.measuredWidth, root.measuredHeight)
+    }
+
+    private fun insetsFor(themeId: String, tab: Boolean): Triple<Int, Int, android.graphics.Rect> {
+        Prefs.setNumberKeysLeft(ctx, true)
+        Prefs.setFnTabEnabled(ctx, tab)
+        Prefs.setThemeId(ctx, themeId)
+        val service = Robolectric.buildService(KeyboardService::class.java).create().get()
+        val root = service.onCreateInputView() as FrameLayout
+        layout(root)
+        val ins = android.inputmethodservice.InputMethodService.Insets()
+        service.onComputeInsets(ins)
+        val host = root.getChildAt(0)
+        return Triple(ins.contentTopInsets, (host.layoutParams as FrameLayout.LayoutParams).topMargin, ins.touchableRegion.bounds)
+    }
+
+    @Test fun appIsLaidUnderTheTabAndTheFadeStripOfAGlassKeyboard() {
+        val d = ctx.resources.displayMetrics.density
+        val (content, tabH, region) = insetsFor("iosglass_holo", tab = true)
+        assertTrue(tabH > 0)
+        assertEquals(tabH + 6 * d, content.toFloat(), 1.5f)            // 탭 높이 + 띠 6dp 만큼 앱을 더 깐다
+    }
+
+    @Test fun glassThemeWithoutTabStillGetsTheFadeStrip() {
+        val d = ctx.resources.displayMetrics.density
+        val (content, tabH, region) = insetsFor("iosglass_holo", tab = false)
+        assertEquals(0, tabH)
+        assertEquals(6 * d, content.toFloat(), 1.5f)
+    }
+
+    @Test fun tabAndKeyboardAreSeparatedByATwoDpGap() {
+        val d = ctx.resources.displayMetrics.density
+        val v = KeyboardView(ctx).also { it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english }
+        v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        assertEquals(2 * d, v.fnTabGapPx(), 0.01f)
+        val host = FrameLayout(ctx)
+        val tab = FnTab(ctx, v)
+        val parent = FrameLayout(ctx).also { it.addView(host, FrameLayout.LayoutParams(1000, FrameLayout.LayoutParams.WRAP_CONTENT)); it.addView(tab, FrameLayout.LayoutParams(-2, -2)) }
+        com.mbt.keyboard.ime.KeyboardHost.applyFnTab(host, tab, v, true)
+        assertEquals((v.fnTabHeightPx() + 2 * d).toInt(), (host.layoutParams as FrameLayout.LayoutParams).topMargin)
+    }
+
+    @Test fun glassPlateHasSeveralSoftLightBandsAndATopGlow() {
+        val theme = com.mbt.keyboard.ime.KeyboardThemes.byId("iosglass_holo")!!.theme
+        val v = KeyboardView(ctx).also { it.theme = theme; it.keyboardLayout = Layouts.english }
+        v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+        val shaders = ArrayList<android.graphics.Shader>()
+        v.draw(object : android.graphics.Canvas() {
+            override fun drawRect(l: Float, t: Float, r: Float, b: Float, p: android.graphics.Paint) { p.shader?.let { shaders += it } }
+            override fun saveLayer(l: Float, t: Float, r: Float, b: Float, p: android.graphics.Paint?): Int = 1
+        })
+        // 위쪽 빛 + 빛띠 + 위 띠 페이드 마스크 (모두 그라데이션)
+        assertTrue("그라데이션 ${shaders.size}", shaders.count { it is android.graphics.LinearGradient } >= 3)
+    }
+
+    @Test fun otherThemesAreUnchanged() {
+        val d = ctx.resources.displayMetrics.density
+        val (content, tabH, _) = insetsFor("charcoal", tab = true)
+        assertEquals(tabH.toFloat(), content.toFloat(), 1.5f)           // 탭 높이만큼만
+        val (content2, _, _) = insetsFor("charcoal", tab = false)
+        assertEquals(0, content2)
+    }
+
+    @Test fun plateTopIsMaskedByAFadeFromTheTabAlpha() {
+        val theme = com.mbt.keyboard.ime.KeyboardThemes.byId("iosglass_holo")!!.theme
+        val v = KeyboardView(ctx).also { it.theme = theme; it.keyboardLayout = Layouts.english; it.frostFadeAlpha = 0.5f }
+        v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+        assertEquals(6 * ctx.resources.displayMetrics.density, v.frostFadePx(), 0.01f)
+        var layers = 0
+        v.draw(object : android.graphics.Canvas() {
+            override fun saveLayer(l: Float, t: Float, r: Float, b: Float, p: android.graphics.Paint?): Int { layers++; return 1 }
+        })
+        assertEquals(1, layers)                                         // 판을 한 겹으로 그린 뒤 위 띠를 페이드 마스크
     }
 }

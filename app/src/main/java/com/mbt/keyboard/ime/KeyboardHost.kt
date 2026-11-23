@@ -32,7 +32,7 @@ object KeyboardHost {
      */
     fun applyFnTab(host: View, tab: FnTab, keyboard: KeyboardView, on: Boolean, keyboardVisible: Boolean = true) {
         val hostLp = host.layoutParams as FrameLayout.LayoutParams
-        val top = if (on) keyboard.fnTabHeightPx().toInt().coerceAtLeast(1) else 0
+        val top = if (on) (keyboard.fnTabHeightPx() + keyboard.fnTabGapPx()).toInt().coerceAtLeast(1) else 0
         if (hostLp.topMargin != top) { hostLp.topMargin = top; host.layoutParams = hostLp }
         val tabLp = tab.layoutParams as FrameLayout.LayoutParams
         if (tabLp.leftMargin != hostLp.leftMargin) { tabLp.leftMargin = hostLp.leftMargin; tab.layoutParams = tabLp }
