@@ -50,4 +50,14 @@ class MoakiGestureTest {
         val lens = MoakiGesture.continuations('U').map { it.first.length }
         assertEquals(lens.sorted(), lens)
     }
+
+    @Test fun nextOptionsAreGroupedByTheDirectionToGoNext() {
+        val u = MoakiGesture.next("U")
+        assertEquals(setOf('R', 'D'), u.map { it.dir }.toSet())                           // 위 다음은 → 또는 ↓
+        assertEquals(setOf('ㅘ', 'ㅙ'), u.filter { it.dir == 'R' }.map { it.vowel }.toSet())
+        assertEquals(setOf('ㅚ', 'ㅛ'), u.filter { it.dir == 'D' }.map { it.vowel }.toSet())
+        assertEquals(listOf('ㅙ'), MoakiGesture.next("UR").map { it.vowel })                 // ㅘ 다음은 ← 로 되돌아오면 ㅙ
+        assertEquals('L', MoakiGesture.next("UR").single().dir)
+        assertEquals(emptyList<Char>(), MoakiGesture.next("URL").map { it.vowel })
+    }
 }

@@ -54,6 +54,18 @@ object MoakiGesture {
             .map { (k, v) -> k.drop(1).map { ARROW.getValue(it) }.joinToString("") to v }
             .sortedBy { it.first.length }
 
+    /** 다음 획 후보: (다음 획 방향 R L U D, 지금부터 그을 방향 화살표들, 완성되는 모음) */
+    class Next(val dir: Char, val path: String, val vowel: Char)
+
+    /**
+     * 지금까지 그은 획 [prefix]에 이어 그을 수 있는 모음들 (이어 긋는 획이 → ← ↑ ↓ 인 것만). 짧은 것부터.
+     * 예: "U" 다음은 → ㅘ, ↓ ㅚ, → ← ㅙ, ↓ ↑ ㅛ. "UR" 다음은 ← ㅙ.
+     */
+    fun next(prefix: String): List<Next> =
+        TABLE.filter { (k, _) -> k.length > prefix.length && k.startsWith(prefix) && k.all { it in ARROW } }
+            .map { (k, v) -> Next(k[prefix.length], k.drop(prefix.length).map { ARROW.getValue(it) }.joinToString(""), v) }
+            .sortedBy { it.path.length }
+
     /**
      * 획 순서 → 모음. 표에 없으면 가장 긴 앞부분으로 해석한다 (예: "RU"는 "R" → ㅏ). 해석할 수 없으면 null.
      */

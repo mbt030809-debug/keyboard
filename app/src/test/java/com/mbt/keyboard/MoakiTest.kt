@@ -252,6 +252,11 @@ class MoakiTest {
 
     private fun drawnTexts() = Rec().also { view.draw(it) }.texts
 
+    private class PosRec : android.graphics.Canvas() {
+        val pos = HashMap<String, Pair<Float, Float>>()
+        override fun drawText(text: String, x: Float, y: Float, paint: android.graphics.Paint) { pos[text] = x to y }
+    }
+
     @Test fun pressingAConsonantShowsTheSixVowelsAroundItImmediately() {
         val before = drawnTexts().toList()
         downTime = SystemClock.uptimeMillis()
@@ -275,10 +280,42 @@ class MoakiTest {
         assertTrue("ㅘ" !in before && "ㅚ" !in before)                                // 누르기만 했을 땐 8방향 안내
         for (i in 1..6) view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, x0, y0 - i * 0.5f / 6 * r.width()))
         val t = drawnTexts()
-        listOf("ㅗ", "ㅘ", "ㅚ", "ㅙ", "ㅛ").forEach { assertTrue("$it 가 막대에 있어야 한다: $t", it in t) }
+        listOf("ㅘ", "ㅚ", "ㅙ", "ㅛ").forEach { assertTrue("$it 안내가 있어야 한다: $t", it in t) }
         assertTrue("→" in t && "↓" in t && "↓↑" in t && "→←" in t)                    // 긋는 방향 안내
         view.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, x0, y0 - 0.5f * r.width()))
         assertEquals("ㄴ" to 'ㅗ', moa.last())                                          // 그대로 떼면 기본 모음
+    }
+
+    @Test fun followUpGuidesAppearInTheDirectionYouHaveToGo() {
+        downTime = SystemClock.uptimeMillis()
+        val r = rect("ㄴ"); val x0 = r.centerX(); val y0 = r.centerY()
+        fun ev(a: Int, px: Float, py: Float) = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), a, px, py, 0)
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_DOWN, x0, y0))
+        val fingerY = y0 - 0.5f * r.width()
+        for (i in 1..6) view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, x0, y0 - i * 0.5f / 6 * r.width()))
+        val rec = PosRec().also { view.draw(it) }.pos
+        val (wx, wy) = rec.getValue("ㅘ")        // ↑로 간 뒤 → 로 가야 하는 ㅘ는 손가락 오른쪽
+        val (oex, oey) = rec.getValue("ㅚ")      // ↓ 로 되돌아와야 하는 ㅚ는 손가락 아래
+        assertTrue("ㅘ는 오른쪽: $wx vs $x0", wx > x0 + 10 * density)
+        assertEquals("ㅘ는 같은 높이", fingerY, wy, view.height * 0.15f)
+        assertTrue("ㅚ는 아래: $oey vs $fingerY", oey > fingerY + 10 * density)
+        assertEquals("ㅚ는 같은 세로줄", x0, oex, 25 * density)
+        assertTrue(rec.getValue("ㅙ").first > x0 + 10 * density)      // ㅙ도 → 로 시작하니 오른쪽
+        assertTrue(rec.getValue("ㅛ").second > fingerY + 10 * density) // ㅛ는 ↓ 로 시작하니 아래
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, x0, fingerY))
+    }
+
+    @Test fun afterTheSecondStrokeTheNextOptionsMoveToo() {
+        downTime = SystemClock.uptimeMillis()
+        val r = rect("ㄴ"); val x0 = r.centerX(); val y0 = r.centerY()
+        fun ev(a: Int, px: Float, py: Float) = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), a, px, py, 0)
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_DOWN, x0, y0))
+        for (i in 1..6) view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, x0, y0 - i * 0.5f / 6 * r.width()))          // ↑
+        for (i in 1..6) view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, x0 + i * 0.5f / 6 * r.width(), y0 - 0.5f * r.width())) // →
+        val rec = PosRec().also { view.draw(it) }.pos
+        // ㅘ(지금 만든 것)에서 ← 로 되돌아오면 ㅙ: 손가락 왼쪽에 ㅙ 안내
+        assertTrue(rec.getValue("ㅙ").first < x0 + 0.5f * r.width() - 10 * density)
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, x0 + 0.5f * r.width(), y0 - 0.5f * r.width()))
     }
 
     @Test fun guideBarFollowsTheDirectionAndHighlightsWhatYouAreMakingNow() {
@@ -293,11 +330,11 @@ class MoakiTest {
             return t
         }
         val down = barAfter(0f, 0.5f)
-        listOf("ㅜ", "ㅝ", "ㅟ", "ㅞ", "ㅠ").forEach { assertTrue(it, it in down) }
+        listOf("ㅝ", "ㅟ", "ㅞ", "ㅠ").forEach { assertTrue(it, it in down) }
         val right = barAfter(0.5f, 0f)
-        listOf("ㅏ", "ㅐ", "ㅑ", "ㅒ").forEach { assertTrue(it, it in right) }
+        listOf("ㅐ", "ㅑ", "ㅒ").forEach { assertTrue(it, it in right) }
         val left = barAfter(-0.5f, 0f)
-        listOf("ㅓ", "ㅔ", "ㅕ", "ㅖ").forEach { assertTrue(it, it in left) }
+        listOf("ㅔ", "ㅕ", "ㅖ").forEach { assertTrue(it, it in left) }
         val diag = barAfter(0.45f, -0.45f)                                              // 대각선 첫 획은 막대가 아니라 8방향 안내
         assertTrue("ㅘ" !in diag && "ㅚ" !in diag)
     }
