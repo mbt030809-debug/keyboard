@@ -200,8 +200,12 @@ class KeyboardView(context: Context) : View(context) {
         var popup: Popup? = null
         /** 모아키: 지금 미는 방향이 가리키는 모음 (아직 안 밀었으면 null) */
         var moaVowel: Char? = null
-        /** 모아키: 지금 미는 각도 (화면 기준, 아래가 +90°) */
+        /** 모아키: 첫 획의 각도 (화면 기준, 아래가 +90°). 안내 칸 강조에 쓴다 */
         var moaDeg = 0f
+        /** 모아키 여러 획 제스처: 지금 획의 시작점(a)·가장 먼 점(far), 끝난 획들 */
+        var moaInit = false
+        var moaAx = 0f; var moaAy = 0f; var moaFx = 0f; var moaFy = 0f
+        val moaStrokes = StringBuilder()
         /** 글자 키 위 스와이프로 커서 이동 중 */
         var cursorDrag = false
         var dragAnchorX = 0f
@@ -511,8 +515,17 @@ class KeyboardView(context: Context) : View(context) {
             paint.style = Paint.Style.FILL
             paint.color = if (chosen) theme.onAccent else theme.text
             paint.textSize = d * (if (chosen) 0.62f else 0.5f)
-            val label = if (chosen) com.mbt.keyboard.hangul.HangulComposer().let { it.input(cons); it.input(p.moaVowel!!); it.composing } else v.toString()
-            drawCentered(canvas, label, box)
+            drawCentered(canvas, v.toString(), box)
+        }
+        // 지금 긋고 있는 모음으로 완성될 글자(예: ㄱ + ㅘ → "과")를 눌린 키 자리에 보여준다
+        p.moaVowel?.let { mv ->
+            val syl = com.mbt.keyboard.hangul.HangulComposer().let { it.input(cons); it.input(mv); it.composing }
+            paint.style = Paint.Style.FILL
+            paint.color = theme.accent
+            canvas.drawRoundRect(c.inner, 7 * density, 7 * density, paint)
+            paint.color = theme.onAccent
+            paint.textSize = c.inner.height() * 0.62f
+            drawCentered(canvas, syl, c.inner)
         }
     }
 
@@ -746,7 +759,11 @@ class KeyboardView(context: Context) : View(context) {
         // 모아키: 자음·모음 키 위의 밀기는 커서 이동이 아니라 모음 입력
         if (keyboardLayout?.moaki == true) {
             val c = p.cell
-            if (c != null && (isMoaConsonant(c.key) || c.key.type == KeyType.MOA_VOWEL)) {
+            if (c != null && isMoaConsonant(c.key)) {
+                trackMoaStrokes(p, c, x, y)
+                return
+            }
+            if (c != null && c.key.type == KeyType.MOA_VOWEL) {
                 handleMoaDrag(p, c, x, y)
                 return
             }
@@ -769,7 +786,55 @@ class KeyboardView(context: Context) : View(context) {
     private fun isMoaConsonant(key: Key) =
         key.type == KeyType.CHAR && key.output.length == 1 && com.mbt.keyboard.hangul.Jamo.isConsonant(key.output[0])
 
-    /** 모아키 밀기 방향·거리 → 모음. 키 폭의 30% 미만은 그냥 탭, 125% 이상은 "길게"(ㅑㅕㅛㅠ) */
+    /**
+     * 모아키 자음 위의 긋기를 "획"으로 나눈다. 같은 방향으로 가는 동안은 한 획이고, 가장 먼 점에서
+     * 60° 넘게 꺾여 키 폭의 30% 이상 움직이면 그 획이 끝나고 새 획이 시작된다 (돌아오기도 한 획).
+     * 획 순서를 [MoakiGesture]로 해석한다: → ㅏ, ↑→ ㅘ, ↑↓ ㅚ, →←→ ㅑ …
+     */
+    private fun trackMoaStrokes(p: Pointer, c: Cell, x: Float, y: Float) {
+        val t = max(c.rect.width() * 0.30f, 12 * density)
+        if (!p.moaInit) {
+            p.moaInit = true
+            p.moaAx = p.downX; p.moaAy = p.downY; p.moaFx = p.downX; p.moaFy = p.downY
+        }
+        val fa = kotlin.math.hypot(p.moaFx - p.moaAx, p.moaFy - p.moaAy)
+        if (fa < t * 0.5f) {
+            p.moaFx = x; p.moaFy = y
+        } else {
+            val ux = (p.moaFx - p.moaAx) / fa
+            val uy = (p.moaFy - p.moaAy) / fa
+            val proj = (x - p.moaAx) * ux + (y - p.moaAy) * uy
+            if (proj > fa) {
+                p.moaFx = x; p.moaFy = y                      // 같은 방향으로 더 나아감
+            } else {
+                val vx = x - p.moaFx; val vy = y - p.moaFy
+                val vl = kotlin.math.hypot(vx, vy)
+                if (fa >= t && vl >= t && (vx * ux + vy * uy) / vl < 0.5f) {
+                    p.moaStrokes.append(MoakiGesture.token(degOf(p.moaFx - p.moaAx, p.moaFy - p.moaAy)))
+                    p.moaAx = p.moaFx; p.moaAy = p.moaFy; p.moaFx = x; p.moaFy = y
+                }
+            }
+        }
+        val s = StringBuilder(p.moaStrokes)
+        val cur = kotlin.math.hypot(p.moaFx - p.moaAx, p.moaFy - p.moaAy)
+        if (cur >= t) {
+            val d = degOf(p.moaFx - p.moaAx, p.moaFy - p.moaAy)
+            if (p.moaStrokes.isEmpty()) p.moaDeg = d
+            s.append(MoakiGesture.token(d))
+        }
+        val long = p.moaStrokes.isEmpty() && cur >= c.rect.width() * 1.25f
+        val v = MoakiGesture.decode(s.toString(), long)
+        if (v != p.moaVowel) {
+            p.moaVowel = v
+            if (v != null) { p.cancelTimers(); haptics?.tick() }   // 긋기 시작하면 꾹 누르기(기호 말풍선)는 취소
+            invalidate()
+        }
+    }
+
+    private fun degOf(dx: Float, dy: Float) =
+        Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+
+    /** 모아키 모음 키 밀기 방향·거리 → 모음. 키 폭의 30% 미만은 그냥 탭, 125% 이상은 "길게"(ㅑㅕㅛㅠ) */
     private fun handleMoaDrag(p: Pointer, c: Cell, x: Float, y: Float) {
         val dx = x - p.downX
         val dy = y - p.downY

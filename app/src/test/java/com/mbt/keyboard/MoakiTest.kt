@@ -97,6 +97,71 @@ class MoakiTest {
         assertEquals(4, moa.size)
     }
 
+    /** [label] 키를 누른 채 점들을 차례로 지나 마지막 점에서 뗀다 (점은 키 폭 단위, 사이를 잘게 채운다) */
+    private fun dragPath(label: String, vararg pts: Pair<Float, Float>) {
+        downTime = SystemClock.uptimeMillis()
+        val r = rect(label)
+        val x0 = r.centerX(); val y0 = r.centerY()
+        fun ev(a: Int, px: Float, py: Float) = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), a, px, py, 0)
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_DOWN, x0, y0))
+        var px = 0f; var py = 0f
+        for ((tx, ty) in pts) {
+            for (i in 1..6) {
+                val fx = px + (tx - px) * i / 6f; val fy = py + (ty - py) * i / 6f
+                view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, x0 + fx * r.width(), y0 + fy * r.width()))
+            }
+            px = tx; py = ty
+        }
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, x0 + px * r.width(), y0 + py * r.width()))
+    }
+
+    private fun gesture(vararg pts: Pair<Float, Float>): Char? {
+        moa.clear(); dragPath("ㄱ", *pts); return moa.lastOrNull()?.second
+    }
+
+    @Test fun compoundVowelGesturesFollowTheMoakiTable() {
+        // ㅘ ↑→ / ㅙ ↑→← / ㅝ ↓← / ㅞ ↓←→ / ㅚ ↑↓ / ㅟ ↓↑
+        assertEquals('ㅘ', gesture(0f to -0.5f, 0.5f to -0.5f))
+        assertEquals('ㅙ', gesture(0f to -0.5f, 0.5f to -0.5f, 0f to -0.5f))
+        assertEquals('ㅝ', gesture(0f to 0.5f, -0.5f to 0.5f))
+        assertEquals('ㅞ', gesture(0f to 0.5f, -0.5f to 0.5f, 0f to 0.5f))
+        assertEquals('ㅚ', gesture(0f to -0.5f, 0f to 0f))
+        assertEquals('ㅟ', gesture(0f to 0.5f, 0f to 0f))
+    }
+
+    @Test fun roundTripGesturesGiveYVowelsAndAeE() {
+        assertEquals('ㅑ', gesture(0.5f to 0f, 0f to 0f, 0.5f to 0f))          // →←→
+        assertEquals('ㅕ', gesture(-0.5f to 0f, 0f to 0f, -0.5f to 0f))        // ←→←
+        assertEquals('ㅛ', gesture(0f to -0.5f, 0f to 0f, 0f to -0.5f))        // ↑↓↑
+        assertEquals('ㅠ', gesture(0f to 0.5f, 0f to 0f, 0f to 0.5f))          // ↓↑↓
+        assertEquals('ㅐ', gesture(0.5f to 0f, 0f to 0f))                       // →←
+        assertEquals('ㅔ', gesture(-0.5f to 0f, 0f to 0f))                      // ←→
+        assertEquals('ㅒ', gesture(0.5f to 0f, 0f to 0f, 0.5f to 0f, 0f to 0f)) // →←→←
+        assertEquals('ㅖ', gesture(-0.5f to 0f, 0f to 0f, -0.5f to 0f, 0f to 0f))
+    }
+
+    @Test fun euThenIMakesUiAndSingleStrokesStillWork() {
+        assertEquals('ㅢ', gesture(0.45f to 0.45f, 0f to 0f))                   // 5시로 갔다가 11시 방향으로 돌아옴 (ㅡ → ㅣ)
+        assertEquals('ㅏ', gesture(0.5f to 0f))
+        assertEquals('ㅜ', gesture(0f to 0.5f))
+        assertEquals('ㅑ', gesture(1.5f to 0f))                                  // 길게 밀기(예전 방식)도 유지
+    }
+
+    @Test fun smallWigglesDoNotSplitStrokes() {
+        assertEquals('ㅏ', gesture(0.2f to 0.05f, 0.5f to -0.03f, 0.55f to 0.05f))   // 약간 흔들려도 한 획
+    }
+
+    @Test fun movingCenterLabelShowsTheCompoundSyllable() {
+        downTime = SystemClock.uptimeMillis()
+        val r = rect("ㄱ"); val x0 = r.centerX(); val y0 = r.centerY()
+        fun ev(a: Int, px: Float, py: Float) = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), a, px, py, 0)
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_DOWN, x0, y0))
+        for (i in 1..6) view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, x0, y0 - i * 0.5f / 6 * r.width()))
+        for (i in 1..6) view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, x0 + i * 0.5f / 6 * r.width(), y0 - 0.5f * r.width()))
+        assertTrue("과" in drawnTexts())                                             // ㄱ + ㅘ
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, x0 + 0.5f * r.width(), y0 - 0.5f * r.width()))
+    }
+
     @Test fun upperDiagonalsAreIAndLowerDiagonalsAreEu() {
         drag("ㄱ", dxKeys = -0.6f, dyKeys = -0.6f); assertEquals("ㄱ" to 'ㅣ', moa.last())     // 11시
         drag("ㄱ", dxKeys = 0.6f, dyKeys = -0.6f); assertEquals("ㄱ" to 'ㅣ', moa.last())      // 1시
@@ -206,6 +271,17 @@ class MoakiTest {
             sb.append(out.committed)
         }
         return sb.toString() + c.composing
+    }
+
+    @Test fun compoundVowelJamoComposeIntoSyllables() {
+        assertEquals("과", typeMoa('ㄱ', 'ㅘ'))
+        assertEquals("괘", typeMoa('ㄱ', 'ㅙ'))
+        assertEquals("괴", typeMoa('ㄱ', 'ㅚ'))
+        assertEquals("권", typeMoa('ㄱ', 'ㅝ', 'ㄴ'))
+        assertEquals("귀", typeMoa('ㄱ', 'ㅟ'))
+        assertEquals("의", typeMoa('ㅇ', 'ㅢ'))
+        assertEquals("걔", typeMoa('ㄱ', 'ㅒ'))
+        assertEquals("궈나", typeMoa('ㄱ', 'ㅝ', 'ㄴ', 'ㅏ'))              // 받침이 다음 글자 초성으로
     }
 
     @Test fun consonantPlusVowelComposesSyllablesAndMovesFinals() {
