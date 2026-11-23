@@ -115,6 +115,9 @@ class KeyboardView(context: Context) : View(context) {
             invalidate()
         }
 
+    /** 단모음 개선판: ㄱㄷㅂㅅㅈ ㅏㅓㅗㅜㅐㅔ 키를 상하좌우로 밀면 ㄲㄸㅃㅆㅉ ㅑㅕㅛㅠㅒㅖ (연타 변환 대신) */
+    var swipeDouble: Boolean = false
+
     /** 꾹 누르기로 인식하는 시간 (설정 화면에서 변경) */
     var longPressMs: Long = Timing.LONG_PRESS_DEFAULT_MS
 
@@ -204,6 +207,8 @@ class KeyboardView(context: Context) : View(context) {
         var moaInit = false
         var moaAx = 0f; var moaAy = 0f; var moaFx = 0f; var moaFy = 0f
         val moaStrokes = StringBuilder()
+        /** 단모음 개선판: 이 키를 밀어서 쌍자음·ㅑㅕㅛㅠ 로 바꿨다 */
+        var swipeDoubleDone = false
         /** 글자 키 위 스와이프로 커서 이동 중 */
         var cursorDrag = false
         var dragAnchorX = 0f
@@ -517,7 +522,11 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
         for (i in 0 until pointers.size()) pointers.valueAt(i).popup?.let { drawPopup(canvas, it) }
-        for (i in 0 until pointers.size()) drawMoaGuide(canvas, pointers.valueAt(i))
+        for (i in 0 until pointers.size()) {
+            val p = pointers.valueAt(i)
+            drawMoaGuide(canvas, p)
+            drawSwipeDouble(canvas, p)
+        }
         message?.let { drawMessage(canvas, it) }
         if (undoMark) drawUndoMark(canvas)
     }
@@ -570,6 +579,19 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
+
+    /** 단모음 개선판: 밀어서 바뀔 글자(예: ㄱ → ㄲ)를 눌린 키 자리에 강조색으로 보여준다 */
+    private fun drawSwipeDouble(canvas: Canvas, p: Pointer) {
+        if (!p.swipeDoubleDone) return
+        val c = p.cell ?: return
+        val to = swipeDoubleTarget(c.key) ?: return
+        paint.style = Paint.Style.FILL
+        paint.color = theme.accent
+        canvas.drawRoundRect(c.inner, 7 * density, 7 * density, paint)
+        paint.color = theme.onAccent
+        paint.textSize = c.inner.height() * 0.5f
+        drawCentered(canvas, to.toString(), c.inner)
+    }
 
     /** 키보드 위쪽 가운데의 둥근 ↶ 표시. 완전히 불투명하고 글자는 없다 */
     private fun drawUndoMark(canvas: Canvas) {
@@ -783,6 +805,19 @@ class KeyboardView(context: Context) : View(context) {
                 return
             }
         }
+        // 단모음 개선판: 쌍자음·ㅑㅕㅛㅠ 가 되는 키는 밀면(어느 쪽이든) 바뀐 글자가 입력된다 (커서 이동보다 먼저)
+        if (swipeDoubleTarget(p.cell?.key) != null) {
+            if (!p.swipeDoubleDone) {
+                val dist = kotlin.math.hypot(x - p.downX, y - p.downY)
+                if (dist >= max(p.cell!!.rect.width() * 0.30f, 12 * density)) {
+                    p.swipeDoubleDone = true
+                    p.cancelTimers()                 // 꾹 누르기(기호 말풍선)는 취소
+                    haptics?.tick()
+                    invalidate()
+                }
+            }
+            return
+        }
         // 글자 키 위에서 좌우로 밀면 커서 이동
         if (p.cursorDrag || startsCursorDrag(p, x, y)) {
             handleCursorDrag(p, x)
@@ -796,6 +831,13 @@ class KeyboardView(context: Context) : View(context) {
             invalidateCell(h)
             onPressedChanged(p, isDown = false)
         }
+    }
+
+    /** 단모음 개선판에서 밀면 바뀔 글자 (해당 없으면 null). 쉬프트가 켜져 있으면 이미 쌍자음이라 해당 없음 */
+    private fun swipeDoubleTarget(key: Key?): Char? {
+        if (!swipeDouble || keyboardLayout?.doubleTap != true || key == null) return null
+        if (key.type != KeyType.CHAR || shiftState != ShiftState.OFF || key.output.length != 1) return null
+        return com.mbt.keyboard.hangul.Jamo.DOUBLE[key.output[0]]
     }
 
     private fun isMoaConsonant(key: Key) =
@@ -908,6 +950,8 @@ class KeyboardView(context: Context) : View(context) {
                     listener?.onShiftPress(true)
                     listener?.onShiftPress(false)
                 }
+                cell != null && p.swipeDoubleDone && swipeDoubleTarget(cell.key) != null ->
+                    listener?.onText(swipeDoubleTarget(cell.key)!!.toString())
                 cell != null && keyboardLayout?.moaki == true && isMoaConsonant(cell.key) && p.moaVowel != null ->
                     listener?.onMoaki(cell.key, p.moaVowel!!)
                 cell != null && cell.key.type !in REPEAT_TYPES -> listener?.onKey(cell.key)

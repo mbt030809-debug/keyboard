@@ -17,6 +17,17 @@ object Prefs {
     private const val KEY_QUICK_TAB = "quick_panel_tab"
     const val KEY_THEME = "keyboard_theme"
     private const val KEY_HAPTIC_STYLE = "haptic_style"
+    const val KEY_SWIPE_DOUBLE = "single_swipe_double"
+
+    /**
+     * 단모음 개선판: 쌍자음·ㅑㅕㅛㅠㅒㅖ를 연타가 아니라 그 키를 밀어서(상하좌우) 입력 (기본: 끔).
+     * 켜면 연타 변환은 쓰지 않는다.
+     */
+    fun singleSwipeDouble(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_SWIPE_DOUBLE, false)
+
+    fun setSingleSwipeDouble(context: Context, on: Boolean) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_SWIPE_DOUBLE, on).apply()
 
 
     /** 키 누를 때 진동 느낌 id (기본: 예전 방식) */

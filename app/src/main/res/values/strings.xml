@@ -84,6 +84,8 @@
     <string name="layout_desc">한/영 전환 시 사용할 한글 자판이에요. 단모음은 같은 키를 연달아 두 번 치면 ㄱ→ㄲ, ㅏ→ㅑ로 바뀌어요</string>
     <string name="layout_single">단모음 (기본)</string>
     <string name="layout_dubeolsik">두벌식</string>
+    <string name="swipe_double_switch">단모음 개선판: 쌍자음·ㅑㅕㅛㅠ는 밀어서 입력</string>
+    <string name="swipe_double_desc">켜면 ㄱ·ㄷ·ㅂ·ㅅ·ㅈ·ㅏ·ㅓ·ㅗ·ㅜ·ㅐ·ㅔ 키를 위·아래·왼쪽·오른쪽 어느 쪽으로든 밀면 ㄲ·ㄸ·ㅃ·ㅆ·ㅉ·ㅑ·ㅕ·ㅛ·ㅠ·ㅒ·ㅖ가 입력돼요. 연타로 바꾸는 기능은 꺼져서 "연타 기준" 시간은 필요 없어요</string>
     <string name="layout_moaki">모아키 (자음을 누른 채 밀어서 모음 입력)</string>
     <string name="phrase_title">상용문구</string>
     <string name="phrase_desc">엔터를 꾹 누르면 나오는 패널의 "상용문구" 탭이에요. 네모난 칸(3열)으로 나오고, 한 줄에 하나씩 최대 100개까지 추가할 수 있어요</string>

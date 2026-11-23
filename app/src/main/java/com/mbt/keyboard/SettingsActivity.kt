@@ -188,6 +188,11 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
 
+        // 단모음 개선판 (밀어서 쌍자음·ㅑㅕㅛㅠ)
+        val swipeDouble = findViewById<MaterialSwitch>(R.id.switchSwipeDouble)
+        swipeDouble.isChecked = Prefs.singleSwipeDouble(this)
+        swipeDouble.setOnCheckedChangeListener { _, on -> Prefs.setSingleSwipeDouble(this, on) }
+
         // 상용문구: 입력하는 즉시 저장
         val edit = findViewById<EditText>(R.id.editPhrases)
         edit.setText(Phrases.loadRaw(this))

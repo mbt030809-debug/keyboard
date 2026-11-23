@@ -427,4 +427,13 @@ class KeyboardServiceGeometryTest {
         service.onEnterLongPress()                                            // 열 때 현재 클립보드도 기록
         assertEquals(listOf("방금 복사한 글자"), history(ctx))
     }
+
+    @Test fun tapConversionIsOffForConvertibleKeysWhenSwipeDoubleIsOn() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        val service = Robolectric.buildService(KeyboardService::class.java).create().get()
+        assertTrue(service.usesTapConversion('ㄱ'))                 // 기본(끔): 연타로 바꾼다
+        Prefs.setSingleSwipeDouble(ctx, true)
+        listOf('ㄱ', 'ㄷ', 'ㅂ', 'ㅅ', 'ㅈ', 'ㅏ', 'ㅓ', 'ㅗ', 'ㅜ', 'ㅐ', 'ㅔ').forEach { assertTrue("$it", !service.usesTapConversion(it)) }
+        assertTrue(service.usesTapConversion('ㅎ'))                 // 변환 대상이 아닌 키는 해당 없음
+    }
 }

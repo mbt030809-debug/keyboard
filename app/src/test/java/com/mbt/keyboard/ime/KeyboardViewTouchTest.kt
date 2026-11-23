@@ -197,6 +197,63 @@ class KeyboardViewTouchTest {
         assertTrue(slow in 4..8)                                    // 1초에 약 5번 + 첫 번
     }
 
+    // ---- 단모음 개선판: 밀어서 쌍자음·ㅑㅕㅛㅠ
+
+    private fun swipeKey(label: String, dxDp: Float, dyDp: Float) {
+        downTime = SystemClock.uptimeMillis()
+        val r = view.keyRects().first { it.first.label == label }.second
+        val x = r.centerX(); val y = r.centerY()
+        send(ev(MotionEvent.ACTION_DOWN, Triple(0, x, y)))
+        send(ev(MotionEvent.ACTION_MOVE, Triple(0, x + dxDp * density / 2, y + dyDp * density / 2)))
+        send(ev(MotionEvent.ACTION_MOVE, Triple(0, x + dxDp * density, y + dyDp * density)))
+        send(ev(MotionEvent.ACTION_UP, Triple(0, x + dxDp * density, y + dyDp * density)))
+    }
+
+    @Test fun swipingAKeyInAnyDirectionMakesTheDoubleLetterWhenTheOptionIsOn() {
+        view.swipeDouble = true
+        val dirs = listOf(60f to 0f, -60f to 0f, 0f to -60f, 0f to 60f)           // 오른쪽·왼쪽·위·아래
+        val pairs = mapOf("ㄱ" to "ㄲ", "ㄷ" to "ㄸ", "ㅂ" to "ㅃ", "ㅈ" to "ㅉ", "ㅅ" to "ㅆ",
+            "ㅏ" to "ㅑ", "ㅓ" to "ㅕ", "ㅗ" to "ㅛ", "ㅜ" to "ㅠ", "ㅐ" to "ㅒ", "ㅔ" to "ㅖ")
+        for ((from, to) in pairs) for ((dx, dy) in dirs) {
+            rec.texts.clear(); rec.keys.clear(); rec.cursorSteps = 0
+            swipeKey(from, dx, dy)
+            assertEquals("$from ($dx,$dy)", listOf(to), rec.texts)
+            assertTrue("$from: 원래 글자는 따로 입력되면 안 된다 ${rec.keys}", rec.keys.isEmpty())
+            assertEquals("$from: 커서 이동 없음", 0, rec.cursorSteps)
+        }
+    }
+
+    @Test fun tapStillTypesTheNormalLetterAndOtherKeysStillMoveTheCursor() {
+        view.swipeDouble = true
+        rec.keys.clear(); rec.texts.clear()
+        downTime = SystemClock.uptimeMillis()
+        val r = view.keyRects().first { it.first.label == "ㄱ" }.second
+        send(ev(MotionEvent.ACTION_DOWN, Triple(0, r.centerX(), r.centerY())))
+        send(ev(MotionEvent.ACTION_UP, Triple(0, r.centerX(), r.centerY())))
+        assertEquals(listOf("ㄱ"), rec.keys); assertTrue(rec.texts.isEmpty())        // 탭은 그대로
+        // 쌍자음이 없는 키(ㅎ)는 가로로 밀면 예전처럼 커서 이동
+        rec.cursorSteps = 0; rec.texts.clear()
+        swipeKey("ㅎ", 90f, 0f)
+        assertTrue(rec.cursorSteps != 0); assertTrue(rec.texts.isEmpty())
+    }
+
+    @Test fun withTheOptionOffSwipingOnAKeyKeepsMovingTheCursor() {
+        view.swipeDouble = false
+        rec.cursorSteps = 0; rec.texts.clear()
+        swipeKey("ㄱ", 90f, 0f)
+        assertTrue(rec.cursorSteps != 0); assertTrue(rec.texts.isEmpty())
+    }
+
+    @Test fun swipeDoubleDoesNotApplyToOtherLayoutsOrShiftedKeys() {
+        view.swipeDouble = true
+        view.keyboardLayout = Layouts.korean                        // 두벌식은 단모음이 아니다
+        view.measure(android.view.View.MeasureSpec.makeMeasureSpec(1000, android.view.View.MeasureSpec.EXACTLY), android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED))
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+        rec.texts.clear()
+        swipeKey("ㅂ", 0f, -60f)
+        assertTrue(rec.texts.isEmpty())
+    }
+
     @Test fun swipingBackspaceLeftUndoesOnceAndRightDoesNothing() {
         downTime = SystemClock.uptimeMillis()
         val back = view.keyRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.BACKSPACE }.second

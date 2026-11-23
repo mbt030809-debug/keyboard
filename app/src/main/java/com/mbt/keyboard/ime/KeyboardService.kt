@@ -81,7 +81,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (::host.isInitialized && key == Prefs.KEY_THEME) applyTheme()
-        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS)) loadTimings()
+        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE)) loadTimings()
         if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen" || key == Prefs.KEY_SPLIT_DUP)) {
             updateSplit(resources.configuration)
             applyGeometry(resources.configuration)
@@ -194,6 +194,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         doubleTap.windowMs = Prefs.doubleTapMs(this)
         view.longPressMs = Prefs.longPressMs(this)
         view.repeatIntervalMs = Timing.repeatIntervalMs(Prefs.repeatCps(this))
+        view.swipeDouble = Prefs.singleSwipeDouble(this)
     }
 
     /** 폴드를 펼치거나 접으면 화면 크기가 바뀐다 → 나눠쓰기 전환 */
@@ -497,7 +498,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         val text = key.outputFor(shifted)
         if (layout.hangul && text.length == 1 && Jamo.isJamo(text[0])) {
             val jamo = text[0]
-            if (layout.doubleTap) {
+            if (layout.doubleTap && usesTapConversion(jamo)) {
                 // 연타 기준 시간 안에 같은 키를 다시 치면 변환(ㄱ→ㄲ), 지난 뒤면 변환 없이 따로 입력(ㄱ + ㄱ)
                 if (!tryDoubleTap(text, SystemClock.uptimeMillis())) commitJamo(jamo)
             } else {
@@ -516,6 +517,9 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
      * 변환 후 같은 키를 또 치면 새 글자로 취급 (3연타는 변환 연쇄 없음).
      * @return 변환했으면 true
      */
+    /** 연타로 변환(ㄱ→ㄲ, ㅏ→ㅑ)하는 키인가. 단모음 개선판을 켜면 그 키들은 밀어서 입력하므로 연타 변환을 쓰지 않는다 */
+    internal fun usesTapConversion(jamo: Char) = !(Prefs.singleSwipeDouble(this) && jamo in Jamo.DOUBLE)
+
     private fun tryDoubleTap(text: String, now: Long): Boolean {
         if (doubleTap.isDouble(text, now)) {
             val out = composer.doubleTap(text[0])
