@@ -266,6 +266,42 @@ class MoakiTest {
         assertEquals(before.count { it == "ㅏ" }, drawnTexts().count { it == "ㅏ" })            // 떼면 사라진다
     }
 
+    @Test fun goingUpShowsAGuideBarWithTheFollowUpVowels() {
+        downTime = SystemClock.uptimeMillis()
+        val r = rect("ㄴ"); val x0 = r.centerX(); val y0 = r.centerY()
+        fun ev(a: Int, px: Float, py: Float) = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), a, px, py, 0)
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_DOWN, x0, y0))
+        val before = drawnTexts().toList()
+        assertTrue("ㅘ" !in before && "ㅚ" !in before)                                // 누르기만 했을 땐 8방향 안내
+        for (i in 1..6) view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, x0, y0 - i * 0.5f / 6 * r.width()))
+        val t = drawnTexts()
+        listOf("ㅗ", "ㅘ", "ㅚ", "ㅙ", "ㅛ").forEach { assertTrue("$it 가 막대에 있어야 한다: $t", it in t) }
+        assertTrue("→" in t && "↓" in t && "↓↑" in t && "→←" in t)                    // 긋는 방향 안내
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, x0, y0 - 0.5f * r.width()))
+        assertEquals("ㄴ" to 'ㅗ', moa.last())                                          // 그대로 떼면 기본 모음
+    }
+
+    @Test fun guideBarFollowsTheDirectionAndHighlightsWhatYouAreMakingNow() {
+        fun barAfter(dx: Float, dy: Float): List<String> {
+            downTime = SystemClock.uptimeMillis()
+            val r = rect("ㅁ"); val x0 = r.centerX(); val y0 = r.centerY()
+            fun ev(a: Int, px: Float, py: Float) = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), a, px, py, 0)
+            view.dispatchTouchEvent(ev(MotionEvent.ACTION_DOWN, x0, y0))
+            for (i in 1..6) view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, x0 + dx * i / 6 * r.width(), y0 + dy * i / 6 * r.width()))
+            val t = drawnTexts().toList()
+            view.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, x0 + dx * r.width(), y0 + dy * r.width()))
+            return t
+        }
+        val down = barAfter(0f, 0.5f)
+        listOf("ㅜ", "ㅝ", "ㅟ", "ㅞ", "ㅠ").forEach { assertTrue(it, it in down) }
+        val right = barAfter(0.5f, 0f)
+        listOf("ㅏ", "ㅐ", "ㅑ", "ㅒ").forEach { assertTrue(it, it in right) }
+        val left = barAfter(-0.5f, 0f)
+        listOf("ㅓ", "ㅔ", "ㅕ", "ㅖ").forEach { assertTrue(it, it in left) }
+        val diag = barAfter(0.45f, -0.45f)                                              // 대각선 첫 획은 막대가 아니라 8방향 안내
+        assertTrue("ㅘ" !in diag && "ㅚ" !in diag)
+    }
+
     @Test fun draggingHighlightsTheChosenSyllableInTheGuide() {
         downTime = SystemClock.uptimeMillis()
         val r = rect("ㄱ")

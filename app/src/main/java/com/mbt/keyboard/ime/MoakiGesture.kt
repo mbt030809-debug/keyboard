@@ -43,6 +43,17 @@ object MoakiGesture {
         else -> 'U'
     }
 
+    private val ARROW = mapOf('R' to '→', 'L' to '←', 'U' to '↑', 'D' to '↓')
+
+    /**
+     * 첫 획이 [first](R L U D)일 때 이어서 그을 수 있는 겹모음·왕복 모음 안내: (이어 긋는 방향 화살표, 모음).
+     * 예: 위로(U) 간 뒤 → ㅘ(→), ㅚ(↓), ㅙ(→←), ㅛ(↓↑). 대각선으로 잇는 방법은 안내에 넣지 않았다.
+     */
+    fun continuations(first: Char): List<Pair<String, Char>> =
+        TABLE.filter { (k, _) -> k.length > 1 && k[0] == first && k.all { it in ARROW } }
+            .map { (k, v) -> k.drop(1).map { ARROW.getValue(it) }.joinToString("") to v }
+            .sortedBy { it.first.length }
+
     /**
      * 획 순서 → 모음. 표에 없으면 가장 긴 앞부분으로 해석한다 (예: "RU"는 "R" → ㅏ). 해석할 수 없으면 null.
      */

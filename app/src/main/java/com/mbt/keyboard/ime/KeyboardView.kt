@@ -522,7 +522,13 @@ class KeyboardView(context: Context) : View(context) {
             -135f to 'ㅣ', -45f to 'ㅣ', 45f to 'ㅡ', 135f to 'ㅡ',
         )
         val cx = c.rect.centerX(); val cy = c.rect.centerY()
-        for ((deg, v) in spots) {
+        // 첫 획이 → ← ↑ ↓ 로 정해지면 8방향 안내 대신 "이어서 그으면 무슨 모음이 되는지" 안내 막대를 보여준다
+        val firstTok = if (p.moaVowel == null) null
+        else if (p.moaStrokes.isNotEmpty()) p.moaStrokes[0] else MoakiGesture.token(p.moaDeg)
+        val options = if (firstTok != null && firstTok in "RLUD") MoakiGesture.continuations(firstTok) else emptyList()
+        if (options.isNotEmpty()) {
+            drawMoaOptions(canvas, c, p, firstTok!!, options)
+        } else for ((deg, v) in spots) {
             val rad2 = Math.toRadians(deg.toDouble())
             val x = (cx + rad * kotlin.math.cos(rad2)).toFloat().coerceIn(d / 2f, width - d / 2f)
             val y = (cy + rad * kotlin.math.sin(rad2)).toFloat().coerceAtLeast(d / 2f)
@@ -555,6 +561,47 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
+
+    /**
+     * 모아키: 첫 획 방향이 정해지면 키 위(공간이 없으면 아래)에 막대를 띄운다. 맨 앞은 지금 떼면 입력되는 기본 모음,
+     * 뒤는 이어서 그을 때의 모음과 긋는 방향 (예: ↑ 로 가면 ㅗ | ㅘ → | ㅚ ↓ | ㅙ →← | ㅛ ↓↑). 지금 해석된 칸은 강조색.
+     */
+    private fun drawMoaOptions(canvas: Canvas, c: Cell, p: Pointer, first: Char, options: List<Pair<String, Char>>) {
+        val base = MoakiGesture.decode(first.toString()) ?: return
+        val tiles = listOf("" to base) + options
+        val tw = (keyHeightPx * 0.95f).coerceAtMost((width - padL - padR) / tiles.size.toFloat())
+        val th = keyHeightPx * 1.05f
+        val total = tw * tiles.size
+        val left = (c.rect.centerX() - total / 2f).coerceIn(padL, max(padL, width - padR - total))
+        var top = c.rect.top - th - 8 * density
+        if (top < 0f) top = c.rect.bottom + 8 * density
+        val bar = RectF(left - 4 * density, top - 4 * density, left + total + 4 * density, top + th + 4 * density)
+        paint.style = Paint.Style.FILL
+        paint.color = theme.solid(theme.key)
+        canvas.drawRoundRect(bar, 12 * density, 12 * density, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.5f * density
+        paint.color = theme.solid(theme.keyPressed)
+        canvas.drawRoundRect(bar, 12 * density, 12 * density, paint)
+        tiles.forEachIndexed { i, (path, v) ->
+            val box = RectF(left + i * tw, top, left + (i + 1) * tw, top + th)
+            val chosen = p.moaVowel == v
+            paint.style = Paint.Style.FILL
+            if (chosen) {
+                paint.color = theme.accent
+                canvas.drawRoundRect(RectF(box).apply { inset(2 * density, 2 * density) }, 8 * density, 8 * density, paint)
+            }
+            paint.color = if (chosen) theme.onAccent else theme.text
+            paint.textSize = th * 0.5f
+            drawCentered(canvas, v.toString(), RectF(box.left, box.top, box.right, box.top + th * 0.68f))
+            if (path.isNotEmpty()) {
+                paint.textSize = th * 0.24f
+                paint.alpha = if (chosen) 255 else 170
+                drawCentered(canvas, path, RectF(box.left, box.top + th * 0.62f, box.right, box.bottom))
+                paint.alpha = 255
+            }
+        }
+    }
 
     /** 키보드 위쪽 가운데의 둥근 ↶ 표시. 완전히 불투명하고 글자는 없다 */
     private fun drawUndoMark(canvas: Canvas) {

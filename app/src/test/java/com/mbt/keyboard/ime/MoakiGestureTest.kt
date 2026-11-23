@@ -35,4 +35,19 @@ class MoakiGestureTest {
         assertNull(MoakiGesture.decode(""))
         assertEquals('ㅣ', MoakiGesture.decode("IR"))      // 표에 없는 뒤 획은 버리고 앞부분만
     }
+
+    @Test fun continuationGuideListsTheFollowUpVowelsForEachBasicDirection() {
+        fun ids(first: Char) = MoakiGesture.continuations(first).map { it.second }.toSet()
+        assertEquals(setOf('ㅘ', 'ㅚ', 'ㅙ', 'ㅛ'), ids('U'))
+        assertEquals(setOf('ㅝ', 'ㅟ', 'ㅞ', 'ㅠ'), ids('D'))
+        assertEquals(setOf('ㅐ', 'ㅑ', 'ㅒ'), ids('R'))
+        assertEquals(setOf('ㅔ', 'ㅕ', 'ㅖ'), ids('L'))
+        // 방향 화살표는 첫 획 이후의 길이: 위로 간 뒤 → 는 ㅘ, ↓ 는 ㅚ
+        assertEquals("→", MoakiGesture.continuations('U').first { it.second == 'ㅘ' }.first)
+        assertEquals("↓", MoakiGesture.continuations('U').first { it.second == 'ㅚ' }.first)
+        assertEquals("↓↑", MoakiGesture.continuations('U').first { it.second == 'ㅛ' }.first)
+        // 가까운(짧은) 것부터
+        val lens = MoakiGesture.continuations('U').map { it.first.length }
+        assertEquals(lens.sorted(), lens)
+    }
 }
