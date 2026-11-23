@@ -27,9 +27,12 @@
     <string name="resize_card_desc">미리보기 키보드를 보면서 가로·세로 길이와 위치를 조절해요. 폴드를 접었을 때와 펼쳤을 때가 따로 저장돼요</string>
     <string name="resize_open">크기 조정</string>
     <string name="resize_title">키보드 크기·위치</string>
-    <string name="resize_profile_normal">지금 조정 중: 접힘(일반) 화면</string>
-    <string name="resize_profile_large">지금 조정 중: 펼침 화면</string>
-    <string name="resize_profile_hint">다른 쪽을 조정하려면 폴드를 접거나 펼친 상태에서 이 화면을 다시 열어 주세요</string>
+    <string name="resize_profile_normal">지금 조정 중: 접힘(일반) 화면 · 세로</string>
+    <string name="resize_profile_large">지금 조정 중: 펼침 화면 · 세로</string>
+    <string name="resize_profile_large_land">지금 조정 중: 펼침 화면 · 가로</string>
+    <string name="resize_profile_normal_land">지금 조정 중: 접힘(일반) 화면 · 가로</string>
+    <string name="resize_gap_off">0% (안 나눔)</string>
+    <string name="resize_profile_hint">다른 쪽을 조정하려면 폴드를 접거나 펼치고, 화면을 세로·가로로 돌린 상태에서 이 화면을 다시 열어 주세요. 갈라진 정도는 세로·가로가 따로 저장돼요</string>
     <string name="resize_width">가로 길이</string>
     <string name="resize_height">세로 길이</string>
     <string name="resize_frame_title">키 둘레 여백 · 키 간격</string>

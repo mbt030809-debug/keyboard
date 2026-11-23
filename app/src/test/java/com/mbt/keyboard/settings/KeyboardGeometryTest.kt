@@ -100,7 +100,7 @@ class KeyboardGeometryTest {
         assertEquals(0.18f, KeyboardGeometry().gapFraction, 0.0001f)
         assertEquals(19, KeyboardGeometry().gapWiderBy(1).gapPct)
         assertEquals(17, KeyboardGeometry().gapWiderBy(-1).gapPct)
-        assertEquals(6, KeyboardGeometry().gapWiderBy(-99).gapPct)
+        assertEquals(0, KeyboardGeometry().gapWiderBy(-99).gapPct)      // 0 = 나누지 않음
         assertEquals(40, KeyboardGeometry().gapWiderBy(99).gapPct)
     }
 

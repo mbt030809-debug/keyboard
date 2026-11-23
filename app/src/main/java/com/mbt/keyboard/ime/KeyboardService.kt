@@ -204,7 +204,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
      */
     private fun applyGeometry(config: Configuration) {
         val large = ScreenProfile.isLarge(this)
-        val g = Prefs.geometry(this, large)
+        val g = Prefs.geometry(this, large, config.orientation == Configuration.ORIENTATION_LANDSCAPE)
         val density = resources.displayMetrics.density
         val screenW = when {
             rootWidthPx > 0 -> rootWidthPx
@@ -220,7 +220,10 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /** 가장 짧은 변이 600dp 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
     private fun updateSplit(config: Configuration) {
-        view.split = Prefs.splitOnLargeScreen(this) && ScreenProfile.isLarge(this)
+        val large = ScreenProfile.isLarge(this)
+        val landscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val gap = Prefs.geometry(this, large, landscape).gapPct
+        view.split = ScreenProfile.splitApplies(large, landscape, Prefs.splitOnLargeScreen(this), gap)
         view.splitDuplicate = Prefs.splitDuplicateKeys(this)
     }
 

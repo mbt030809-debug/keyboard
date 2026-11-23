@@ -28,6 +28,18 @@ object ScreenProfile {
         return byConfig || byDisplay
     }
 
+    /** 가로 모드인가 (폰을 눕힘, 또는 폴드 펼친 화면을 가로로 둠) */
+    fun isLandscape(context: Context): Boolean =
+        context.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
+    /**
+     * 갈라진 자판이 적용되는가.
+     * - 펼침(넓은) 화면: 설정 스위치를 따른다 (세로·가로 모두)
+     * - 접힘(일반) 화면: 가로 모드에서만, 그 가로 모드의 "갈라진 정도"가 0보다 클 때
+     */
+    fun splitApplies(large: Boolean, landscape: Boolean, splitSwitchOn: Boolean, gapPct: Int): Boolean =
+        if (large) splitSwitchOn else landscape && gapPct > 0
+
     /**
      * 키 높이 자동 배율. 폰을 가로로 돌리면 화면 높이가 낮아서(약 360dp) 키보드 5줄이 화면을 대부분 덮는다.
      * 화면 높이가 [LOW_HEIGHT_DP]보다 낮으면 키 높이를 [LOW_HEIGHT_FACTOR]배로 줄인다.

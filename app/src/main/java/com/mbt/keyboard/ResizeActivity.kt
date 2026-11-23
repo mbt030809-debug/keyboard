@@ -30,6 +30,7 @@ class ResizeActivity : AppCompatActivity() {
 
     /** 키보드와 같은 기준(기기 화면 전체 크기)으로 접힘/펼침을 판정해야 저장한 값이 키보드에 적용된다 */
     private val large get() = ScreenProfile.isLarge(this)
+    private val landscape get() = ScreenProfile.isLandscape(this)
     private lateinit var geometry: KeyboardGeometry
     private lateinit var host: FrameLayout
     private lateinit var keyboard: KeyboardView
@@ -50,7 +51,7 @@ class ResizeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_resize)
-        geometry = Prefs.geometry(this, large)
+        geometry = Prefs.geometry(this, large, landscape)
 
         // 상태바 영역만 비운다. 아래쪽 내비게이션 바 여백은 키보드 뷰가 실제와 똑같이 스스로 처리한다.
         val root = findViewById<View>(R.id.root)
@@ -61,10 +62,11 @@ class ResizeActivity : AppCompatActivity() {
         }
 
         // 미리보기: 실제 키보드와 같은 뷰, 같은 틀(KeyboardHost)
-        splitActive = Prefs.splitOnLargeScreen(this) && large
+        // 펼침 화면은 설정 스위치, 접힘 화면은 가로 모드일 때만 갈라진 정도를 조절할 수 있다
+        splitActive = if (large) Prefs.splitOnLargeScreen(this) else landscape
         keyboard = KeyboardView(this).also {
             it.keyboardLayout = Layouts.byId(Prefs.koreanLayout(this))
-            it.split = splitActive
+            it.split = splitActive && (large || geometry.gapPct > 0)
         }
         host = FrameLayout(this).apply {
             addView(keyboard, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
@@ -168,10 +170,11 @@ class ResizeActivity : AppCompatActivity() {
 
     /** 값을 저장하고 미리보기·표시를 갱신 */
     private fun refresh() {
-        Prefs.setGeometry(this, large, geometry)
+        Prefs.setGeometry(this, large, geometry, landscape)
         KeyboardHost.apply(host, containerWidthPx, geometry, density)
         keyboard.heightScale = geometry.heightScale
         keyboard.splitGapFraction = geometry.gapFraction
+        keyboard.split = splitActive && (large || geometry.gapPct > 0)
         keyboard.frame = KeyboardFrame(
             geometry.padLeftDp, geometry.padTopDp, geometry.padRightDp, geometry.padBottomDp, geometry.keyGapDp,
         )
@@ -182,7 +185,14 @@ class ResizeActivity : AppCompatActivity() {
         }
 
         findViewById<TextView>(R.id.profileInfo).text =
-            getString(if (large) R.string.resize_profile_large else R.string.resize_profile_normal)
+            getString(
+                when {
+                    large && landscape -> R.string.resize_profile_large_land
+                    large -> R.string.resize_profile_large
+                    landscape -> R.string.resize_profile_normal_land
+                    else -> R.string.resize_profile_normal
+                },
+            )
         findViewById<TextView>(R.id.widthValue).text = "${geometry.widthPct}%"
         findViewById<TextView>(R.id.heightValue).text = "${geometry.heightPct}%"
 
@@ -191,7 +201,8 @@ class ResizeActivity : AppCompatActivity() {
         findViewById<View>(R.id.heightMinus).isEnabled = geometry.heightPct > KeyboardGeometry.HEIGHT_MIN
         findViewById<View>(R.id.heightPlus).isEnabled = geometry.heightPct < KeyboardGeometry.HEIGHT_MAX
         findViewById<View>(R.id.gapRow).visibility = if (splitActive) View.VISIBLE else View.GONE
-        findViewById<TextView>(R.id.gapValue).text = "${geometry.gapPct}%"
+        findViewById<TextView>(R.id.gapValue).text =
+            if (!large && geometry.gapPct == 0) getString(R.string.resize_gap_off) else "${geometry.gapPct}%"
         findViewById<View>(R.id.gapMinus).isEnabled = geometry.gapPct > KeyboardGeometry.GAP_MIN
         findViewById<View>(R.id.gapPlus).isEnabled = geometry.gapPct < KeyboardGeometry.GAP_MAX
         findViewById<View>(R.id.moveLeft).isEnabled = geometry.canMoveLeft(containerWidthPx, density)

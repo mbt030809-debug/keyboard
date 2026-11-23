@@ -11,7 +11,7 @@ import kotlin.math.roundToInt
  * @param heightPct 세로 길이: 키 높이 배율 % (70~150)
  * @param xDp 좌우 위치: 가운데에서 얼마나 옮겼는지(dp, 음수=왼쪽, 양수=오른쪽). 화면 밖으로는 못 나간다
  * @param raiseDp 상하 위치: 화면 바닥에서 위로 띄운 높이 (0~200dp)
- * @param gapPct 갈라진 정도: 나눠쓰기 때 두 묶음 사이 틈이 키보드 가로폭에서 차지하는 % (6~40)
+ * @param gapPct 갈라진 정도: 나눠쓰기 때 두 묶음 사이 틈이 키보드 가로폭에서 차지하는 % (0~40). 화면 방향·접힘/펼침마다 따로 저장
  * @param padLeftDp 키 둘레 여백(키보드 바깥 프레임): 왼쪽 (0~40dp)
  * @param padTopDp 위쪽 여백
  * @param padRightDp 오른쪽 여백
@@ -128,10 +128,14 @@ data class KeyboardGeometry(
         const val RAISE_STEP = 2
         const val RAISE_DEFAULT = 0
 
-        const val GAP_MIN = 6
+        /** 0이면 나누지 않는다 (접힘 화면의 가로 모드에서 갈라진 자판을 끄는 값) */
+        const val GAP_MIN = 0
         const val GAP_MAX = 40
         const val GAP_STEP = 1
         const val GAP_DEFAULT = 18
+
+        /** 접힘 화면의 가로 모드 기본값: 나누지 않음 (직접 올려야 갈라진다) */
+        const val GAP_NORMAL_LANDSCAPE_DEFAULT = 0
 
         const val PAD_MIN = 0
         const val PAD_MAX = 40

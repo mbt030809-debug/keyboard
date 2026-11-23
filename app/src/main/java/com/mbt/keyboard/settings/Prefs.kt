@@ -62,15 +62,26 @@ object Prefs {
 
     private fun geoKey(large: Boolean, field: String) = "geo_${if (large) "large" else "normal"}_$field"
 
-    /** 키보드 크기·위치. [large]가 true면 폴드를 펼친 넓은 화면용, false면 접힘(일반) 화면용 */
-    fun geometry(context: Context, large: Boolean): KeyboardGeometry {
+    /**
+     * 키보드 크기·위치. [large]가 true면 폴드를 펼친 넓은 화면용, false면 접힘(일반) 화면용.
+     * "갈라진 정도"만 [landscape](가로 모드)일 때 따로 저장한다. 가로 값이 아직 없으면
+     * 펼침 화면은 세로 값을, 접힘 화면은 0(나누지 않음)을 쓴다.
+     */
+    fun geometry(context: Context, large: Boolean, landscape: Boolean = false): KeyboardGeometry {
         val p = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        val portraitGap = p.getInt(geoKey(large, "g"), KeyboardGeometry.GAP_DEFAULT)
+        val gap = when {
+            !landscape -> portraitGap
+            p.contains(geoKey(large, "land_g")) -> p.getInt(geoKey(large, "land_g"), portraitGap)
+            large -> portraitGap
+            else -> KeyboardGeometry.GAP_NORMAL_LANDSCAPE_DEFAULT
+        }
         return KeyboardGeometry(
             p.getInt(geoKey(large, "w"), KeyboardGeometry.WIDTH_DEFAULT),
             p.getInt(geoKey(large, "h"), KeyboardGeometry.HEIGHT_DEFAULT),
             p.getInt(geoKey(large, "xd"), KeyboardGeometry.X_DEFAULT),
             p.getInt(geoKey(large, "r"), KeyboardGeometry.RAISE_DEFAULT),
-            p.getInt(geoKey(large, "g"), KeyboardGeometry.GAP_DEFAULT),
+            gap,
             p.getInt(geoKey(large, "pl"), KeyboardGeometry.PAD_DEFAULT),
             p.getInt(geoKey(large, "pt"), KeyboardGeometry.PAD_DEFAULT),
             p.getInt(geoKey(large, "pr"), KeyboardGeometry.PAD_DEFAULT),
@@ -79,14 +90,14 @@ object Prefs {
         ).clamped()
     }
 
-    fun setGeometry(context: Context, large: Boolean, g: KeyboardGeometry) {
+    fun setGeometry(context: Context, large: Boolean, g: KeyboardGeometry, landscape: Boolean = false) {
         val c = g.clamped()
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
             .putInt(geoKey(large, "w"), c.widthPct)
             .putInt(geoKey(large, "h"), c.heightPct)
             .putInt(geoKey(large, "xd"), c.xDp)
             .putInt(geoKey(large, "r"), c.raiseDp)
-            .putInt(geoKey(large, "g"), c.gapPct)
+            .putInt(if (landscape) geoKey(large, "land_g") else geoKey(large, "g"), c.gapPct)
             .putInt(geoKey(large, "pl"), c.padLeftDp)
             .putInt(geoKey(large, "pt"), c.padTopDp)
             .putInt(geoKey(large, "pr"), c.padRightDp)
