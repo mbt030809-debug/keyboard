@@ -127,6 +127,38 @@ class KeyboardView(context: Context) : View(context) {
     var theme: KeyboardTheme = KeyboardTheme.system(context)
         set(v) { field = v; requestLayout(); invalidate() }
 
+    /**
+     * 숫자를 맨 위 줄이 아니라 왼쪽 세로 띠(2열)로 옮긴다 (모아키처럼). 단모음·두벌식·영어에 적용되고,
+     * 전체·복사·붙임은 맨 아래 줄로 내려간다. "숫자 줄 크기" 설정은 이때 띠의 가로 길이가 된다.
+     */
+    var numberLeft: Boolean = false
+        set(v) {
+            if (field == v) return
+            field = v
+            dropGestures(); computeCells(); requestLayout(); invalidate()
+        }
+
+    private var effCacheKey: Pair<KeyboardLayout?, Boolean>? = null
+    private var effCache: KeyboardLayout? = null
+
+    /** 실제로 그리는 자판: [numberLeft]이면 숫자 줄을 왼쪽 띠로, 전체·복사·붙임을 맨 아래 줄 앞으로 옮긴 사본 */
+    private fun effective(): KeyboardLayout? {
+        val base = keyboardLayout ?: return null
+        val key = base to numberLeft
+        if (effCacheKey == key) return effCache
+        val numRow = base.rows.firstOrNull()
+        val convert = numberLeft && !base.moaki && base.sideKeys.isEmpty() && numRow?.any { it.type == KeyType.SELECT_ALL } == true
+        val eff = if (!convert) base else {
+            val digits = numRow!!.filter { it.type == KeyType.CHAR && it.label.length == 1 && it.label[0].isDigit() }
+            val fn = numRow.filter { it.type in FN_TYPES }
+            val rows = base.rows.drop(1).toMutableList()
+            rows[rows.lastIndex] = fn + rows.last()
+            base.copy(rows = rows, rowHeights = List(rows.size) { 1f }, splitAt = base.splitAt.drop(1), sideKeys = digits)
+        }
+        effCacheKey = key; effCache = eff
+        return eff
+    }
+
     var keyboardLayout: KeyboardLayout? = null
         set(v) { field = v; dropGestures(); computeCells(); requestLayout(); invalidate() }
 
@@ -281,7 +313,7 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
-    private val rowCount get() = keyboardLayout?.rows?.size ?: 0
+    private val rowCount get() = effective()?.rows?.size ?: 0
     private val keyHeightPx get() = theme.keyHeightDp * density * heightScale
     private val padL get() = frame.leftDp * density
     private val padT get() = frame.topDp * density
@@ -289,7 +321,7 @@ class KeyboardView(context: Context) : View(context) {
     private val padB get() = frame.bottomDp * density
 
     /** 맨 윗줄이 전체·복사·붙임 + 숫자 줄인가 (글자 자판만. 키패드는 해당 없음) */
-    private fun isNumberRow(r: Int) = r == 0 && keyboardLayout?.rows?.getOrNull(0)?.any { it.type == KeyType.SELECT_ALL } == true
+    private fun isNumberRow(r: Int) = r == 0 && effective()?.rows?.getOrNull(0)?.any { it.type == KeyType.SELECT_ALL } == true
 
     /**
      * 키 자체의 높이. 일반 키는 (키 높이 − 옛 고정 간격 6dp)이고, 줄마다 배율을 곱한다.
@@ -297,14 +329,16 @@ class KeyboardView(context: Context) : View(context) {
      */
     private fun keyBodyPx(r: Int): Float {
         val base = (keyHeightPx - LEGACY_GAP_DP * density).coerceAtLeast(1f)
-        if (keyboardLayout?.moaki == true) {
-            // 모아키는 5줄(숫자는 왼쪽 띠라 줄에 없음)이 키보드 전체 높이를 단모음과 똑같이 채운다:
-            // 줄 5개 + 여백 5칸 = (숫자 줄 + 글자 줄 4개) + 여백(숫자 아래 여백 포함, 4칸)
-            // (숫자 줄 높이 설정은 모아키에서 가로 길이로 쓰이므로 높이 계산에는 기본값 80%를 쓴다)
+        val eff = effective()
+        if (eff != null && eff.sideKeys.isNotEmpty()) {
+            // 숫자가 왼쪽 띠에 있는 자판(모아키·숫자 왼쪽 옵션)은 모든 줄 높이가 같고, 키보드 전체 높이는 숫자 줄이 맨 위에 있는
+            // 자판(단모음 기준: 숫자 줄 + 글자 줄 4개)과 똑같다. 줄 n개 + 여백 n칸 = 숫자 줄 + 글자 줄 4개 + 여백 4칸 + 숫자 아래 여백
+            // ("숫자 줄 크기" 설정은 이때 띠의 가로 길이로 쓰이므로 높이 계산에는 기본값 80%를 쓴다)
+            val n = eff.rows.size
             val single = base * DEFAULT_NUMBER_ROW_SCALE + 4f * base + frame.numberGapDp * density + 4f * frame.rowGapDp * density
-            return ((single - 5f * frame.rowGapDp * density) / 5f).coerceAtLeast(1f)
+            return ((single - n * frame.rowGapDp * density) / n).coerceAtLeast(1f)
         }
-        val scale = if (isNumberRow(r)) frame.numberRowScale else (keyboardLayout?.rowHeights?.getOrNull(r) ?: 1f)
+        val scale = if (isNumberRow(r)) frame.numberRowScale else (eff?.rowHeights?.getOrNull(r) ?: 1f)
         return base * scale
     }
 
@@ -336,7 +370,7 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     private fun computeCells() {
-        val layout = keyboardLayout ?: run { cells = emptyList(); return }
+        val layout = effective() ?: run { cells = emptyList(); return }
         if (width == 0) return
         val out = ArrayList<Cell>()
         val rows = ArrayList<List<Cell>>()
@@ -420,10 +454,12 @@ class KeyboardView(context: Context) : View(context) {
         cells = out
         rowCells = rows
         hitTops = FloatArray(rowTops.size) { rowTops[it] }
-        if (isNumberRow(0) || layout.moaki) {
-            // 줄 k(0=숫자 줄(모아키는 쌍자음 줄), 1~3=글자 줄)의 아래 경계 = 다음 줄의 윗경계를 hitShiftDp[k]만큼 아래로
+        if (isNumberRow(0) || layout.moaki || layout.sideKeys.isNotEmpty()) {
+            // 줄 k(0=숫자 줄(모아키는 쌍자음 줄), 1~3=글자 줄)의 아래 경계 = 다음 줄의 윗경계를 hitShiftDp[k]만큼 아래로.
+            // 숫자 왼쪽 자판은 숫자 줄이 없어 첫 글자 줄이 1번이다
+            val first = if (layout.sideKeys.isNotEmpty() && !layout.moaki) 1 else 0
             for (r in 1..minOf(4, rowTops.size - 1)) {
-                val shift = frame.hitShiftDp.getOrElse(r - 1) { 0 } * density
+                val shift = frame.hitShiftDp.getOrElse(r - 1 + first) { 0 } * density
                 hitTops[r] = (rowTops[r] + shift).coerceAtLeast(hitTops[r - 1] + 1f)
             }
         }

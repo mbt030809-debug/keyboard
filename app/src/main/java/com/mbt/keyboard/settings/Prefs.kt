@@ -17,6 +17,14 @@ object Prefs {
     private const val KEY_QUICK_TAB = "quick_panel_tab"
     const val KEY_THEME = "keyboard_theme"
     private const val KEY_HAPTIC_STYLE = "haptic_style"
+    const val KEY_NUMBER_LEFT = "number_keys_left"
+
+    /** 숫자 키를 맨 위 줄 대신 왼쪽 세로 띠에 둔다 (단모음·두벌식·영어, 기본: 켬) */
+    fun numberKeysLeft(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_NUMBER_LEFT, true)
+
+    fun setNumberKeysLeft(context: Context, on: Boolean) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_NUMBER_LEFT, on).apply()
     const val KEY_SWIPE_DOUBLE = "single_swipe_double"
 
     /**

@@ -188,6 +188,11 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
 
+        // 숫자 키를 왼쪽 띠로 (모아키처럼)
+        val numberLeft = findViewById<MaterialSwitch>(R.id.switchNumberLeft)
+        numberLeft.isChecked = Prefs.numberKeysLeft(this)
+        numberLeft.setOnCheckedChangeListener { _, on -> Prefs.setNumberKeysLeft(this, on) }
+
         // 단모음 개선판 (밀어서 쌍자음·ㅑㅕㅛㅠ)
         val swipeDouble = findViewById<MaterialSwitch>(R.id.switchSwipeDouble)
         swipeDouble.isChecked = Prefs.singleSwipeDouble(this)

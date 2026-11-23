@@ -66,6 +66,7 @@ class ResizeActivity : AppCompatActivity() {
         splitActive = if (large) Prefs.splitOnLargeScreen(this) else landscape
         keyboard = KeyboardView(this).also {
             it.showHitZones = true          // 조절하는 동안 줄 인식 경계를 점선으로 보여준다
+            it.numberLeft = Prefs.numberKeysLeft(this)
             it.keyboardLayout = Layouts.byId(Prefs.koreanLayout(this))
             it.split = splitActive && (large || geometry.gapPct > 0)
         }
@@ -121,9 +122,8 @@ class ResizeActivity : AppCompatActivity() {
             { geometry.hit2Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit2Dp < KeyboardGeometry.HIT_MAX })
         addStepper(R.string.resize_hit3, { geometry = geometry.hit3By(it) }, { signedDp(geometry.hit3Dp) },
             { geometry.hit3Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit3Dp < KeyboardGeometry.HIT_MAX })
-        // 모아키는 숫자가 왼쪽 띠라서 "숫자 줄 높이"가 "숫자 띠 가로 길이"가 된다
-        val moaki = Prefs.koreanLayout(this) == com.mbt.keyboard.layout.Layouts.MOA
-        addStepper(if (moaki) R.string.resize_num_width else R.string.resize_num_height, { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
+        // 숫자가 왼쪽 띠에 있으면(모아키·숫자 왼쪽 옵션) "숫자 줄 크기"는 띠의 가로 길이, 아니면 줄 높이
+        addStepper(R.string.resize_num_height, { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
             { geometry.numHeightPct > KeyboardGeometry.NUM_HEIGHT_MIN }, { geometry.numHeightPct < KeyboardGeometry.NUM_HEIGHT_MAX })
 
         findViewById<MaterialButton>(R.id.resetButton).setOnClickListener {

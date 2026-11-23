@@ -50,8 +50,7 @@
     <string name="resize_hit1">윗줄(ㅂㅈㄷㄱㅅ) 인식 ↓</string>
     <string name="resize_hit2">가운데 줄(ㅁㄴㅇㄹㅎ) 인식 ↓</string>
     <string name="resize_hit3">아랫줄(ㅋㅌㅊㅍ) 인식 ↓</string>
-    <string name="resize_num_width">숫자 띠 가로 길이 (모아키)</string>
-    <string name="resize_num_height">숫자 줄 높이 (일반 키 대비)</string>
+    <string name="resize_num_height">숫자 줄 크기 (왼쪽 띠면 가로 길이)</string>
     <string name="resize_gap">갈라진 정도</string>
     <string name="resize_move">위치 이동</string>
     <string name="resize_move_hint_x">◀ ▶로 %2$ddp씩 옮겨요 · 바닥에서 %1$ddp 위</string>
@@ -84,6 +83,8 @@
     <string name="layout_desc">한/영 전환 시 사용할 한글 자판이에요. 단모음은 같은 키를 연달아 두 번 치면 ㄱ→ㄲ, ㅏ→ㅑ로 바뀌어요</string>
     <string name="layout_single">단모음 (기본)</string>
     <string name="layout_dubeolsik">두벌식</string>
+    <string name="number_left_switch">숫자 키를 왼쪽에 두기 (모아키처럼)</string>
+    <string name="number_left_desc">단모음·두벌식·영어에서 맨 위 숫자 줄을 없애고 숫자를 왼쪽 세로 띠(2열)로 옮겨 글자 키를 키워요. 전체·복사·붙임·🎤·😊는 맨 아래 줄로 내려가요. 이때 "숫자 줄 크기"는 띠의 가로 길이가 돼요</string>
     <string name="swipe_double_switch">단모음 개선판: 쌍자음·ㅑㅕㅛㅠ는 밀어서 입력</string>
     <string name="swipe_double_desc">켜면 ㄱ·ㄷ·ㅂ·ㅅ·ㅈ·ㅏ·ㅓ·ㅗ·ㅜ·ㅐ·ㅔ 키를 위·아래·왼쪽·오른쪽 어느 쪽으로든 밀면 ㄲ·ㄸ·ㅃ·ㅆ·ㅉ·ㅑ·ㅕ·ㅛ·ㅠ·ㅒ·ㅖ가 입력돼요. 연타로 바꾸는 기능은 꺼져서 "연타 기준" 시간은 필요 없어요</string>
     <string name="layout_moaki">모아키 (자음을 누른 채 밀어서 모음 입력)</string>
