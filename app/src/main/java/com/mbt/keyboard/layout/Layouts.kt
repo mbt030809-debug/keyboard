@@ -82,15 +82,17 @@ object Layouts {
 
     /**
      * 단모음 자판의 쉬프트·지우기 (ㅋㅌㅊㅍㅜㅡ 줄의 양 끝).
-     * - 지우기는 예전과 같은 1.5칸 폭, 줄의 오른쪽 끝
+     * - 지우기는 1.25칸 (예전 1.5칸과 일반 키 1칸의 중간), 줄의 오른쪽 끝
      * - 쉬프트는 1칸보다 작게 0.75칸
-     * - 그 사이 글자 6개는 남는 폭을 똑같이 나눠 가진다 (줄 전체 8칸 유지 → 위 줄들과 오른쪽 끝이 맞는다)
+     * - 그 사이 글자 6개는 남는 폭을 똑같이 나눠 가진다. 줄 전체 8칸을 유지하므로 위 줄들과 오른쪽 끝이 맞고,
+     *   이 폭 구성에서는 글자 키가 정확히 1칸이라 위 줄 키들과 폭도 같다
      * 쉬프트: 쌍자음·ㅑㅕㅛㅠ·ㅒㅖ
      */
     private const val SHIFT_NARROW = 0.75f
-    private const val BACKSPACE_WEIGHT = 1.5f
+    private const val BACKSPACE_WEIGHT = 1.25f
     private const val SINGLE_ROW_TOTAL = 8f
     private val shiftNarrow = Key("⇧", KeyType.SHIFT, weight = SHIFT_NARROW)
+    private val backspaceMid = Key("⌫", KeyType.BACKSPACE, weight = BACKSPACE_WEIGHT)
     private val singleRowLetterWeight = (SINGLE_ROW_TOTAL - SHIFT_NARROW - BACKSPACE_WEIGHT) / 6f
 
     /**
@@ -159,7 +161,7 @@ object Layouts {
                     listOf(null, null, null, null, "ㅠ", null),
                     16,
                     weight = singleRowLetterWeight,
-                ) + backspace,
+                ) + backspaceMid,
             bottom(),
         ),
         rowHeights,
