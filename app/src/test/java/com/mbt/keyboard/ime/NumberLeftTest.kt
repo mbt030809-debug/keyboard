@@ -42,11 +42,11 @@ class NumberLeftTest {
         show(Layouts.koreanSingle, numberLeft = true)
     }
 
-    private fun show(l: KeyboardLayout, numberLeft: Boolean, frame: KeyboardFrame = KeyboardFrame()) {
+    private fun show(l: KeyboardLayout, numberLeft: Boolean, frame: KeyboardFrame = KeyboardFrame(), widthPx: Int = 1000) {
         view.numberLeft = numberLeft
         view.keyboardLayout = l
         view.frame = frame
-        view.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        view.measure(View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
         view.layout(0, 0, view.measuredWidth, view.measuredHeight)
     }
 
@@ -98,11 +98,34 @@ class NumberLeftTest {
         for ((layout, label) in listOf(Layouts.koreanSingle to "ㅂ", Layouts.korean to "ㅂ", Layouts.english to "q")) {
             show(layout, numberLeft = false); val before = letterTextSize(label)
             show(layout, numberLeft = true); val after = letterTextSize(label)
-            assertEquals("${layout.id} 글자 크기", before, after, 0.6f)
+            assertTrue("${layout.id} 글자가 커지면 안 된다: $before -> $after", after <= before + 0.6f)    // 줄이 높아져도 그대로이거나, 키가 좁아지면 작아진다
         }
         // 전체·복사·붙임 글자도 예전 숫자 줄 크기 안쪽
         show(Layouts.english, numberLeft = true)
-        assertTrue(letterTextSize("전체") <= 0.34f * view.keyRects().first { it.first.label == "전체" }.second.height() + 0.5f)
+        assertTrue(letterTextSize("전체") <= 0.34f * view.keyRects().first { it.first.label == "전체" }.second.height() + density + 0.5f)
+    }
+
+    @Test fun labelSizeFollowsTheSmallerOfKeyWidthAndHeight() {
+        // 키가 좁아질수록(숫자 띠가 넓어져 글자 키 폭이 줄수록) 글자도 작아진다
+        view.fontScale = 1f
+        show(Layouts.english, numberLeft = true, frame = KeyboardFrame(numberRowScale = 0.4f), widthPx = 420); val wide = letterTextSize("q")
+        show(Layouts.english, numberLeft = true, frame = KeyboardFrame(numberRowScale = 1.2f), widthPx = 420); val narrow = letterTextSize("q")
+        assertTrue("$wide -> $narrow", narrow < wide)
+        // 기준 = min(높이(기본 키 높이까지), 가로×1.35): 폭이 기준이 되는 키는 가로에 비례
+        val r = rect("q")
+        val ref = minOf(r.height(), view.theme.keyHeightDp * density, r.width() * 1.35f)
+        assertEquals(ref * 0.40f * view.theme.textScale + density, narrow, 0.6f)
+    }
+
+    @Test fun fontScaleOptionScalesLabelsAndIsSaved() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(100, Prefs.fontScalePercent(ctx))
+        Prefs.setFontScalePercent(ctx, 500); assertEquals(Prefs.FONT_SCALE_MAX, Prefs.fontScalePercent(ctx))
+        Prefs.setFontScalePercent(ctx, 120); assertEquals(120, Prefs.fontScalePercent(ctx))
+        show(Layouts.english, numberLeft = true)
+        view.fontScale = 1f; val base = letterTextSize("q")
+        view.fontScale = 1.2f; assertEquals(base * 1.2f, letterTextSize("q"), 0.05f)
+        view.fontScale = 0.7f; assertEquals(base * 0.7f, letterTextSize("q"), 0.05f)
     }
 
     @Test fun totalHeightStaysTheSameAsWithTheNumberRowOnTop() {
@@ -184,5 +207,68 @@ class NumberLeftTest {
         view.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, b.centerX(), b.bottom + 5 * density, 0))
         view.dispatchTouchEvent(MotionEvent.obtain(t, t + 10, MotionEvent.ACTION_UP, b.centerX(), b.bottom + 5 * density, 0))
         assertEquals(listOf("ㅂ"), keys)                      // 첫 글자 줄(윗줄 설정)의 아래 경계를 10dp 내렸으니 아래 5dp도 ㅂ
+    }
+}
+
+/** 숫자 키는 일반 키보다 조금 어둡게 */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class NumberKeyShadeTest {
+    private class ColorRec : android.graphics.Canvas() {
+        val fills = ArrayList<Pair<android.graphics.RectF, Int>>()
+        override fun drawRoundRect(left: Float, top: Float, right: Float, bottom: Float, rx: Float, ry: Float, paint: android.graphics.Paint) {
+            fills += android.graphics.RectF(left, top, right, bottom) to paint.color
+        }
+        override fun drawRoundRect(rect: android.graphics.RectF, rx: Float, ry: Float, paint: android.graphics.Paint) {
+            fills += android.graphics.RectF(rect) to paint.color
+        }
+    }
+
+    private fun lum(c: Int): Double = 0.299 * ((c shr 16) and 0xFF) + 0.587 * ((c shr 8) and 0xFF) + 0.114 * (c and 0xFF)
+
+    private fun colorOf(view: KeyboardView, label: String): Int {
+        val r = view.keyInnerRects().first { it.first.label == label }.second
+        val rec = ColorRec().also { view.draw(it) }
+        return rec.fills.first { kotlin.math.abs(it.first.centerX() - r.centerX()) < 1f && kotlin.math.abs(it.first.centerY() - r.centerY()) < 1f }.second
+    }
+
+    private fun viewFor(layout: com.mbt.keyboard.layout.KeyboardLayout, numberLeft: Boolean): KeyboardView {
+        val v = KeyboardView(ApplicationProvider.getApplicationContext<Context>())
+        v.numberLeft = numberLeft
+        v.keyboardLayout = layout
+        v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+        return v
+    }
+
+    @Test fun digitKeysAreDarkerThanLetterKeysOnEveryLayoutAndPlacement() {
+        for (numberLeft in listOf(true, false)) for ((layout, letter) in listOf(Layouts.koreanSingle to "ㅂ", Layouts.korean to "ㅂ", Layouts.english to "q")) {
+            val v = viewFor(layout, numberLeft)
+            val digit = colorOf(v, "5"); val key = colorOf(v, letter)
+            assertEquals(v.theme.numberKey, digit)
+            assertEquals(v.theme.key, key)
+            assertTrue("${layout.id} left=$numberLeft digit=${lum(digit)} letter=${lum(key)}", lum(digit) < lum(key))
+        }
+        // 모아키 숫자 띠도
+        val m = viewFor(Layouts.moaki, false)
+        assertTrue(lum(colorOf(m, "5")) < lum(colorOf(m, "ㅂ")))
+    }
+
+    @Test fun numberKeyColorSitsBetweenNormalAndFunctionKeysForEveryTheme() {
+        KeyboardThemes.all.forEach { n ->
+            val t = n.theme
+            if (t.key == t.specialKey) return@forEach
+            val nk = t.numberKey
+            fun ch(c: Int, sh: Int) = (c shr sh) and 0xFF
+            listOf(24, 16, 8, 0).forEach { sh ->
+                val lo = minOf(ch(t.key, sh), ch(t.specialKey, sh)); val hi = maxOf(ch(t.key, sh), ch(t.specialKey, sh))
+                assertTrue("${n.id} $sh", ch(nk, sh) in lo..hi)
+            }
+        }
+    }
+
+    @Test fun numericKeypadDigitsAreUnchanged() {
+        val v = viewFor(Layouts.numberPad, false)
+        assertEquals(v.theme.key, colorOf(v, "5"))
     }
 }

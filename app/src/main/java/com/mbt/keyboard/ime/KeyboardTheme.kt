@@ -24,6 +24,13 @@ data class KeyboardTheme(
 ) {
     val hasGradient: Boolean get() = backgroundEnd != 0
 
+    /** 숫자 키 배경: 일반 키와 기능 키의 중간쯤으로, 일반 키보다 조금 어둡게 (모든 테마에서 같은 비율) */
+    val numberKey: Int
+        get() {
+            fun mix(sh: Int) = ((((key ushr sh) and 0xFF) * (1f - NUMBER_KEY_SHADE) + ((specialKey ushr sh) and 0xFF) * NUMBER_KEY_SHADE) + 0.5f).toInt().coerceIn(0, 255)
+            return (mix(24) shl 24) or (mix(16) shl 16) or (mix(8) shl 8) or mix(0)
+        }
+
     /** 배경 색들 (시작 → 가운데 → 끝). 그라데이션이 아니면 한 색 */
     val backgroundStops: IntArray
         get() = when {
@@ -54,6 +61,9 @@ data class KeyboardTheme(
     }
 
     companion object {
+        /** 숫자 키 색을 일반 키에서 기능 키 쪽으로 얼마나 옮길지 (0~1) */
+        const val NUMBER_KEY_SHADE = 0.55f
+
         val LIGHT = KeyboardTheme(
             background = 0xFFD9DCE1.toInt(), key = 0xFFFFFFFF.toInt(), specialKey = 0xFFB9BEC7.toInt(),
             keyPressed = 0xFF9AA3B5.toInt(), text = 0xFF1B1B1F.toInt(),

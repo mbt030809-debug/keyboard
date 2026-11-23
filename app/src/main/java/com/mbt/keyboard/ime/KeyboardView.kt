@@ -18,6 +18,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.mbt.keyboard.layout.Key
 import com.mbt.keyboard.layout.KeyType
 import com.mbt.keyboard.layout.KeyboardLayout
+import com.mbt.keyboard.layout.Layouts
 import com.mbt.keyboard.layout.Split
 import com.mbt.keyboard.settings.Timing
 import kotlin.math.abs
@@ -116,6 +117,9 @@ class KeyboardView(context: Context) : View(context) {
         }
 
     /** 단모음 개선판: ㄱㄷㅂㅅㅈ ㅏㅓㅗㅜㅐㅔ 키를 상하좌우로 밀면 ㄲㄸㅃㅆㅉ ㅑㅕㅛㅠㅒㅖ (연타 변환 대신) */
+    /** 키 글자 크기 배율 (1 = 기본) */
+    var fontScale: Float = 1f
+        set(v) { if (field != v) { field = v; invalidate() } }
     var swipeDouble: Boolean = false
 
     /** 꾹 누르기로 인식하는 시간 (설정 화면에서 변경) */
@@ -503,6 +507,7 @@ class KeyboardView(context: Context) : View(context) {
                 key.type == KeyType.VOICE && voiceListening -> theme.accent
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
                 isSpecial || cell.duplicate -> theme.specialKey      // 복제 키는 기능키 색으로 살짝 구분
+                isDigitKey(key) -> theme.numberKey                    // 숫자 키는 조금 어둡게
                 else -> theme.key
             }
             val r = cell.inner
@@ -512,7 +517,7 @@ class KeyboardView(context: Context) : View(context) {
                 canvas.drawRoundRect(r.left, r.top + 1.5f * density, r.right, r.bottom + 1.5f * density, radius, radius, paint)
                 paint.color = keep
             }
-            canvas.drawRoundRect(r, radius, radius, paint)
+            canvas.drawRoundRect(r.left, r.top, r.right, r.bottom, radius, radius, paint)
             if (theme.keyBorder != 0) {
                 borderPaint.strokeWidth = density
                 borderPaint.color = theme.keyBorder
@@ -538,7 +543,8 @@ class KeyboardView(context: Context) : View(context) {
                 else -> 0.40f
             }
             // 글자 크기는 키 높이를 따르되, 줄이 높아진 자판(숫자 왼쪽·모아키)에서 글자가 너무 커지지 않게 기본 키 높이까지만
-            paint.textSize = min(cell.rect.height(), keyHeightPx) * size * theme.textScale
+            // 글자 크기는 키의 가로·세로 중 작은 쪽을 따른다 (높이는 기본 키 높이까지만, 가로는 1.35배로 환산). 기본 크기는 1dp 키웠다
+            paint.textSize = (labelRefPx(cell) * size * theme.textScale + LABEL_BONUS_DP * density) * fontScale
             if (key.type == KeyType.VOICE) paint.textSize -= ICON_SHRINK_DP * density
             if (key.type == KeyType.SPACE || cell.duplicate) paint.alpha = 140
             drawCentered(canvas, label, r)
@@ -548,7 +554,7 @@ class KeyboardView(context: Context) : View(context) {
             if (key.type == KeyType.CHAR && key.hints.isNotEmpty() && key.hints[0].length <= 2) {
                 paint.color = theme.text
                 paint.alpha = 110
-                paint.textSize = min(cell.rect.height(), keyHeightPx) * 0.22f
+                paint.textSize = labelRefPx(cell) * 0.22f * fontScale
                 paint.textAlign = Paint.Align.RIGHT
                 canvas.drawText(key.hints[0], r.right - 4 * density, r.top + paint.textSize + 2 * density, paint)
                 paint.textAlign = Paint.Align.CENTER
@@ -874,6 +880,14 @@ class KeyboardView(context: Context) : View(context) {
         return com.mbt.keyboard.hangul.Jamo.DOUBLE[key.output[0]]
     }
 
+    /** 글자 자판의 숫자 키 (숫자·전화번호 키패드의 큰 숫자 키는 제외) */
+    /** 키 글자 크기의 기준 길이: 키 높이(기본 키 높이까지)와 가로×[LABEL_WIDTH_FACTOR] 중 작은 쪽 */
+    private fun labelRefPx(cell: Cell) = min(min(cell.rect.height(), keyHeightPx), cell.rect.width() * LABEL_WIDTH_FACTOR)
+
+    private fun isDigitKey(key: Key) =
+        key.type == KeyType.CHAR && key.label.length == 1 && key.label[0].isDigit() &&
+            keyboardLayout?.id.let { it != Layouts.NUM && it != Layouts.PHONE }
+
     private fun isMoaConsonant(key: Key) =
         key.type == KeyType.CHAR && key.output.length == 1 && com.mbt.keyboard.hangul.Jamo.isConsonant(key.output[0])
 
@@ -1104,6 +1118,8 @@ class KeyboardView(context: Context) : View(context) {
         const val SIDE_STRIP_FRACTION = 0.19f
         val FN_TYPES = setOf(KeyType.SELECT_ALL, KeyType.COPY, KeyType.PASTE)
         const val DEFAULT_NUMBER_ROW_SCALE = 0.8f
+        const val LABEL_WIDTH_FACTOR = 1.35f
+        const val LABEL_BONUS_DP = 1f
         const val DEFAULT_NUMBER_GAP_DP = 6f
         const val UNDO_MARK_DP = 52f
         const val UNDO_MARK_MS = 900L

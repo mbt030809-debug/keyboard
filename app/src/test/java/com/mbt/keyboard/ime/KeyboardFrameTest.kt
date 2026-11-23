@@ -167,11 +167,11 @@ class KeyboardFrameTest {
         assertEquals(expectedLang, texts.first { it.text == "EN" }.size, 0.01f)
         // 🎤: 키 높이의 34%에서 1dp 줄임
         val voice = view.keyRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.VOICE }.second
-        val expectedVoice = voice.height() * 0.34f * view.theme.textScale - 1 * density
+        val expectedVoice = voice.height() * 0.34f * view.theme.textScale        // 기본 글자 +1dp 에서 아이콘 -1dp 라 그대로
         assertEquals(expectedVoice, texts.first { it.text == "🎤" }.size, 0.01f)
         // 다른 툴바 글자(전체·복사·붙임)는 그대로 (줄이지 않음)
         val edit = view.keyRects().first { it.first.label == "전체" }.second
-        assertEquals(edit.height() * 0.34f * view.theme.textScale, texts.first { it.text == "전체" }.size, 0.01f)
+        assertEquals(edit.height() * 0.34f * view.theme.textScale + density, texts.first { it.text == "전체" }.size, 0.01f)
     }
 
     @Test fun backspaceIsDrawnOnePointTwoFiveTimesALetterKeyOnEveryLayout() {

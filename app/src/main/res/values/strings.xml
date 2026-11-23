@@ -83,6 +83,9 @@
     <string name="layout_desc">한/영 전환 시 사용할 한글 자판이에요. 단모음은 같은 키를 연달아 두 번 치면 ㄱ→ㄲ, ㅏ→ㅑ로 바뀌어요</string>
     <string name="layout_single">단모음 (기본)</string>
     <string name="layout_dubeolsik">두벌식</string>
+    <string name="font_scale_label">키 글자 크기</string>
+    <string name="font_scale_value">%1$d%%</string>
+    <string name="font_scale_desc">키에 쓰인 글자의 크기예요. 키가 좁아지면 글자도 함께 작아지고, 여기서 전체 크기를 키우거나 줄일 수 있어요</string>
     <string name="number_left_switch">숫자 키를 왼쪽에 두기 (모아키처럼)</string>
     <string name="number_left_desc">단모음·두벌식·영어에서 맨 위 숫자 줄을 없애고 숫자를 왼쪽 세로 띠(2열)로 옮겨 글자 키를 키워요. 전체·복사·붙임·🎤·😊는 맨 아래 줄로 내려가요. 이때 "숫자 줄 크기"는 띠의 가로 길이가 돼요</string>
     <string name="swipe_double_switch">단모음 개선판: 쌍자음·ㅑㅕㅛㅠ는 밀어서 입력</string>

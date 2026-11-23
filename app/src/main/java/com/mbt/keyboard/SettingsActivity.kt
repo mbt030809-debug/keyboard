@@ -125,6 +125,16 @@ class SettingsActivity : AppCompatActivity() {
             if (fromUser) Prefs.setRepeatCps(this, value.toInt())
         }
 
+        // 키 글자 크기 배율
+        val sliderFont = findViewById<Slider>(R.id.sliderFontScale)
+        val valueFont = findViewById<TextView>(R.id.valueFontScale)
+        sliderFont.value = Prefs.fontScalePercent(this).toFloat()
+        valueFont.text = getString(R.string.font_scale_value, Prefs.fontScalePercent(this))
+        sliderFont.addOnChangeListener { _, value, fromUser ->
+            valueFont.text = getString(R.string.font_scale_value, value.toInt())
+            if (fromUser) Prefs.setFontScalePercent(this, value.toInt())
+        }
+
         // 진동 피드백: 바꾸는 즉시 저장하고 체험 진동
         val preview = Haptics(this)
         val sw = findViewById<MaterialSwitch>(R.id.switchHaptic)

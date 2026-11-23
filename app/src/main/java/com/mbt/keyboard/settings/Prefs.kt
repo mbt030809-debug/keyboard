@@ -147,6 +147,17 @@ object Prefs {
             .putInt(geoKey(large, "h3"), c.hit3Dp)
             .apply()
     }
+    const val KEY_FONT_SCALE = "font_scale_pct"
+    const val FONT_SCALE_MIN = 70
+    const val FONT_SCALE_MAX = 150
+
+    /** 키 글자 크기 배율 (%, 기본 100) */
+    fun fontScalePercent(context: Context): Int =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_FONT_SCALE, 100).coerceIn(FONT_SCALE_MIN, FONT_SCALE_MAX)
+
+    fun setFontScalePercent(context: Context, pct: Int) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_FONT_SCALE, pct.coerceIn(FONT_SCALE_MIN, FONT_SCALE_MAX)).apply()
     private const val KEY_DOUBLE_TAP_MS = "double_tap_ms"
     const val KEY_REPEAT_CPS = "repeat_cps"
 

@@ -784,6 +784,42 @@
                     android:textSize="12sp"
                     android:alpha="0.7" />
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/font_scale_label"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/valueFontScale"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorPrimary" />
+                </LinearLayout>
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sliderFontScale"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:valueFrom="70"
+                    android:valueTo="150"
+                    android:stepSize="5" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/font_scale_desc"
+                    android:textSize="12sp"
+                    android:alpha="0.7" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
