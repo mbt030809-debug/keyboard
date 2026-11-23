@@ -236,15 +236,14 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         loadTimings()
         shift.reset(); syncShift()
         haptics.refresh()   // 설정 화면에서 바꾼 진동 설정 반영
-        // 비밀번호·이메일·URL 입력칸은 영문 자판으로 시작
+        // 비밀번호·이메일·URL 입력칸은 그 칸에서만 영문 자판으로 (직접 고른 언어는 바꾸지 않는다).
+        // 그 밖의 입력칸은 마지막으로 직접 고른 언어로 시작한다.
         val cls = info.inputType and InputType.TYPE_MASK_CLASS
         val variation = info.inputType and InputType.TYPE_MASK_VARIATION
         val wantsLatin = cls == InputType.TYPE_CLASS_TEXT && variation in LATIN_VARIATIONS
-        val korean = Prefs.koreanLayout(this)
-        when {
-            wantsLatin -> setLayout(Layouts.EN)
-            layout.hangul && layoutId != korean -> setLayout(korean)   // 설정에서 자판을 바꾼 경우
-        }
+        val remembered = if (Prefs.lastLanguageEnglish(this)) Layouts.EN else Prefs.koreanLayout(this)
+        val target = if (wantsLatin) Layouts.EN else remembered
+        if (target != layoutId) setLayout(target)
     }
 
     override fun onFinishInput() {
@@ -434,7 +433,9 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** 스페이스바 스와이프 → 한/영 전환 */
     override fun onSwipeSpace() {
         abortVoice()
-        setLayout(if (layout.hangul) Layouts.EN else Prefs.koreanLayout(this))
+        val english = layout.hangul                       // 한글이면 영어로, 영어면 한글로
+        setLayout(if (english) Layouts.EN else Prefs.koreanLayout(this))
+        Prefs.setLastLanguageEnglish(this, english)      // 직접 바꾼 언어를 기억 → 다음에 키보드를 띄울 때도 이 언어
     }
 
     private fun onChar(key: Key) {

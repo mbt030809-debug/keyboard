@@ -62,7 +62,7 @@ class SplitTest {
         assertEquals("ㅗㅐㅔ", halves(s, 2).rightLabels().joinToString(""))
         assertEquals("ㅁㄴㅇㄹㅎ", halves(s, 3).leftLabels().joinToString(""))
         assertEquals("ㅓㅏㅣ", halves(s, 3).rightLabels().joinToString(""))
-        assertEquals("ㅋㅌㅊㅍ", halves(s, 4).leftLabels().filter { it.isNotEmpty() }.joinToString(""))
+        assertEquals(listOf("⇧", "ㅋ", "ㅌ", "ㅊ", "ㅍ"), halves(s, 4).leftLabels())
         assertEquals(listOf("ㅜ", "ㅡ", "⌫"), halves(s, 4).rightLabels())
     }
 

@@ -81,28 +81,20 @@ object Layouts {
     /** 상단 두 줄은 낮게 */
     private val rowHeights = listOf(0.7f, 0.75f, 1f, 1f, 1f, 1f)
 
-    /** 좌측하단 쉬프트 (단모음 자판용: 쉬프트로 쌍자음·ㅑㅕㅛㅠ·ㅒㅖ) */
-    private val bottomShift = Key("⇧", KeyType.SHIFT, weight = 1.2f)
+    private fun bottom() = listOf(
+        emoji,
+        Key(",", hints = listOf("'", "\"")),
+        space,
+        Key(".", hints = listOf("…", ".com")),
+        enter,
+    )
 
-    private fun bottom(withShift: Boolean = false) =
-        if (withShift) {
-            listOf(
-                bottomShift,
-                Key("😊", KeyType.EMOJI, weight = 1.2f),
-                Key(",", hints = listOf("'", "\"")),
-                Key("", KeyType.SPACE, output = " ", weight = 4.1f),
-                Key(".", hints = listOf("…", ".com")),
-                enter,
-            )
-        } else {
-            listOf(
-                emoji,
-                Key(",", hints = listOf("'", "\"")),
-                space,
-                Key(".", hints = listOf("…", ".com")),
-                enter,
-            )
-        }
+    /**
+     * 단모음 자판의 쉬프트·지우기 (ㅋㅌㅊㅍㅜㅡ 줄의 양 끝). 위 줄들(키 8개)과 키 폭이 같도록 둘 다 1칸.
+     * 쉬프트: 쌍자음·ㅑㅕㅛㅠ·ㅒㅖ
+     */
+    private val shiftWide = Key("⇧", KeyType.SHIFT, weight = 1f)
+    private val backspaceWide = Key("⌫", KeyType.BACKSPACE, weight = 1f)
 
     /**
      * 글자 줄 생성. 기호 묶음은 [symbolStart]번부터 키 순서대로 배정된다.
@@ -165,19 +157,20 @@ object Layouts {
                 listOf(null, null, null, null, null, "ㅕ", "ㅑ", null),
                 8,
             ),
-            listOf(spacer(0.5f)) +
+            // 쉬프트는 이 줄의 맨 왼쪽 (예전 하단 왼쪽에서 한 줄 위로)
+            listOf(shiftWide) +
                 letters(
                     listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅜ", "ㅡ"),
                     listOf(null, null, null, null, "ㅠ", null),
                     16,
-                ) + backspace,
-            bottom(withShift = true),
+                ) + backspaceWide,
+            bottom(),
         ),
         rowHeights,
         hangul = true,
         doubleTap = true,
         // 나눠쓰기: 왼쪽=자음(ㅂㅈㄷㄱㅅ / ㅁㄴㅇㄹㅎ / ㅋㅌㅊㅍ), 오른쪽=모음(ㅗㅐㅔ / ㅓㅏㅣ / ㅜㅡ⌫)
-        // 3번째 줄은 맨 앞의 여백 칸이 왼쪽 묶음에 들어가므로 5개
+        // 3번째 줄은 맨 앞의 쉬프트가 왼쪽 묶음에 들어가므로 5개 (⇧ㅋㅌㅊㅍ | ㅜㅡ⌫)
         splitAt = listOf(null, null, 5, 5, 5, null),
     )
 

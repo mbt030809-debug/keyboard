@@ -11,6 +11,14 @@ object Prefs {
     private const val KEY_HAPTIC_STRENGTH = "haptic_strength"
 
     private const val KEY_SPLIT = "split_on_large_screen"
+    private const val KEY_LAST_ENGLISH = "last_language_english"
+
+    /** 마지막으로 직접 고른 언어가 영어인가. 키보드를 다시 띄울 때 이 언어로 시작한다 (기본: 한글) */
+    fun lastLanguageEnglish(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_LAST_ENGLISH, false)
+
+    fun setLastLanguageEnglish(context: Context, english: Boolean) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_LAST_ENGLISH, english).apply()
 
     private fun geoKey(large: Boolean, field: String) = "geo_${if (large) "large" else "normal"}_$field"
 

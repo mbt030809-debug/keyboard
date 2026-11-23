@@ -122,14 +122,17 @@ class LayoutsTest {
         }
     }
 
-    @Test fun singleLayoutHasBottomLeftShift() {
-        val bottom = Layouts.koreanSingle.rows.last()
-        assertEquals(KeyType.SHIFT, bottom.first().type)
-        assertEquals(10.0, bottom.sumOf { it.weight.toDouble() }, 0.001)
-        // 단모음 자판은 글자 줄에 쉬프트가 없다
-        val letterRows = Layouts.koreanSingle.rows.subList(Layouts.LETTER_ROW_START, Layouts.LETTER_ROW_START + 3)
-        assertTrue(letterRows.flatten().none { it.type == KeyType.SHIFT })
-        // 다른 자판의 하단 줄 폭도 10
+    @Test fun singleLayoutShiftIsOnTheRowAboveBottomRowAtTheLeftEnd() {
+        val rows = Layouts.koreanSingle.rows
+        val bottom = rows.last()
+        assertTrue("하단 줄에는 쉬프트가 없다", bottom.none { it.type == KeyType.SHIFT })
+        val shiftRow = rows[rows.size - 2]                              // 하단 줄 바로 위
+        assertEquals(KeyType.SHIFT, shiftRow.first().type)              // 맨 왼쪽
+        assertEquals(1, rows.flatten().count { it.type == KeyType.SHIFT })
+        assertEquals(listOf("ㅋ", "ㅌ", "ㅊ", "ㅍ", "ㅜ", "ㅡ"), shiftRow.filter { it.type == KeyType.CHAR }.map { it.label })
+        assertEquals(KeyType.BACKSPACE, shiftRow.last().type)
+        assertEquals(8.0, shiftRow.sumOf { it.weight.toDouble() }, 0.001)  // 위 줄들과 같은 키 폭
+        // 모든 자판의 하단 줄 폭은 10
         Layouts.all.forEach { l -> assertEquals(10.0, l.rows.last().sumOf { it.weight.toDouble() }, 0.001) }
     }
 

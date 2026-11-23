@@ -87,4 +87,70 @@ class KeyboardServiceGeometryTest {
         assertEquals(0, keyboard.frame.leftDp)
         assertEquals(10, keyboard.frame.keyGapDp)
     }
+
+    // ---- 마지막 사용 언어로 시작
+
+    private fun startField(service: KeyboardService, inputType: Int) {
+        val info = android.view.inputmethod.EditorInfo().apply { this.inputType = inputType }
+        service.onStartInputView(info, false)
+    }
+
+    private fun currentLayoutId(root: FrameLayout) =
+        ((root.getChildAt(0) as FrameLayout).getChildAt(0) as KeyboardView).keyboardLayout!!.id
+
+    private val TEXT = android.text.InputType.TYPE_CLASS_TEXT
+    private val URL = TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
+    private val PASSWORD = TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+
+    @Test fun afterAUrlFieldTheNextNormalFieldGoesBackToKorean() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        Prefs.setLastLanguageEnglish(ctx, false)
+        val service = Robolectric.buildService(KeyboardService::class.java).create().get()
+        val root = service.onCreateInputView() as FrameLayout
+        startField(service, TEXT)
+        assertEquals("kos", currentLayoutId(root))
+        startField(service, URL)                    // 주소창: 그 칸에서만 영어
+        assertEquals("en", currentLayoutId(root))
+        startField(service, PASSWORD)
+        assertEquals("en", currentLayoutId(root))
+        startField(service, TEXT)                   // 일반 입력칸: 다시 한글 (예전에는 영어로 남아 있었다)
+        assertEquals("kos", currentLayoutId(root))
+    }
+
+    @Test fun startsInTheLastLanguageTheUserPickedAndRemembersAcrossRestarts() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        Prefs.setLastLanguageEnglish(ctx, false)
+        val service = Robolectric.buildService(KeyboardService::class.java).create().get()
+        val root = service.onCreateInputView() as FrameLayout
+        startField(service, TEXT)
+        service.onSwipeSpace()                       // 사용자가 직접 영어로 전환
+        assertEquals("en", currentLayoutId(root))
+        assertTrue(Prefs.lastLanguageEnglish(ctx))
+
+        startField(service, TEXT)                    // 다른 입력칸에서 키보드를 다시 띄움 → 영어 유지
+        assertEquals("en", currentLayoutId(root))
+
+        // 서비스가 새로 만들어져도(프로세스 재시작 등) 마지막 언어로 시작
+        val service2 = Robolectric.buildService(KeyboardService::class.java).create().get()
+        val root2 = service2.onCreateInputView() as FrameLayout
+        startField(service2, TEXT)
+        assertEquals("en", currentLayoutId(root2))
+
+        service2.onSwipeSpace()                      // 다시 한글로
+        assertEquals(false, Prefs.lastLanguageEnglish(ctx))
+        startField(service2, TEXT)
+        assertEquals("kos", currentLayoutId(root2))
+    }
+
+    @Test fun switchingLanguageInsideAnEmailFieldIsRemembered() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        Prefs.setLastLanguageEnglish(ctx, false)
+        val service = Robolectric.buildService(KeyboardService::class.java).create().get()
+        val root = service.onCreateInputView() as FrameLayout
+        startField(service, URL)                     // 자동 영어 (사용자 선택 아님 → 기억하지 않음)
+        assertEquals(false, Prefs.lastLanguageEnglish(ctx))
+        service.onSwipeSpace()                       // 영어에서 직접 전환 → 한글
+        assertEquals("kos", currentLayoutId(root))
+        assertEquals(false, Prefs.lastLanguageEnglish(ctx))
+    }
 }
