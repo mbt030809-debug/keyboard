@@ -293,7 +293,7 @@ class SettingsActivity : AppCompatActivity() {
         val selected = enabled && isSelected()
 
         setStatus(status1, enabled, getString(R.string.status_todo))
-        btnEnable.isEnabled = !enabled
+        btnEnable.isEnabled = true          // 이미 켜져 있어도 설정 화면을 다시 열 수 있게 늘 눌러볼 수 있다
 
         // 맨 위 한 줄 요약: 지금 무엇을 하면 되는지
         findViewById<TextView>(R.id.statusBanner).text = getString(
@@ -310,7 +310,7 @@ class SettingsActivity : AppCompatActivity() {
             btnSelect.isEnabled = false
         } else {
             setStatus(status2, selected, getString(R.string.status_todo))
-            btnSelect.isEnabled = !selected
+            btnSelect.isEnabled = true      // 이미 선택돼 있어도 다시 고를 수 있게 둔다
         }
     }
 

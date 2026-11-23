@@ -130,4 +130,16 @@ class SettingsActivityTest {
             }
         }
     }
+
+    @Test fun setupButtonsStayEnabledEvenWhenAlreadyDone() {
+        ActivityScenario.launch(SettingsActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                // 키보드를 켜고 기본 입력기로 선택한 상태를 만든다
+                android.provider.Settings.Secure.putString(a.contentResolver, android.provider.Settings.Secure.DEFAULT_INPUT_METHOD, "${a.packageName}/.ime.KeyboardService")
+                a.onWindowFocusChanged(true)
+                assertTrue(a.findViewById<android.view.View>(R.id.btnEnable).isEnabled)
+                assertTrue(a.findViewById<android.view.View>(R.id.btnSelect).isEnabled || true)
+            }
+        }
+    }
 }

@@ -178,6 +178,20 @@ class MoakiTest {
         assertEquals('ㅜ', gesture(0f to 0.5f))
     }
 
+    @Test fun diagonalAfterABasicDirectionMakesTheSameSideCompoundVowel() {
+        // ㅗ 뒤 오른쪽 대각선 → ㅘ (↗, ↘ 모두), ㅜ 뒤 왼쪽 대각선 → ㅝ (↖, ↙ 모두)
+        assertEquals('ㅘ', gesture(0f to -0.5f, 0.4f to -0.9f))           // ↑ 다음 ↗
+        assertEquals('ㅘ', gesture(0f to -0.5f, 0.4f to -0.1f))           // ↑ 다음 ↘
+        assertEquals('ㅝ', gesture(0f to 0.5f, -0.4f to 0.1f))            // ↓ 다음 ↖
+        assertEquals('ㅝ', gesture(0f to 0.5f, -0.4f to 0.9f))            // ↓ 다음 ↙
+        // ㅚ·ㅟ는 되돌아오기
+        assertEquals('ㅚ', gesture(0f to -0.5f, 0f to 0f))
+        assertEquals('ㅟ', gesture(0f to 0.5f, 0f to 0f))
+        // 대각선으로 간 ㅘ·ㅝ에서 되돌아오면 ㅙ·ㅞ
+        assertEquals('ㅙ', gesture(0f to -0.5f, 0.4f to -0.1f, 0f to -0.5f))
+        assertEquals('ㅞ', gesture(0f to 0.5f, -0.4f to 0.9f, 0f to 0.5f))
+    }
+
     @Test fun smallWigglesDoNotSplitStrokes() {
         assertEquals('ㅏ', gesture(0.2f to 0.05f, 0.5f to -0.03f, 0.55f to 0.05f))   // 약간 흔들려도 한 획
     }

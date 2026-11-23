@@ -171,7 +171,7 @@ class LayoutsTest {
     @Test fun singleVowelTailKeysAfterThePull() {
         // ☆ 키를 없애고 한 칸씩 당긴 결과 (단모음 기준)
         val m = Layouts.koreanSingle.rows.flatten().filter { it.type == KeyType.CHAR }.associate { it.label to it.hints }
-        assertEquals(listOf("→", "←", "↑", "↓"), m["ㅔ"])      // ? 와 → 가 자리를 바꿈
+        assertEquals(listOf("→", "←", "↑", "↓", "↗", "↖", "↘", "↙"), m["ㅔ"])      // ? 와 → 가 자리를 바꿈
         assertEquals(listOf("@", "@naver.com", "@gmail.com"), m["ㅊ"])   // 골뱅이 + 이메일 뒷부분
         assertEquals(listOf("_", "-", "—"), m["ㅍ"])           // 한 칸 당겨짐
         assertEquals(listOf("!"), m["ㅜ"])

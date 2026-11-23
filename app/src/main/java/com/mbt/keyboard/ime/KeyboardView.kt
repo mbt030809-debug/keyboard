@@ -800,18 +800,22 @@ class KeyboardView(context: Context) : View(context) {
         }
         val fa = kotlin.math.hypot(p.moaFx - p.moaAx, p.moaFy - p.moaAy)
         if (fa < t * 0.5f) {
-            p.moaFx = x; p.moaFy = y
+            p.moaFx = x; p.moaFy = y                          // 아직 방향이 정해지기 전: 따라간다
         } else {
             val ux = (p.moaFx - p.moaAx) / fa
             val uy = (p.moaFy - p.moaAy) / fa
-            val proj = (x - p.moaAx) * ux + (y - p.moaAy) * uy
-            if (proj > fa) {
-                p.moaFx = x; p.moaFy = y                      // 같은 방향으로 더 나아감
+            val vx = x - p.moaFx; val vy = y - p.moaFy
+            val vl = kotlin.math.hypot(vx, vy)
+            val cos = if (vl > 0f) (vx * ux + vy * uy) / vl else 1f
+            if (vl < 3 * density || cos >= 0.8f) {
+                // 같은 방향(약 37° 안)으로 이어지는 중: 가장 먼 점을 따라간다. 단, 뒤로 물러난 경우는 건드리지 않는다
+                val proj = (x - p.moaAx) * ux + (y - p.moaAy) * uy
+                if (proj > fa) { p.moaFx = x; p.moaFy = y }
             } else {
-                val vx = x - p.moaFx; val vy = y - p.moaFy
-                val vl = kotlin.math.hypot(vx, vy)
                 val minFa = if (p.moaStrokes.isEmpty()) t else tn
-                if (fa >= minFa && vl >= tn && (vx * ux + vy * uy) / vl < 0.5f) {
+                // 방향이 37° 넘게 꺾였다(위로 가다 대각선으로 꺾는 정도도 포함). 꺾은 뒤 길이가 충분하면 앞 획이 끝난다.
+                // 끝에서 살짝 튀는 정도는 무시하려고 앞 획 길이의 35% 이상을 요구한다
+                if (fa >= minFa && vl >= max(tn, fa * 0.35f)) {
                     p.moaStrokes.append(MoakiGesture.token(degOf(p.moaFx - p.moaAx, p.moaFy - p.moaAy)))
                     p.moaAx = p.moaFx; p.moaAy = p.moaFy; p.moaFx = x; p.moaFy = y
                 }
