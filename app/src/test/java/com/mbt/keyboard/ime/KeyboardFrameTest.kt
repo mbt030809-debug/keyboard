@@ -492,7 +492,7 @@ class HitShiftTest {
     }
 
     @Test fun shiftingTheTopRowDownCatchesTouchesThatLandedLow() {
-        view.frame = KeyboardFrame(hitShiftDp = listOf(10, 0, 0)); relayout()
+        view.frame = KeyboardFrame(hitShiftDp = listOf(0, 10, 0, 0)); relayout()
         val b = rect("ㅂ"); val m = rect("ㅁ")
         // ㅂ 줄 바로 아래(원래는 ㅁ 영역) 5dp 지점이 이제 ㅂ으로 읽힌다
         assertEquals("ㅂ", tapAt(b.centerX(), b.bottom + 5 * density))
@@ -500,8 +500,20 @@ class HitShiftTest {
         assertEquals("ㅁ", tapAt(m.centerX(), m.centerY()))
     }
 
+    @Test fun theNumberRowHasItsOwnAdjustableBoundary() {
+        view.frame = KeyboardFrame(hitShiftDp = listOf(10, 0, 0, 0)); relayout()
+        val n = rect("1"); val b = rect("ㅂ")
+        // 숫자 줄 바로 아래(원래는 ㅂ 영역) 5dp 지점이 이제 숫자로 읽힌다
+        assertEquals("1", tapAt(n.centerX(), n.bottom + 5 * density))
+        assertEquals("ㅂ", tapAt(b.centerX(), b.centerY()))
+        // 위로 좁히면 숫자 줄의 아래쪽이 ㅂ 줄로 넘어간다
+        view.frame = KeyboardFrame(hitShiftDp = listOf(-6, 0, 0, 0)); relayout()
+        val hit = tapAt(n.centerX(), n.bottom - 3 * density)
+        assertTrue("글자 줄 키여야 한다: $hit", hit != null && hit in "ㅂㅈㄷㄱㅅㅗㅐㅔ")
+    }
+
     @Test fun eachRowHasItsOwnShiftAndNegativeShrinksTheRowAbove() {
-        view.frame = KeyboardFrame(hitShiftDp = listOf(0, 8, -6)); relayout()
+        view.frame = KeyboardFrame(hitShiftDp = listOf(0, 0, 8, -6)); relayout()
         val m = rect("ㅁ"); val k = rect("ㅋ"); val b = rect("ㅂ")
         assertEquals("ㅁ", tapAt(m.centerX(), m.bottom + 4 * density))          // 둘째 줄은 아래로 8dp 더 넓다
         assertEquals("ㅂ", tapAt(b.centerX(), b.bottom - 2))                     // 첫째 줄은 그대로
@@ -513,12 +525,12 @@ class HitShiftTest {
 
     @Test fun visibleKeysDoNotMoveWhenShiftChanges() {
         val before = view.keyInnerRects().map { it.second.top }
-        view.frame = KeyboardFrame(hitShiftDp = listOf(12, 12, 12)); relayout()
+        view.frame = KeyboardFrame(hitShiftDp = listOf(12, 12, 12, 12)); relayout()
         assertEquals(before, view.keyInnerRects().map { it.second.top })
     }
 
     @Test fun extremeShiftsNeverReorderRows() {
-        view.frame = KeyboardFrame(hitShiftDp = listOf(-8, 12, -8)); relayout()
+        view.frame = KeyboardFrame(hitShiftDp = listOf(0, -8, 12, -8)); relayout()
         listOf("ㅂ", "ㅁ", "ㅋ", "😊").forEach { label ->
             val r = rect(label)
             assertEquals(label, label, tapAt(r.centerX(), r.centerY()))              // 키 한가운데는 항상 그 키
@@ -527,7 +539,7 @@ class HitShiftTest {
 
     @Test fun keypadsAreNotAffected() {
         view.keyboardLayout = Layouts.numberPad
-        view.frame = KeyboardFrame(hitShiftDp = listOf(12, 12, 12)); relayout()
+        view.frame = KeyboardFrame(hitShiftDp = listOf(12, 12, 12, 12)); relayout()
         val r1 = view.keyRects().first { it.first.label == "1" }.second
         val r4 = view.keyRects().first { it.first.label == "4" }.second
         assertEquals("1", tapAt(r1.centerX(), r1.bottom - 2))

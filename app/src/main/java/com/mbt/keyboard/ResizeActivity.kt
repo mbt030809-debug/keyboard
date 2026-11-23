@@ -113,6 +113,8 @@ class ResizeActivity : AppCompatActivity() {
             { geometry.rowGapDp > KeyboardGeometry.ROW_GAP_MIN }, { geometry.rowGapDp < KeyboardGeometry.ROW_GAP_MAX })
         addStepper(R.string.resize_num_row_gap, { geometry = geometry.numRowGapBy(it) }, { "${geometry.numRowGapDp}dp" },
             { geometry.numRowGapDp > KeyboardGeometry.NUM_ROW_GAP_MIN }, { geometry.numRowGapDp < KeyboardGeometry.NUM_ROW_GAP_MAX })
+        addStepper(R.string.resize_hit0, { geometry = geometry.hit0By(it) }, { signedDp(geometry.hit0Dp) },
+            { geometry.hit0Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit0Dp < KeyboardGeometry.HIT_MAX })
         addStepper(R.string.resize_hit1, { geometry = geometry.hit1By(it) }, { signedDp(geometry.hit1Dp) },
             { geometry.hit1Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit1Dp < KeyboardGeometry.HIT_MAX })
         addStepper(R.string.resize_hit2, { geometry = geometry.hit2By(it) }, { signedDp(geometry.hit2Dp) },

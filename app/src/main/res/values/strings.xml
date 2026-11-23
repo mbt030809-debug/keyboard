@@ -46,6 +46,7 @@
     <string name="resize_key_gap">키 가로 간격</string>
     <string name="resize_row_gap">키 세로 여백 (줄 사이)</string>
     <string name="resize_num_row_gap">숫자 키 ↔ 글자 키 세로 여백</string>
+    <string name="resize_hit0">숫자 줄(맨 위) 인식 ↓</string>
     <string name="resize_hit1">윗줄(ㅂㅈㄷㄱㅅ) 인식 ↓</string>
     <string name="resize_hit2">가운데 줄(ㅁㄴㅇㄹㅎ) 인식 ↓</string>
     <string name="resize_hit3">아랫줄(ㅋㅌㅊㅍ) 인식 ↓</string>

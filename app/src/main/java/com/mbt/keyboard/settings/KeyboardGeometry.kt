@@ -19,6 +19,7 @@ import kotlin.math.roundToInt
  * @param keyGapDp 글자 키(숫자 줄 아래 모든 줄)의 키와 키 사이 간격 (0~16dp)
  * @param rowGapDp 줄과 줄 사이 세로 여백 (0~24dp). 넓혀도 키 크기는 그대로, 키보드가 세로로 길어진다
  * @param numRowGapDp 숫자 줄과 그 아래 첫 글자 줄 사이 세로 여백 (0~40dp). 키 크기는 그대로
+ * @param hit0Dp 맨 윗줄(숫자 줄)의 아래쪽 인식 경계 이동
  * @param hit1Dp 첫째 글자 줄(ㅂㅈㄷㄱㅅ)의 인식 영역을 아래로 넓히는 양 (-8~+12dp). 음수면 위로 좁힘
  * @param hit2Dp 둘째 글자 줄(ㅁㄴㅇㄹㅎ) 아래쪽 인식 영역 이동
  * @param hit3Dp 셋째 글자 줄(ㅋㅌㅊㅍ) 아래쪽 인식 영역 이동
@@ -38,6 +39,7 @@ data class KeyboardGeometry(
     val rowGapDp: Int = ROW_GAP_DEFAULT,
     val numHeightPct: Int = NUM_HEIGHT_DEFAULT,
     val numRowGapDp: Int = NUM_ROW_GAP_DEFAULT,
+    val hit0Dp: Int = HIT_DEFAULT,
     val hit1Dp: Int = HIT_DEFAULT,
     val hit2Dp: Int = HIT_DEFAULT,
     val hit3Dp: Int = HIT_DEFAULT,
@@ -57,6 +59,7 @@ data class KeyboardGeometry(
         rowGapDp.coerceIn(ROW_GAP_MIN, ROW_GAP_MAX),
         numHeightPct.coerceIn(NUM_HEIGHT_MIN, NUM_HEIGHT_MAX),
         numRowGapDp.coerceIn(NUM_ROW_GAP_MIN, NUM_ROW_GAP_MAX),
+        hit0Dp.coerceIn(HIT_MIN, HIT_MAX),
         hit1Dp.coerceIn(HIT_MIN, HIT_MAX),
         hit2Dp.coerceIn(HIT_MIN, HIT_MAX),
         hit3Dp.coerceIn(HIT_MIN, HIT_MAX),
@@ -72,12 +75,13 @@ data class KeyboardGeometry(
     fun padRightBy(steps: Int) = copy(padRightDp = padRightDp + steps * PAD_STEP).clamped()
     fun padBottomBy(steps: Int) = copy(padBottomDp = padBottomDp + steps * PAD_STEP).clamped()
     fun keyGapBy(steps: Int) = copy(keyGapDp = keyGapDp + steps * KEY_GAP_STEP).clamped()
+    fun hit0By(steps: Int) = copy(hit0Dp = hit0Dp + steps).clamped()
     fun hit1By(steps: Int) = copy(hit1Dp = hit1Dp + steps).clamped()
     fun hit2By(steps: Int) = copy(hit2Dp = hit2Dp + steps).clamped()
     fun hit3By(steps: Int) = copy(hit3Dp = hit3Dp + steps).clamped()
 
-    /** 글자 줄 3개의 아래 경계 이동량(dp) */
-    val hitShifts: List<Int> get() = listOf(hit1Dp, hit2Dp, hit3Dp)
+    /** 숫자 줄 + 글자 줄 3개, 줄 4개의 "아래 경계" 이동량(dp) */
+    val hitShifts: List<Int> get() = listOf(hit0Dp, hit1Dp, hit2Dp, hit3Dp)
 
     fun numRowGapBy(steps: Int) = copy(numRowGapDp = numRowGapDp + steps * ROW_GAP_STEP).clamped()
     fun rowGapBy(steps: Int) = copy(rowGapDp = rowGapDp + steps * ROW_GAP_STEP).clamped()

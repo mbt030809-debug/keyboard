@@ -42,8 +42,8 @@ data class KeyboardFrame(
     val numberRowScale: Float = 0.8f,
     /** 숫자 줄과 그 아래 첫 글자 줄 사이 세로 여백 (키 크기는 그대로) */
     val numberGapDp: Int = 6,
-    /** 글자 줄 3개 각각의 아래 경계를 이만큼(dp) 아래로 옮겨 인식한다. 눈에 보이는 키는 그대로다 */
-    val hitShiftDp: List<Int> = listOf(0, 0, 0),
+    /** 숫자 줄과 글자 줄 3개, 줄 4개 각각의 아래 경계를 이만큼(dp) 아래로 옮겨 인식한다. 눈에 보이는 키는 그대로다 */
+    val hitShiftDp: List<Int> = listOf(0, 0, 0, 0),
 )
 
 /**
@@ -354,9 +354,9 @@ class KeyboardView(context: Context) : View(context) {
         rowCells = rows
         hitTops = FloatArray(rowTops.size) { rowTops[it] }
         if (isNumberRow(0)) {
-            // 글자 줄 k(1~3)의 아래 경계 = 다음 줄의 윗경계를 hitShiftDp[k-1]만큼 아래로
-            for (r in 2..minOf(4, rowTops.size - 1)) {
-                val shift = frame.hitShiftDp.getOrElse(r - 2) { 0 } * density
+            // 줄 k(0=숫자 줄, 1~3=글자 줄)의 아래 경계 = 다음 줄의 윗경계를 hitShiftDp[k]만큼 아래로
+            for (r in 1..minOf(4, rowTops.size - 1)) {
+                val shift = frame.hitShiftDp.getOrElse(r - 1) { 0 } * density
                 hitTops[r] = (rowTops[r] + shift).coerceAtLeast(hitTops[r - 1] + 1f)
             }
         }

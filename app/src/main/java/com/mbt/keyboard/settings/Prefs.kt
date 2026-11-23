@@ -98,6 +98,7 @@ object Prefs {
             p.getInt(geoKey(large, "rg"), KeyboardGeometry.ROW_GAP_DEFAULT),
             p.getInt(geoKey(large, "nh"), KeyboardGeometry.NUM_HEIGHT_DEFAULT),
             p.getInt(geoKey(large, "nrg"), KeyboardGeometry.NUM_ROW_GAP_DEFAULT),
+            p.getInt(geoKey(large, "h0"), KeyboardGeometry.HIT_DEFAULT),
             p.getInt(geoKey(large, "h1"), KeyboardGeometry.HIT_DEFAULT),
             p.getInt(geoKey(large, "h2"), KeyboardGeometry.HIT_DEFAULT),
             p.getInt(geoKey(large, "h3"), KeyboardGeometry.HIT_DEFAULT),
@@ -120,6 +121,7 @@ object Prefs {
             .putInt(geoKey(large, "rg"), c.rowGapDp)
             .putInt(geoKey(large, "nh"), c.numHeightPct)
             .putInt(geoKey(large, "nrg"), c.numRowGapDp)
+            .putInt(geoKey(large, "h0"), c.hit0Dp)
             .putInt(geoKey(large, "h1"), c.hit1Dp)
             .putInt(geoKey(large, "h2"), c.hit2Dp)
             .putInt(geoKey(large, "h3"), c.hit3Dp)

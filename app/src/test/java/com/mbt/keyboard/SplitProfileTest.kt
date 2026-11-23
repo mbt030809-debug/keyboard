@@ -58,9 +58,9 @@ class SplitProfileTest {
     }
 
     @Test fun hitShiftsAreSavedPerProfile() {
-        Prefs.setGeometry(ctx, large = false, KeyboardGeometry(hit1Dp = 6, hit2Dp = -2, hit3Dp = 0))
-        assertEquals(listOf(6, -2, 0), Prefs.geometry(ctx, large = false).hitShifts)
-        assertEquals(listOf(3, 3, 3), Prefs.geometry(ctx, large = true).hitShifts)
+        Prefs.setGeometry(ctx, large = false, KeyboardGeometry(hit0Dp = 9, hit1Dp = 6, hit2Dp = -2, hit3Dp = 0))
+        assertEquals(listOf(9, 6, -2, 0), Prefs.geometry(ctx, large = false).hitShifts)
+        assertEquals(listOf(3, 3, 3, 3), Prefs.geometry(ctx, large = true).hitShifts)
     }
 
     @Test fun landscapeDefaultsKeepOldBehaviour() {
