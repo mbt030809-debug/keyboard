@@ -129,7 +129,9 @@ object Layouts {
      * 두벌식·영어의 마지막 글자 줄: 쉬프트 1.5 + 글자 7개 + 지우기 1.25 = 10칸 (다른 줄과 같은 전체 폭).
      * 지우기를 1.25칸으로 줄이고 남는 폭은 글자 7개가 똑같이 나눠 가진다.
      */
-    private val wideRowLetterWeight = (10f - 1.5f - BACKSPACE_WEIGHT) / 7f
+   private const val WIDE_BACKSPACE_WEIGHT = 1.5f
+   private val backspaceWide = Key("⌫", KeyType.BACKSPACE, weight = WIDE_BACKSPACE_WEIGHT)
+    private val wideRowLetterWeight = (10f - 1.5f - WIDE_BACKSPACE_WEIGHT) / 7f
 
     /**
      * 글자 줄 생성.
@@ -163,7 +165,7 @@ object Layouts {
                     List(7) { null },
                     wideRow3Groups,
                     weight = wideRowLetterWeight,
-                ) + backspaceMid,
+                ) + backspaceWide,
             bottom(),
         ),
         rowHeights,
@@ -223,7 +225,7 @@ object Layouts {
                 letters(
                     "zxcvbnm".map { it.toString() }, "zxcvbnm".map { it.uppercase() }, wideRow3Groups,
                     weight = wideRowLetterWeight,
-                ) + backspaceMid,
+                ) + backspaceWide,
             bottom(),
         ),
         rowHeights,
