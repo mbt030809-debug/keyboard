@@ -210,6 +210,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.numberLeft = Prefs.numberKeysLeft(this)
         view.fontScale = Prefs.fontScalePercent(this) / 100f
         view.frostFadeAlpha = Prefs.fnTabAlphaPercent(this) / 100f
+        view.keyOpacity = Prefs.keyOpacityPercent(this) / 100f
         refreshFnTab()
     }
 
