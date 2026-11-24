@@ -15,6 +15,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.slider.Slider
 import com.mbt.keyboard.ime.FnTab
 import com.mbt.keyboard.ime.KeyboardFrame
 import com.mbt.keyboard.ime.KeyboardHost
@@ -179,8 +180,25 @@ class ResizeActivity : AppCompatActivity() {
         findViewById<View>(R.id.prevButton).setOnClickListener { selectPage(pageIndex - 1) }
         findViewById<View>(R.id.nextButton).setOnClickListener { selectPage(pageIndex + 1) }
 
-        findViewById<MaterialButton>(R.id.resetButton).setOnClickListener {
+      
+        val sliderKeyOpacity = findViewById<Slider>(R.id.sliderKeyOpacity)
+        val valueKeyOpacity = findViewById<TextView>(R.id.valueKeyOpacity)
+        val initOpacity = Prefs.keyOpacityPercent(this)
+        sliderKeyOpacity.value = initOpacity.toFloat()
+        valueKeyOpacity.text = "$initOpacity%"
+        sliderKeyOpacity.addOnChangeListener { _, value, _ ->
+            val pct = value.toInt()
+            valueKeyOpacity.text = "$pct%"
+            Prefs.setKeyOpacityPercent(this, pct)
+            keyboard.keyOpacity = pct / 100f
+            fnTab.invalidate()
+       
+ }
+         findViewById<MaterialButton>(R.id.resetButton).setOnClickListener {
             geometry = KeyboardGeometry()
+            Prefs.setKeyOpacityPercent(this, Prefs.KEY_OPACITY_DEFAULT)
+            sliderKeyOpacity.value = 100f
+            valueKeyOpacity.text = "${Prefs.KEY_OPACITY_DEFAULT}%"
             refresh()
         }
         findViewById<MaterialButton>(R.id.doneButton).setOnClickListener { finish() }
@@ -273,6 +291,7 @@ class ResizeActivity : AppCompatActivity() {
         KeyboardHost.apply(host, containerWidthPx, geometry, density)
         keyboard.heightScale = geometry.heightScale
         keyboard.splitGapFraction = geometry.gapFraction
+        keyboard.keyOpacity = Prefs.keyOpacityPercent(this) / 100f
         keyboard.split = splitActive && (large || geometry.gapPct > 0)
         keyboard.frame = KeyboardFrame(
             geometry.padLeftDp, geometry.padTopDp, geometry.padRightDp, geometry.padBottomDp, geometry.keyGapDp,
