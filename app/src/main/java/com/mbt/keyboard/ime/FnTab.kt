@@ -94,16 +94,20 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             val cl = keyLeft(i)
             val l = cl + gx
             val r = cl + kw - gx
-            paint.color = if (theme.frost) (if (i == pressed) theme.keyPressed else theme.key) else withAlpha(if (i == pressed) theme.keyPressed else theme.specialKey, alphaPercent)
-            if (theme.frost && theme.frostStyle == 7) { src.drawFrostKey(canvas, RectF(l, top, r, kh), radius, src.withKeyOpacity(if (i == pressed) theme.keyPressed else theme.key), i == pressed, tabShiftX = src.frostTabLeftPx, tabShiftY = -(height + src.fnTabGapPx())) } else { paint.color = src.withKeyOpacity(paint.color); canvas.drawRoundRect(l, top, r, kh, radius, radius, paint) }
+          val baseColor = if (theme.frost) (if (i == pressed) theme.keyPressed else theme.key) else (if (i == pressed) theme.keyPressed else theme.specialKey)
+          if (theme.frost && theme.frostStyle == 7) {
+                src.drawFrostKey(canvas, RectF(l, top, r, kh), radius, src.withKeyOpacity(baseColor), i == pressed, tabShiftX = src.frostTabLeftPx, tabShiftY = -(height + src.fnTabGapPx()))
+            } else {
+                paint.color = src.withKeyOpacity(baseColor)
+                canvas.drawRoundRect(l, top, r, kh, radius, radius, paint)
+            }
             if (theme.keyBorder != 0) {
-                paint.color = withAlpha(theme.keyBorder, alphaPercent.coerceAtLeast(60))
-                // 테두리는 채움과 같은 방식으로 얇은 선만 (스타일 전환 없이 안쪽을 한 번 더 칠하지 않는다)
+                paint.color = src.withKeyOpacity(theme.keyBorder)
                 paint.style = Paint.Style.STROKE; paint.strokeWidth = d
                 canvas.drawRoundRect(l + d / 2, top + d / 2, r - d / 2, kh - d / 2, radius, radius, paint)
                 paint.style = Paint.Style.FILL
             }
-            paint.color = if (theme.frost) theme.text else withAlpha(theme.text, alphaPercent)          // 글씨도 버튼·바탕과 같은 반투명
+            paint.color = theme.text
             paint.textSize = src.fnLabelSizePx(kw, kh - top)
             val y = (top + kh) / 2f - (paint.descent() + paint.ascent()) / 2f
             canvas.drawText(k.label, (l + r) / 2f, y, paint)
