@@ -95,7 +95,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             val l = cl + gx
             val r = cl + kw - gx
             paint.color = if (theme.frost) (if (i == pressed) theme.keyPressed else theme.key) else withAlpha(if (i == pressed) theme.keyPressed else theme.specialKey, alphaPercent)
-            canvas.drawRoundRect(l, top, r, kh, radius, radius, paint)
+            if (theme.frost && theme.frostStyle == 7) { src.drawFrostKey(canvas, RectF(l, top, r, kh), radius, src.withKeyOpacity(if (i == pressed) theme.keyPressed else theme.key), i == pressed, tabShiftX = src.frostTabLeftPx, tabShiftY = -(height + src.fnTabGapPx())) } else { paint.color = src.withKeyOpacity(paint.color); canvas.drawRoundRect(l, top, r, kh, radius, radius, paint) }
             if (theme.keyBorder != 0) {
                 paint.color = withAlpha(theme.keyBorder, alphaPercent.coerceAtLeast(60))
                 // 테두리는 채움과 같은 방식으로 얇은 선만 (스타일 전환 없이 안쪽을 한 번 더 칠하지 않는다)
