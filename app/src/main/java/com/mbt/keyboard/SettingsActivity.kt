@@ -142,6 +142,16 @@ class SettingsActivity : AppCompatActivity() {
             if (fromUser) Prefs.setFnTabAlphaPercent(this, value.toInt())
         }
 
+        // 모든 테마 키 불투명도 (본판 키 + 전체·복사·붙임 키)
+        val sliderKeyOpacity = findViewById<Slider>(R.id.sliderKeyOpacity)
+        val valueKeyOpacity = findViewById<TextView>(R.id.valueKeyOpacity)
+        sliderKeyOpacity.value = Prefs.keyOpacityPercent(this).toFloat()
+        valueKeyOpacity.text = "${Prefs.keyOpacityPercent(this)}%"
+        sliderKeyOpacity.addOnChangeListener { _, value, fromUser ->
+            valueKeyOpacity.text = "${value.toInt()}%"
+            if (fromUser) Prefs.setKeyOpacityPercent(this, value.toInt())
+        }
+        
         // 키 글자 크기 배율
         val sliderFont = findViewById<Slider>(R.id.sliderFontScale)
         val valueFont = findViewById<TextView>(R.id.valueFontScale)
