@@ -87,7 +87,7 @@ class FnTabTest {
     @Test fun plateSurroundsTheButtonsOnAllFourSidesWithTheSameTranslucency() {
         val v = keyView(true, true)
         val tab = FnTab(ctx, v)
-        tab.alphaPercent = 50
+        tab.alphaPercent = 50; v.keyOpacity = 0.5f
         measure(tab, 1000)
         val rects = ArrayList<FloatArray>(); val colors = ArrayList<Int>()
         val canvas = object : android.graphics.Canvas() {
