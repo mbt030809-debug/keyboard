@@ -626,6 +626,7 @@ class KeyboardView(context: Context) : View(context) {
         canvas.drawRect(0f, 0f, w, h, bgPaint)
         val blobs = when (theme.frostStyle) {
             1 -> TAUPE_BLOBS; 2 -> NAVY_BLOBS; 3 -> SUNSET_BLOBS; 4 -> PINK_BLOBS; 5 -> AURORA_BLOBS; 6 -> MINT_BLOBS
+            7 -> TAUPE_OPTICAL_BLOBS
             else -> HOLO_BLOBS
         }
         for ((fx, fy, rr, c) in blobs) {
@@ -637,6 +638,7 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     private var frostBlur: Bitmap? = null
+    private var frostKeyBlur: Bitmap? = null
     private var frostKey: Triple<Int, Int, KeyboardTheme>? = null
 
     /** 유리판에 비치는 "흐린 뒷배경". 크기·테마가 바뀔 때만 다시 만든다 (작게 줄였다 늘리면 부드럽게 흐려진다) */
@@ -644,15 +646,15 @@ class KeyboardView(context: Context) : View(context) {
         // 탭이 판에 이어 붙으면 탭 자리(판 위쪽)까지 한 장으로 번짐 배경을 만들어 탭과 판의 재질이 끊기지 않게 한다
         val total = height + frostExtraTopPx().toInt()
         val key = Triple(width, total, theme)
-        if (frostKey == key && frostBlur != null) return
-        frostBlur?.recycle()
+        if (frostKey == key && frostBlur != null && (theme.frostStyle != 7 || frostKeyBlur != null)) return
+        frostBlur?.recycle(); frostKeyBlur?.recycle(); frostKeyBlur = null
         val sharp = Bitmap.createBitmap(max(width, 1), max(total, 1), Bitmap.Config.ARGB_8888)
         drawFrostBackdrop(Canvas(sharp), sharp.width.toFloat(), sharp.height.toFloat())
-        val small = Bitmap.createScaledBitmap(sharp, max(sharp.width / FROST_BLUR_DIV, 1), max(sharp.height / FROST_BLUR_DIV, 1), true)
+        val div = if (theme.frostStyle == 7) 5 else FROST_BLUR_DIV; val small = Bitmap.createScaledBitmap(sharp, max(sharp.width / div, 1), max(sharp.height / div, 1), true)
         val blur = Bitmap.createScaledBitmap(small, sharp.width, sharp.height, true)
         if (small !== blur) small.recycle()
-        sharp.recycle()
-        frostBlur = blur; frostKey = key
+        val keyBlur = if (theme.frostStyle == 7) { val ks = Bitmap.createScaledBitmap(sharp, max(sharp.width / 14, 1), max(sharp.height / 14, 1), true); Bitmap.createScaledBitmap(ks, sharp.width, sharp.height, true).also { if (ks !== it) ks.recycle() } } else null; sharp.recycle()
+        frostBlur = blur; frostKeyBlur = keyBlur; frostKey = key
     }
 
     private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -799,8 +801,8 @@ class KeyboardView(context: Context) : View(context) {
         canvas.drawRoundRect(r.left, r.top + density, r.right, r.bottom + 1.5f * density, radius, radius, glassPaint)
         canvas.restore()
         // ② 색입힌 투명 면
-        glassPaint.color = if (pressed) theme.keyPressed else tint
-        canvas.drawRoundRect(r, radius, radius, glassPaint)
+        if (theme.frostStyle == 7) { canvas.save(); canvas.clipPath(keyPath); frostKeyBlur?.let { kb -> val et = frostExtraTopPx(); val ox = 2.8f * density; val oy = 2.2f * density; val src = android.graphics.Rect((r.left + ox).toInt().coerceIn(0, kb.width - 1), (r.top + et + oy).toInt().coerceIn(0, kb.height - 1), (r.right + ox).toInt().coerceIn(1, kb.width), (r.bottom + et + oy).toInt().coerceIn(1, kb.height)); if (src.width() > 0 && src.height() > 0) canvas.drawBitmap(kb, src, r, null) }; val base = if (pressed) theme.keyPressed else tint; val rgb = base and 0x00FFFFFF; glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, intArrayOf((0xBD shl 24) or rgb, (0x70 shl 24) or rgb, (0x94 shl 24) or rgb), floatArrayOf(0f, 0.5f, 1f), android.graphics.Shader.TileMode.CLAMP); canvas.drawRect(r, glassPaint); glassPaint.shader = null; canvas.restore() } else { glassPaint.color = if (pressed) theme.keyPressed else tint
+        canvas.drawRoundRect(r, radius, radius, glassPaint) }
         // ③④ 면 위의 유리 빛
         canvas.save()
         canvas.clipPath(keyPath)
@@ -816,10 +818,10 @@ class KeyboardView(context: Context) : View(context) {
         canvas.restore()
         // ⑤ 유리 테두리
         glassPaint.style = Paint.Style.STROKE
-        glassPaint.strokeWidth = density
+        if (theme.frostStyle == 7) { val ins = 1.2f * density; glassPaint.strokeWidth = 0.85f * density; glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, intArrayOf(0x8CFFFFFF.toInt(), 0x14282C3E, 0x381C1F2A), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP); val ir = (radius - ins).coerceAtLeast(0f); canvas.drawRoundRect(r.left + ins, r.top + ins, r.right - ins, r.bottom - ins, ir, ir, glassPaint); val rimW = 1.05f * density; glassPaint.strokeWidth = rimW; glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, intArrayOf(0xFFFFFFFF.toInt(), 0xE0FFFFFF.toInt(), 0x29FFFFFF, 0x24FFFFFF, 0xB8FFFFFF.toInt(), 0xF5FFFFFF.toInt()), floatArrayOf(0f, 0.2f, 0.4f, 0.6f, 0.8f, 1f), Shader.TileMode.CLAMP); val hh = rimW / 2f; canvas.drawRoundRect(r.left + hh, r.top + hh, r.right - hh, r.bottom - hh, radius, radius, glassPaint) } else { glassPaint.strokeWidth = density
         glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, intArrayOf(0xF2FFFFFF.toInt(), 0x59FFFFFF, 0x26FFFFFF, 0xB3FFFFFF.toInt()), floatArrayOf(0f, 0.35f, 0.65f, 1f), Shader.TileMode.CLAMP)
         val hh = density / 2f
-        canvas.drawRoundRect(r.left + hh, r.top + hh, r.right - hh, r.bottom - hh, radius, radius, glassPaint)
+        canvas.drawRoundRect(r.left + hh, r.top + hh, r.right - hh, r.bottom - hh, radius, radius, glassPaint) }
         glassPaint.shader = null
         glassPaint.style = Paint.Style.FILL
     }
@@ -1489,6 +1491,8 @@ class KeyboardView(context: Context) : View(context) {
             Blob(0.20f, 0.20f, 0.55f, 0xCCC9BFAE.toInt()), Blob(0.80f, 0.10f, 0.50f, 0xCCD8D0C4.toInt()),
             Blob(0.70f, 0.95f, 0.55f, 0xCC8C91A3.toInt()), Blob(0.05f, 0.95f, 0.35f, 0x99A89A86.toInt()),
         )
+
+        private val TAUPE_OPTICAL_BLOBS = listOf(Blob(0.18f, 0.28f, 0.42f, 0xF2FFF6E6.toInt()), Blob(0.42f, 0.22f, 0.36f, 0xE6DFC39D.toInt()), Blob(0.32f, 0.72f, 0.40f, 0xE6C8A378.toInt()), Blob(0.76f, 0.32f, 0.42f, 0xE6EEF3FF.toInt()), Blob(0.80f, 0.74f, 0.46f, 0xE6859AD4.toInt()), Blob(0.12f, 0.88f, 0.32f, 0xCC7B8399.toInt()))
 
         /** 선셋 글로우: 노을빛 살구·핑크·보라 */
         private val SUNSET_BLOBS = listOf(
