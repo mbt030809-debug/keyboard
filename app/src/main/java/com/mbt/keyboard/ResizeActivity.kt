@@ -180,25 +180,10 @@ class ResizeActivity : AppCompatActivity() {
         findViewById<View>(R.id.prevButton).setOnClickListener { selectPage(pageIndex - 1) }
         findViewById<View>(R.id.nextButton).setOnClickListener { selectPage(pageIndex + 1) }
 
-      
-        val sliderKeyOpacity = findViewById<Slider>(R.id.sliderKeyOpacity)
-        val valueKeyOpacity = findViewById<TextView>(R.id.valueKeyOpacity)
-        val initOpacity = Prefs.keyOpacityPercent(this)
-        sliderKeyOpacity.value = initOpacity.toFloat()
-        valueKeyOpacity.text = "$initOpacity%"
-        sliderKeyOpacity.addOnChangeListener { _, value, _ ->
-            val pct = value.toInt()
-            valueKeyOpacity.text = "$pct%"
-            Prefs.setKeyOpacityPercent(this, pct)
-            keyboard.keyOpacity = pct / 100f
-            fnTab.invalidate()
-       
- }
+
          findViewById<MaterialButton>(R.id.resetButton).setOnClickListener {
             geometry = KeyboardGeometry()
             Prefs.setKeyOpacityPercent(this, Prefs.KEY_OPACITY_DEFAULT)
-            sliderKeyOpacity.value = 100f
-            valueKeyOpacity.text = "${Prefs.KEY_OPACITY_DEFAULT}%"
             refresh()
         }
         findViewById<MaterialButton>(R.id.doneButton).setOnClickListener { finish() }
