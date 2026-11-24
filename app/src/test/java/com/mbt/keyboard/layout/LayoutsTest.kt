@@ -304,7 +304,8 @@ class LayoutsTest {
         Layouts.all.forEach { l ->
             val backspaces = l.rows.flatten().filter { it.type == KeyType.BACKSPACE }
             assertEquals(1, backspaces.size)
-            assertEquals("${l.id}", 1.25f, backspaces[0].weight, 0.0001f)
+       val expectedBs = if (l.id == Layouts.KOS) 1.25f else 1.5f
+            assertEquals("${l.id}", expectedBs, backspaces[0].weight, 0.0001f)
             // 그 줄의 전체 폭은 다른 글자 줄과 같다
             val row = l.rows.first { r -> r.any { it.type == KeyType.BACKSPACE } }
             val expectedTotal = if (l.id == Layouts.KOS) 8.0 else 10.0
