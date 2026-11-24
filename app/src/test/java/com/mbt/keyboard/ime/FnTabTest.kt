@@ -238,9 +238,10 @@ class FnTabTest {
         }
         tab.draw(canvas)
         assertEquals(4, fills.size)                                                  // 바탕 1 + 버튼 3
-        fills.forEach { assertEquals(127f, (it ushr 24).toFloat(), 1f) }
+        assertEquals(127f, (fills[0] ushr 24).toFloat(), 1f)
+        fills.drop(1).forEach { assertEquals((v.keyOpacity * 255 / 100).toFloat(), (it ushr 24).toFloat(), 1f) }
         assertEquals(3, textColors.size)
-        textColors.forEach { assertEquals(127f, (it ushr 24).toFloat(), 1f) }
+        textColors.forEach { assertEquals(v.theme.text, it) }
     }
 
     @Test fun tabButtonHeightHasItsOwnScaleSetting() {
