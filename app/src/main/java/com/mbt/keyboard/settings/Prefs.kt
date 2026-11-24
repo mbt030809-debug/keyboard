@@ -182,6 +182,20 @@ object Prefs {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
             .putInt(KEY_FN_TAB_ALPHA, pct.coerceIn(FN_TAB_ALPHA_MIN, FN_TAB_ALPHA_MAX)).apply()
 
+    const val KEY_KEY_OPACITY = "key_opacity_pct"
+    const val KEY_OPACITY_MIN = 20
+    const val KEY_OPACITY_MAX = 100
+    const val KEY_OPACITY_DEFAULT = 100
+
+    /** 모든 테마 키(전체·복사·붙임 포함)의 불투명도 % (기본 100, 낮을수록 뒤가 비침) */
+    fun keyOpacityPercent(context: Context): Int =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_KEY_OPACITY, KEY_OPACITY_DEFAULT)
+            .coerceIn(KEY_OPACITY_MIN, KEY_OPACITY_MAX)
+
+    fun setKeyOpacityPercent(context: Context, pct: Int) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_KEY_OPACITY, pct.coerceIn(KEY_OPACITY_MIN, KEY_OPACITY_MAX)).apply()
+    
     const val KEY_FONT_SCALE = "font_scale_pct"
     const val FONT_SCALE_MIN = 70
     const val FONT_SCALE_MAX = 150
