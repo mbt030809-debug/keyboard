@@ -233,6 +233,7 @@ class SettingsActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) = Unit
             override fun afterTextChanged(s: Editable?) = Phrases.saveRaw(this@SettingsActivity, s.toString())
         })
+        setupBackupRestore()
     }
 
     /** 위쪽 탭(시작·입력·화면·정보)을 누르면 그 탭의 카드들만 보인다 */
@@ -365,10 +366,111 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun isNight() =
         resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+    /** 설정 내보내기·불러오기 (파일 저장/열기 및 클립보드 백업/복원) 카드를 정보 탭과 시작 탭에 추가 */
+    private fun setupBackupRestore() {
+        val d = resources.displayMetrics.density
+        listOf(R.id.sectionInfo, R.id.sectionStart).forEach { secId ->
+            val section = findViewById<android.widget.LinearLayout>(secId) ?: return@forEach
+            val box = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding((16 * d).toInt(), (16 * d).toInt(), (16 * d).toInt(), (16 * d).toInt())
+            }
+            box.addView(TextView(this).apply {
+                text = "설정 내보내기 · 불러오기"
+                textSize = 16f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+            })
+            box.addView(TextView(this).apply {
+                text = "앱을 삭제 후 재설치할 때 모든 설정(테마·크기·위치·타이밍·진동·상용문구)을 파일이나 클립보드로 백업하고 복원합니다."
+                textSize = 13f
+                setPadding(0, (4 * d).toInt(), 0, (10 * d).toInt())
+            })
+            val row1 = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
+            val btnExportFile = MaterialButton(this).apply {
+                text = "파일로 내보내기"
+                setOnClickListener {
+                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "application/json"
+                        putExtra(Intent.EXTRA_TITLE, "mbt-keyboard-settings.json")
+                    }
+                    @Suppress("DEPRECATION")
+                    startActivityForResult(intent, REQ_EXPORT_FILE)
+                }
+            }
+            val btnImportFile = MaterialButton(this).apply {
+                text = "파일에서 불러오기"
+                setOnClickListener {
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "*/*"
+                    }
+                    @Suppress("DEPRECATION")
+                    startActivityForResult(intent, REQ_IMPORT_FILE)
+                }
+            }
+            row1.addView(btnExportFile, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = (6 * d).toInt() })
+            row1.addView(btnImportFile, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            box.addView(row1)
+
+            val row2 = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
+            val btnCopyClip = MaterialButton(this).apply {
+                text = "클립보드에 설정 복사"
+                setOnClickListener {
+                    val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("mbt_keyboard_settings", Prefs.exportJson(this@SettingsActivity)))
+                    Toast.makeText(this@SettingsActivity, "설정을 클립보드에 복사했습니다", Toast.LENGTH_SHORT).show()
+                }
+            }
+            val btnPasteClip = MaterialButton(this).apply {
+                text = "클립보드에서 복원"
+                setOnClickListener {
+                    val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    val raw = cm.primaryClip?.getItemAt(0)?.coerceToText(this@SettingsActivity)?.toString() ?: ""
+                    if (raw.isNotBlank() && Prefs.importJson(this@SettingsActivity, raw)) {
+                        Toast.makeText(this@SettingsActivity, "설정을 불러왔습니다", Toast.LENGTH_SHORT).show()
+                        recreate()
+                    } else {
+                        Toast.makeText(this@SettingsActivity, "클립보드에 유효한 설정 데이터가 없습니다", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            row2.addView(btnCopyClip, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = (6 * d).toInt() })
+            row2.addView(btnPasteClip, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            box.addView(row2)
+            section.addView(box)
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        val uri = data?.data ?: return
+        if (resultCode != RESULT_OK) return
+        if (requestCode == REQ_EXPORT_FILE) {
+            val ok = try {
+                contentResolver.openOutputStream(uri)?.use { it.write(Prefs.exportJson(this).toByteArray(Charsets.UTF_8)) } != null
+            } catch (_: Exception) { false }
+            Toast.makeText(this, if (ok) "설정 파일을 저장했습니다" else "파일 저장에 실패했습니다", Toast.LENGTH_SHORT).show()
+        } else if (requestCode == REQ_IMPORT_FILE) {
+            val raw = try {
+                contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: ""
+            } catch (_: Exception) { "" }
+            if (raw.isNotBlank() && Prefs.importJson(this, raw)) {
+                Toast.makeText(this, "설정을 불러왔습니다", Toast.LENGTH_SHORT).show()
+                recreate()
+            } else {
+                Toast.makeText(this, "유효한 설정 파일이 아닙니다", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     private companion object {
         const val STATE_TAB = "tab"
         const val TAB_START = 0
         const val TAB_INPUT = 1
+        const val REQ_EXPORT_FILE = 9001
+        const val REQ_IMPORT_FILE = 9002
     }
 }
