@@ -263,4 +263,43 @@ object Prefs {
     fun setKoreanLayout(context: Context, id: String) {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putString(KEY_KOREAN, id).apply()
     }
+
+    /** 모든 설정과 상용문구를 JSON 문자열로 내보낸다 */
+    fun exportJson(context: Context): String {
+        val root = org.json.JSONObject()
+        val pObj = org.json.JSONObject()
+        for ((k, v) in prefs(context).all) {
+            when (v) {
+                is Boolean, is Int, is Long, is Float, is Double, is String -> pObj.put(k, v)
+            }
+        }
+        root.put("prefs", pObj)
+        root.put("phrases", com.mbt.keyboard.phrase.Phrases.loadRaw(context))
+        return root.toString(2)
+    }
+
+    /** JSON 문자열에서 모든 설정과 상용문구를 불러와 덮어쓴다 */
+    fun importJson(context: Context, json: String): Boolean = try {
+        val root = org.json.JSONObject(json.trim())
+        val pObj = if (root.has("prefs")) root.getJSONObject("prefs") else root
+        val ed = prefs(context).edit()
+        val keys = pObj.keys()
+        while (keys.hasNext()) {
+            val k = keys.next()
+            when (val v = pObj.get(k)) {
+                is Boolean -> ed.putBoolean(k, v)
+                is Long -> ed.putLong(k, v)
+                is Int -> if (k == KEY_DOUBLE_TAP_MS || k == KEY_LONG_PRESS_MS) ed.putLong(k, v.toLong()) else ed.putInt(k, v)
+                is Number -> if (k == KEY_DOUBLE_TAP_MS || k == KEY_LONG_PRESS_MS) ed.putLong(k, v.toLong()) else ed.putInt(k, v.toInt())
+                is String -> ed.putString(k, v)
+            }
+        }
+        ed.apply()
+        if (root.has("phrases")) {
+            com.mbt.keyboard.phrase.Phrases.saveRaw(context, root.getString("phrases"))
+        }
+        true
+    } catch (_: Exception) {
+        false
+    }
 }
