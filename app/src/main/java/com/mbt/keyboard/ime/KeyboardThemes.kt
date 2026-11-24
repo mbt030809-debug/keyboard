@@ -91,6 +91,16 @@ object KeyboardThemes {
             ),
         ),
         NamedTheme(
+            "iosglass_taupe_refract", "웜 그레이지 · 옵티컬 굴절",
+            KeyboardTheme(
+                background = 0xFFA69C8B.toInt(), backgroundMid = 0xFFB8AC98.toInt(), backgroundEnd = 0xFF9BA0B4.toInt(),
+                key = 0xB8FFFFFF.toInt(), specialKey = 0x99CDBFA6.toInt(), keyPressed = 0xFFC9CFDC.toInt(),
+                text = 0xFF1C1F2A.toInt(), accent = 0xFF4660C8.toInt(), onAccent = 0xFFFFFFFF.toInt(),
+                frost = true, frostStyle = 7, frostTint = 0x1AFFFFFF,
+                numberKeyGlass = 0x99D9CCB8.toInt(), enterKeyGlass = 0xB89DB2E8.toInt(),
+            ),
+        ),
+        NamedTheme(
             "iosglass_navy", "iOS 글래스 · 딥 네이비",
             KeyboardTheme(
                 background = 0xFF1B1F3D.toInt(), backgroundMid = 0xFF2A2F5C.toInt(), backgroundEnd = 0xFF1F3A55.toInt(),
