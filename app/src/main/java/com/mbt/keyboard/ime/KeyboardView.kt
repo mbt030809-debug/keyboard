@@ -980,43 +980,15 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         } else if (gType == 2) {
             // 3. 리드글래스: 9.0dp 간격 세로 모루 광학 굴절
             drawReedOverlay(canvas, l, t, r, b, bgG, pitchDp = 9.0f)
-        } else if (gType == 3) {
-            // 4. 3D: 아래쪽 어두운 음영 없이 상단 볼록 돔 하이라이트 + 하단 곡면 반사광으로 맑은 입체감 표현
-            val dHi = (0x68 * bgG).toInt().coerceIn(0, 255)
-            val dMid = (0x2C * bgG).toInt().coerceIn(0, 255)
-            glassPaint.shader = android.graphics.RadialGradient(
-                w * 0.5f, -extra + h * 0.18f, max(w, h) * 0.72f,
-                intArrayOf((dHi shl 24) or 0xFFFFFF, (dMid shl 24) or 0xFFFFFF, 0x00FFFFFF),
-                floatArrayOf(0f, 0.45f, 1f),
-                Shader.TileMode.CLAMP,
-            )
-            canvas.drawRect(l, t, r, b, glassPaint)
-
-            val bvTop = (0x6E * bgG).toInt().coerceIn(0, 255)
-            val bvMid = (0x20 * bgG).toInt().coerceIn(0, 255)
-            val bvBotMid = (0x1E * bgG).toInt().coerceIn(0, 255)
-            val bvBotCaus = (0x5C * bgG).toInt().coerceIn(0, 255)
-            glassPaint.shader = LinearGradient(
-                0f, -extra, 0f, h,
-                intArrayOf(
-                    (bvTop shl 24) or 0xFFFFFF,
-                    (bvMid shl 24) or 0xFFFFFF,
-                    0x00FFFFFF,
-                    (bvBotMid shl 24) or 0xFFFFFF,
-                    (bvBotCaus shl 24) or 0xFFFFFF,
-                ),
-                floatArrayOf(0f, 0.18f, 0.55f, 0.84f, 1f),
-                Shader.TileMode.CLAMP,
-            )
-            canvas.drawRect(l, t, r, b, glassPaint)
         }
 
-        // 유리판 전체를 비스듬히 가로지르는 대각선 유리창 빛반사면 (4종 모두 동일한 은은하고 선명한 강도)
+        // 유리판 전체를 비스듬히 가로지르는 대각선 유리창 빛반사면 (기존 대비 70% 강도로 은은하게 조정)
         glassPaint.color = 0xFFFFFFFF.toInt()
-        val diagTopA = (0x3A * bgG).toInt().coerceIn(0, 255)
-        val diagMidA = (0x22 * bgG).toInt().coerceIn(0, 255)
-        val diagEdgeA = (0x4A * bgG).toInt().coerceIn(0, 255)
-        val diagShadowA = (0x1A * bgG).toInt().coerceIn(0, 255)
+        val diagScale = bgG * 0.70f
+        val diagTopA = (0x3A * diagScale).toInt().coerceIn(0, 255)
+        val diagMidA = (0x22 * diagScale).toInt().coerceIn(0, 255)
+        val diagEdgeA = (0x4A * diagScale).toInt().coerceIn(0, 255)
+        val diagShadowA = (0x1A * diagScale).toInt().coerceIn(0, 255)
         glassPaint.shader = LinearGradient(
             0f, -extra, w * 0.65f, h * 0.95f,
             intArrayOf(
@@ -1067,8 +1039,11 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         canvas.restoreToCount(layer)
         if (glassType >= 0 && bgGlassStrength > 0.01f) {
             val bgG = bgGlassStrength.coerceIn(0f, 1f)
-            val ins = 1.6f * density
             val r = frostKeyRadiusPx() + minOf(fnTabPadPx(), fnTabLeftPx() + fnTabInsetPx(), 10 * density)
+            if (effGlass == 3) {
+                draw3dDomeOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, r, r, bgG, isPlate = true)
+            }
+            val ins = 1.6f * density
             glassPaint.style = Paint.Style.STROKE
             glassPaint.color = 0xFFFFFFFF.toInt()
             glassPaint.strokeWidth = 1.5f * density
@@ -1094,6 +1069,121 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         return LinearGradient(0f, 0f, w, h, cols, rimBaseStops, Shader.TileMode.CLAMP)
     }
 
+    private val domeClipPath = Path()
+    private val specCutPath = Path()
+
+    /**
+     * 3D 볼록 렌즈 돔 입체 유리 광학 효과 (키캡·보조탭·배경판 공통):
+     * 1) 중심에서 상단·하단 테두리로 갈수록 빛이 진하게 응축되었다가 테두리 직전에 선명하게 사라지는 효과 (상·하단만)
+     * 2) 좌상단 모서리를 감싸며 사선 곡면 경계에서 선명하게 딱 끊어지는 반사면
+     */
+    private fun draw3dDomeOptics(
+        canvas: Canvas,
+        r: RectF,
+        radTL: Float,
+        radTR: Float = radTL,
+        radBR: Float = radTL,
+        radBL: Float = radTL,
+        strength: Float,
+        isPlate: Boolean = false,
+    ) {
+        val s = strength.coerceIn(0f, 1f)
+        if (s <= 0.01f || r.width() <= 4f || r.height() <= 4f) return
+        val rimGap = (if (isPlate) 2.2f else 1.45f) * density
+        val domeRect = RectF(r.left + rimGap, r.top + rimGap, r.right - rimGap, r.bottom - rimGap)
+        if (domeRect.width() <= 2f || domeRect.height() <= 2f) return
+        val dTL = (radTL - rimGap).coerceAtLeast(0f)
+        val dTR = (radTR - rimGap).coerceAtLeast(0f)
+        val dBR = (radBR - rimGap).coerceAtLeast(0f)
+        val dBL = (radBL - rimGap).coerceAtLeast(0f)
+
+        domeClipPath.rewind()
+        domeClipPath.addRoundRect(
+            domeRect,
+            floatArrayOf(dTL, dTL, dTR, dTR, dBR, dBR, dBL, dBL),
+            Path.Direction.CW,
+        )
+
+        canvas.save()
+        canvas.clipPath(domeClipPath)
+        glassPaint.style = Paint.Style.FILL
+        glassPaint.color = 0xFFFFFFFF.toInt()
+
+        // ① 중심에서 상단·하단 테두리로 갈수록 진해지다가 테두리 끝에서 딱 사라지는 응축 효과 (상단·하단만)
+        val peakTop = if (isPlate) 0xBC else 0xF0
+        val midTop = if (isPlate) 0x5A else 0x86
+        val lowTop = if (isPlate) 0x1E else 0x2C
+        val peakBot = if (isPlate) 0xAC else 0xE2
+        val midBot = if (isPlate) 0x52 else 0x7A
+        val lowBot = if (isPlate) 0x1A else 0x26
+        glassPaint.shader = LinearGradient(
+            0f, r.top, 0f, r.bottom,
+            intArrayOf(
+                0x00FFFFFF,
+                scaleAlpha((peakTop shl 24) or 0xFFFFFF, s),
+                scaleAlpha((midTop shl 24) or 0xFFFFFF, s),
+                scaleAlpha((lowTop shl 24) or 0xFFFFFF, s),
+                0x00FFFFFF,
+                0x00FFFFFF,
+                scaleAlpha((lowBot shl 24) or 0xFFFFFF, s),
+                scaleAlpha((midBot shl 24) or 0xFFFFFF, s),
+                scaleAlpha((peakBot shl 24) or 0xFFFFFF, s),
+                0x00FFFFFF,
+            ),
+            floatArrayOf(0f, 0.052f, 0.115f, 0.20f, 0.30f, 0.70f, 0.80f, 0.885f, 0.948f, 1f),
+            Shader.TileMode.CLAMP,
+        )
+        canvas.drawRect(domeRect, glassPaint)
+
+        // ② 좌상단 모서리를 감싸며 사선 곡면 경계에서 선명하게 딱 끊어지는 반사면
+        val dw = domeRect.width()
+        val dh = domeRect.height()
+        val endX = domeRect.left + dw * (if (isPlate) 0.56f else 0.78f)
+        val endY = domeRect.top + dh * (if (isPlate) 0.44f else 0.60f)
+        specCutPath.rewind()
+        specCutPath.moveTo(domeRect.left, domeRect.top)
+        specCutPath.lineTo(endX, domeRect.top)
+        specCutPath.quadTo(
+            domeRect.left + dw * (if (isPlate) 0.24f else 0.35f),
+            domeRect.top + dh * (if (isPlate) 0.16f else 0.22f),
+            domeRect.left,
+            endY,
+        )
+        specCutPath.close()
+
+        canvas.save()
+        canvas.clipPath(specCutPath)
+        val specCornerA = if (isPlate) 0xC2 else 0xF4
+        val specMidA = if (isPlate) 0x76 else 0x9E
+        val specEdgeA = if (isPlate) 0x9C else 0xD2
+        glassPaint.color = 0xFFFFFFFF.toInt()
+        glassPaint.shader = LinearGradient(
+            domeRect.left, domeRect.top,
+            domeRect.left + (endX - domeRect.left) * 0.65f,
+            domeRect.top + (endY - domeRect.top) * 0.65f,
+            intArrayOf(
+                scaleAlpha((specCornerA shl 24) or 0xFFFFFF, s),
+                scaleAlpha((specMidA shl 24) or 0xFFFFFF, s),
+                scaleAlpha((specEdgeA shl 24) or 0xFFFFFF, s),
+            ),
+            floatArrayOf(0f, 0.62f, 1f),
+            Shader.TileMode.CLAMP,
+        )
+        canvas.drawRect(domeRect.left, domeRect.top, endX, endY, glassPaint)
+        canvas.restore()
+
+        // 사선 곡면 경계선을 또렷하게 살려주는 굴절 림 라인
+        glassPaint.shader = null
+        glassPaint.style = Paint.Style.STROKE
+        glassPaint.strokeWidth = (if (isPlate) 1.3f else 1.05f) * density
+        glassPaint.color = scaleAlpha(if (isPlate) 0x7AFFFFFF else 0xACFFFFFF.toInt(), s)
+        canvas.drawPath(specCutPath, glassPaint)
+        glassPaint.style = Paint.Style.FILL
+
+        canvas.restore()
+        glassPaint.shader = null
+    }
+
     private fun drawFrostPlate(canvas: Canvas) {
         ensureFrostBitmaps()
         val w = width.toFloat(); val h = height.toFloat()
@@ -1105,6 +1195,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         canvas.save()
         canvas.clipPath(glassPath)
         drawFrostSurface(canvas, 0f, 0f, w, h)
+        if (effGlass == 3) {
+            draw3dDomeOptics(canvas, RectF(0f, 0f, w, h), rl, rr, 0f, 0f, bgG, isPlate = true)
+        }
         canvas.restore()
         // 맨 위 띠는 반투명(뒤 앱이 비침) → 아래로 부드럽게 불투명해져 판과 이어진다
         fadeMaskPaint.shader = LinearGradient(0f, 0f, 0f, frostFadePx(), ((frostFadeAlpha * 255f).toInt().coerceIn(0, 255) shl 24) or 0x00FFFFFF, 0xFFFFFFFF.toInt(), Shader.TileMode.CLAMP)
@@ -1148,14 +1241,12 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         keyPath.addRoundRect(r, radius, radius, Path.Direction.CW)
         glassPaint.shader = null
         glassPaint.style = Paint.Style.FILL
-        // ① 그림자: 키 모양을 잘라낸 바깥쪽에만 (3D는 더 깊은 입체 부양 그림자)
+        // ① 그림자: 3D 모드는 아래쪽 어두운 음영을 없애고 맑은 유리 외곽 윤곽만 은은하게 둔다
         canvas.save()
         canvas.clipOutPath(keyPath)
         if (gType == 3) {
-            glassPaint.color = scaleAlpha(0x34000000, keyG)
-            canvas.drawRoundRect(r.left - 1.2f * density, r.top + 2.4f * density, r.right + 1.2f * density, r.bottom + 4.8f * density, radius + density, radius + density, glassPaint)
-            glassPaint.color = scaleAlpha(0x54000000, keyG)
-            canvas.drawRoundRect(r.left, r.top + 1.4f * density, r.right, r.bottom + 2.2f * density, radius, radius, glassPaint)
+            glassPaint.color = scaleAlpha(0x14000000, keyG)
+            canvas.drawRoundRect(r.left - 0.5f * density, r.top - 0.5f * density, r.right + 0.5f * density, r.bottom + 0.5f * density, radius + 0.5f * density, radius + 0.5f * density, glassPaint)
         } else if (theme.frostStyle == 7) {
             glassPaint.color = scaleAlpha(0x2873685C, keyG)
             canvas.drawRoundRect(r.left + density, r.top + 1.8f * density, r.right - density, r.bottom + 1.8f * density, radius, radius, glassPaint)
@@ -1221,39 +1312,41 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         canvas.save()
         canvas.clipPath(keyPath)
         val h = r.height(); val w = r.width()
-        val topA = ((if (gType == 3) 0x7A else 0x5E) * keyG).toInt().coerceIn(0, 255)
-        val topMidA = ((if (gType == 3) 0x24 else 0x1A) * keyG).toInt().coerceIn(0, 255)
-        val botMidA = ((if (gType == 3) 0x22 else 0x18) * keyG).toInt().coerceIn(0, 255)
-        val botA = ((if (gType == 3) 0x5E else 0x46) * keyG).toInt().coerceIn(0, 255)
-        glassPaint.shader = LinearGradient(
-            0f, r.top, 0f, r.bottom,
-            intArrayOf(
-                (topA shl 24) or 0xFFFFFF,
-                (topMidA shl 24) or 0xFFFFFF,
-                0x00FFFFFF,
-                0x00FFFFFF,
-                (botMidA shl 24) or 0xFFFFFF,
-                (botA shl 24) or 0xFFFFFF,
-            ),
-            floatArrayOf(0f, 0.22f, 0.36f, 0.64f, 0.78f, 1f),
-            Shader.TileMode.CLAMP,
-        )
-        canvas.drawRect(r, glassPaint)
+        if (gType != 3) {
+            val topA = (0x5E * keyG).toInt().coerceIn(0, 255)
+            val topMidA = (0x1A * keyG).toInt().coerceIn(0, 255)
+            val botMidA = (0x18 * keyG).toInt().coerceIn(0, 255)
+            val botA = (0x46 * keyG).toInt().coerceIn(0, 255)
+            glassPaint.shader = LinearGradient(
+                0f, r.top, 0f, r.bottom,
+                intArrayOf(
+                    (topA shl 24) or 0xFFFFFF,
+                    (topMidA shl 24) or 0xFFFFFF,
+                    0x00FFFFFF,
+                    0x00FFFFFF,
+                    (botMidA shl 24) or 0xFFFFFF,
+                    (botA shl 24) or 0xFFFFFF,
+                ),
+                floatArrayOf(0f, 0.22f, 0.36f, 0.64f, 0.78f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRect(r, glassPaint)
 
-        val tlEdgeA = (0x4C * keyG).toInt().coerceIn(0, 255)
-        val brEdgeA = (0x54 * keyG).toInt().coerceIn(0, 255)
-        glassPaint.shader = LinearGradient(
-            r.left, r.top, r.right, r.bottom,
-            intArrayOf(
-                (tlEdgeA shl 24) or 0xFFFFFF,
-                0x00FFFFFF,
-                0x00FFFFFF,
-                (brEdgeA shl 24) or 0xFFFFFF,
-            ),
-            floatArrayOf(0f, 0.26f, 0.74f, 1f),
-            Shader.TileMode.CLAMP,
-        )
-        canvas.drawRect(r, glassPaint)
+            val tlEdgeA = (0x4C * keyG).toInt().coerceIn(0, 255)
+            val brEdgeA = (0x54 * keyG).toInt().coerceIn(0, 255)
+            glassPaint.shader = LinearGradient(
+                r.left, r.top, r.right, r.bottom,
+                intArrayOf(
+                    (tlEdgeA shl 24) or 0xFFFFFF,
+                    0x00FFFFFF,
+                    0x00FFFFFF,
+                    (brEdgeA shl 24) or 0xFFFFFF,
+                ),
+                floatArrayOf(0f, 0.26f, 0.74f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRect(r, glassPaint)
+        }
 
         if (gType == 1) {
             // 블러: 서리 낀 젖빛 확산 광택을 키캡 내부에 은은하게 추가
@@ -1269,75 +1362,8 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             // 리드글래스: 키캡 내부 7.0dp 간격의 은은한 세로 모루 광학 굴절
             drawReedOverlay(canvas, r.left, r.top, r.right, r.bottom, keyG, pitchDp = 7.0f, tabShiftX = tabShiftX, tabShiftY = tabShiftY)
         } else if (gType == 3) {
-            // 3D 볼록 렌즈 돔 입체 유리 (아래쪽 어두운 음영 완전 제거 + 라운드 모서리 전체를 감싸는 입체 반사광):
-            // ① 상단 반달형 볼록 렌즈 돔 캡 하이라이트 (검은 음영 없이 투명하게 페이드)
-            val capInsX = 2.1f * density
-            val capInsTop = 1.8f * density
-            val capRect = RectF(r.left + capInsX, r.top + capInsTop, r.right - capInsX, r.top + h * 0.52f)
-            val capR = (radius - capInsX).coerceAtLeast(0f)
-            glassPaint.color = 0xFFFFFFFF.toInt()
-            glassPaint.shader = LinearGradient(
-                0f, capRect.top, 0f, capRect.bottom,
-                intArrayOf(
-                    scaleAlpha(0xEEFFFFFF.toInt(), keyG),
-                    scaleAlpha(0x88FFFFFF.toInt(), keyG),
-                    scaleAlpha(0x22FFFFFF, keyG),
-                    0x00FFFFFF,
-                ),
-                floatArrayOf(0f, 0.38f, 0.76f, 1f),
-                Shader.TileMode.CLAMP,
-            )
-            canvas.drawRoundRect(capRect, capR, capR, glassPaint)
-
-            // ② 구면 중심 볼록 광택 (바깥쪽 검은 음영 없이 0x00FFFFFF로 맑게 끝남)
-            val domeRad = max(w, h) * 0.68f
-            glassPaint.shader = android.graphics.RadialGradient(
-                r.centerX(), r.top + h * 0.24f, domeRad,
-                intArrayOf(
-                    scaleAlpha(0xCCFFFFFF.toInt(), keyG),
-                    scaleAlpha(0x4EFFFFFF, keyG),
-                    0x00FFFFFF,
-                ),
-                floatArrayOf(0f, 0.48f, 1f),
-                Shader.TileMode.CLAMP,
-            )
-            canvas.drawRoundRect(r, radius, radius, glassPaint)
-
-            // ③ 하단 안쪽 반달 Caustic 굴절 광택 (아래쪽도 어두운 그림자 대신 맑은 굴절 하이라이트)
-            val botRect = RectF(r.left + capInsX, r.bottom - h * 0.38f, r.right - capInsX, r.bottom - capInsTop)
-            glassPaint.shader = LinearGradient(
-                0f, botRect.top, 0f, botRect.bottom,
-                intArrayOf(
-                    0x00FFFFFF,
-                    scaleAlpha(0x38FFFFFF, keyG),
-                    scaleAlpha(0xB8FFFFFF.toInt(), keyG),
-                ),
-                floatArrayOf(0f, 0.55f, 1f),
-                Shader.TileMode.CLAMP,
-            )
-            canvas.drawRoundRect(botRect, capR, capR, glassPaint)
-
-            // ④ 라운드된 모서리 안쪽 둘레를 한 바퀴 감싸며 빛나는 3D 볼록 쿠션 림 (상·하·좌·우 모서리 곡면 디테일 반사)
-            val arcIns = 2.2f * density
-            val arcRect = RectF(r.left + arcIns, r.top + arcIns, r.right - arcIns, r.bottom - arcIns)
-            val arcR = (radius - arcIns).coerceAtLeast(0f)
-            glassPaint.style = Paint.Style.STROKE
-            glassPaint.color = 0xFFFFFFFF.toInt()
-            glassPaint.strokeWidth = 2.3f * density
-            glassPaint.shader = LinearGradient(
-                0f, arcRect.top, 0f, arcRect.bottom,
-                intArrayOf(
-                    scaleAlpha(0xFFFFFFFF.toInt(), keyG),
-                    scaleAlpha(0x9EFFFFFF.toInt(), keyG),
-                    scaleAlpha(0x42FFFFFF, keyG),
-                    scaleAlpha(0x88FFFFFF.toInt(), keyG),
-                    scaleAlpha(0xF0FFFFFF.toInt(), keyG),
-                ),
-                floatArrayOf(0f, 0.24f, 0.52f, 0.78f, 1f),
-                Shader.TileMode.CLAMP,
-            )
-            canvas.drawRoundRect(arcRect, arcR, arcR, glassPaint)
-            glassPaint.style = Paint.Style.FILL
+            // 3D: 좌상단 사선 곡면 경계 반사면 + 상·하단 테두리 응축 후 소멸 효과
+            draw3dDomeOptics(canvas, r, radius, radius, radius, radius, keyG, isPlate = false)
         }
         glassPaint.shader = null
         canvas.restore()
@@ -1459,13 +1485,20 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             drawCentered(canvas, label, r)
             paint.alpha = 255
 
-            // 꾹 누르기 후보가 있는 글자 키: 오른쪽 위에 작은 힌트
+            // 꾹 누르기 후보가 있는 글자 키: 오른쪽 위에 작은 힌트 (키 둥글기가 커질수록 45° 대각선 안쪽으로 이동해 둥근 모서리 밖으로 벗어나지 않게 함)
             if (key.type == KeyType.CHAR && key.hints.isNotEmpty() && key.hints[0].length <= 2) {
                 paint.color = theme.text
                 paint.alpha = 110
                 paint.textSize = labelRefPx(cell) * 0.22f * fontScale
                 paint.textAlign = Paint.Align.RIGHT
-                canvas.drawText(key.hints[0], r.right - 4 * density, r.top + paint.textSize + 2 * density, paint)
+                val effRad = (if (useFrostKey) frostKeyRadiusPx() else radius).coerceAtMost(min(r.width(), r.height()) / 2f)
+                val diagInset = ((effRad - 6f * density).coerceAtLeast(0f) * 0.38f).coerceAtMost(min(r.width(), r.height()) * 0.22f)
+                canvas.drawText(
+                    key.hints[0],
+                    r.right - 4f * density - diagInset,
+                    r.top + paint.textSize + 2f * density + diagInset,
+                    paint,
+                )
                 paint.textAlign = Paint.Align.CENTER
                 paint.alpha = 255
             }
