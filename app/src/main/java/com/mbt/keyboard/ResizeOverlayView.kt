@@ -100,13 +100,11 @@ class ResizeOverlayView(
         val g = getGeometry()
         when (activePage) {
             0 -> {
-                // 바깥 파란 점선: 전체 키보드 크기 (위·오른쪽 1/4 지점에 핸들 배치해 안쪽 여백 핸들과 겹치지 않음)
+                // 바깥 파란 점선: 바깥 배경 상하 크기 조절 (위쪽 핸들만 사용)
                 dashPaint.color = accent
                 canvas.drawRect(hr.left + d, hr.top + d, hr.right - d, hr.bottom - d, dashPaint)
                 val outTopX = hr.left + hr.width() * 0.25f
-                val outRightY = hr.top + hr.height() * 0.25f
                 drawHandle(canvas, outTopX, hr.top + 2 * d, accent)
-                drawHandle(canvas, hr.right - 2 * d, outRightY, accent)
                 if (isSplitActive()) {
                     val gx = hr.centerX()
                     canvas.drawLine(gx, hr.top + 8 * d, gx, hr.bottom - 8 * d, dashPaint)
@@ -184,16 +182,13 @@ class ResizeOverlayView(
                     0 -> {
                         val kr = keysRect(hr, g)
                         val outTopX = hr.left + hr.width() * 0.25f
-                        val outRightY = hr.top + hr.height() * 0.25f
                         dragTarget = when {
                             isSplitActive() && near(e.x, e.y, hr.centerX(), hr.top + hr.height() * 0.25f, 24f) -> DragTarget.KB_GAP
                             near(e.x, e.y, outTopX, hr.top, 26f) -> DragTarget.KB_HEIGHT
-                            near(e.x, e.y, hr.right, outRightY, 26f) -> DragTarget.KB_WIDTH
                             near(e.x, e.y, kr.left, kr.centerY(), 24f) -> DragTarget.PAD_LEFT
                             near(e.x, e.y, kr.right, kr.centerY(), 24f) -> DragTarget.PAD_RIGHT
                             near(e.x, e.y, kr.centerX(), kr.top, 24f) -> DragTarget.PAD_TOP
                             near(e.x, e.y, kr.centerX(), kr.bottom, 24f) -> DragTarget.PAD_BOTTOM
-                            e.x in (kr.left + 20 * d)..(kr.right - 20 * d) && e.y in (kr.top + 20 * d)..(kr.bottom - 20 * d) -> DragTarget.PAD_MOVE
                             else -> DragTarget.NONE
                         }
                     }

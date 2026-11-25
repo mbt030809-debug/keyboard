@@ -121,8 +121,8 @@ class ResizePane(
 
         pages = listOf(
             Page(R.string.resize_page_size, R.string.resize_title_size, R.string.resize_badge_base, R.string.resize_desc_size, ResizeDiagram.Part.SIZE) {
-                addDragHint("바깥 파란 점선으로 전체 크기를, 안쪽 보라 점선과 가운데를 끌어 상하좌우 여백을 조절하세요")
-                addReadout("전체 크기") { "가로 ${geometry.widthPct}% · 세로 ${geometry.heightPct}%" }
+                addDragHint("바깥 파란 점선(위)으로 배경 높이를, 안쪽 보라 점선(상하좌우)으로 내부 키 크기를 조절하세요")
+                addReadout("배경 세로 크기") { "${geometry.heightPct}%" }
                 addReadout("테두리 여백") { "위 ${geometry.padTopDp} · 아래 ${geometry.padBottomDp} · 왼 ${geometry.padLeftDp} · 오른 ${geometry.padRightDp}dp" }
                 if (splitActive) {
                     addReadout(R.string.resize_gap) {
