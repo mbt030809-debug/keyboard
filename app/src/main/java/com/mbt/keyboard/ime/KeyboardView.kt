@@ -669,7 +669,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawFrostBackdrop(canvas: Canvas, w: Float, h: Float) {
         bgPaint.shader = theme.backgroundShader(w, h)
         canvas.drawRect(0f, 0f, w, h, bgPaint)
-        val blobs = if (!theme.frost) listOf(Blob(0.18f, 0.16f, 0.58f, 0x72FFFFFF), Blob(0.82f, 0.78f, 0.62f, (theme.accent and 0x00FFFFFF) or 0x6E000000), Blob(0.55f, 0.35f, 0.48f, 0x38FFFFFF)) else when (theme.frostStyle) {
+        val blobs = if (!theme.frost) listOf(Blob(0.15f, 0.14f, 0.55f, 0x9EFFFFFF.toInt()), Blob(0.84f, 0.80f, 0.60f, (theme.accent and 0x00FFFFFF) or 0x90000000.toInt()), Blob(0.52f, 0.28f, 0.46f, 0x58FFFFFF), Blob(0.25f, 0.85f, 0.45f, (theme.accent and 0x00FFFFFF) or 0x4C000000)) else when (theme.frostStyle) {
             1 -> TAUPE_BLOBS; 2 -> NAVY_BLOBS; 3 -> SUNSET_BLOBS; 4 -> PINK_BLOBS; 5 -> AURORA_BLOBS; 6 -> MINT_BLOBS
             7 -> TAUPE_OPTICAL_BLOBS
             else -> HOLO_BLOBS
@@ -872,7 +872,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 val cl = l + i * reedW
                 val cr = minOf(cl + reedW, r)
                 if (cr <= cl) break
-                val refractShift = (if (i % 2 == 0) 3.2f else -2.8f) * density * s
+                val refractShift = (if (i % 2 == 0) 4.6f else -4.0f) * density * s
                 val sx = (cl + tabShiftX + refractShift).toInt().coerceIn(0, bw - 1)
                 val ex = (cr + tabShiftX + refractShift).toInt().coerceIn(sx + 1, bw)
                 val sy = (t + extra + tabShiftY).toInt().coerceIn(0, bh - 1)
@@ -881,10 +881,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             }
             glassPaint.alpha = 255
         }
-        val hi1 = (0xAD * s).toInt().coerceIn(0, 255)
+        val hi1 = (0xC8 * s).toInt().coerceIn(0, 255)
         val hi2 = (0x3D * s).toInt().coerceIn(0, 255)
-        val cool = (0x12 * s).toInt().coerceIn(0, 255)
-        val edge = (0x66 * s).toInt().coerceIn(0, 255)
+        val cool = (0x1E * s).toInt().coerceIn(0, 255)
+        val edge = (0x7A * s).toInt().coerceIn(0, 255)
         glassPaint.style = Paint.Style.FILL
         glassPaint.shader = LinearGradient(
             l, 0f, l + reedW, 0f,
@@ -914,7 +914,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         val extra = frostExtraTopPx()
         glassPaint.style = Paint.Style.FILL; glassPaint.shader = null; glassPaint.alpha = 255
         if (gType == 0) {
-            // 1. 일반(맑은 크리스탈 유리): 가우시안 블러 없이 맑은 배경 위에 유리 틴트와 테두리 반사광만 적용
+            // 1. 일반(맑은 크리스탈 유리): 블러 없이 선명한 배경 위에 맑은 유리 광택과 사선 반사광 적용
             val shader = theme.backgroundShader(w, h)
             if (shader == null) {
                 glassPaint.color = if (t >= 0f) withBgOpacity(theme.background) else theme.background
@@ -925,7 +925,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 canvas.drawRect(l, t, r, b, glassPaint)
                 glassPaint.alpha = 255; glassPaint.shader = null
             }
-            val clearTintA = (((theme.frostTint ushr 24) and 0xFF) * bgG * 0.45f).toInt().coerceIn(0, 255)
+            val clearTintA = (((theme.frostTint ushr 24) and 0xFF) * bgG * 0.34f).toInt().coerceIn(0, 255)
             glassPaint.color = (clearTintA shl 24) or (theme.frostTint and 0x00FFFFFF)
             canvas.drawRect(l, t, r, b, glassPaint)
         } else {
@@ -939,32 +939,43 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             }
             glassPaint.alpha = 255; glassPaint.shader = null
             val tintBase = if (t >= 0f) withBgOpacity(theme.frostTint) else theme.frostTint
-            val tintA = (((tintBase ushr 24) and 0xFF) * bgG * (if (theme.frost) 0.85f else 0.52f)).toInt().coerceIn(0, 255)
+            val tintA = (((tintBase ushr 24) and 0xFF) * bgG * (if (theme.frost) 0.68f else 0.36f)).toInt().coerceIn(0, 255)
             glassPaint.color = (tintA shl 24) or (tintBase and 0x00FFFFFF)
             canvas.drawRect(l, t, r, b, glassPaint)
         }
 
-        if (gType == 2) {
-            // 리드글래스: 5.5dp 간격 세로 모루 줄무늬 (배경 투명도와 무관하게 bgG 강도 100% 유지)
-            drawReedOverlay(canvas, l, t, r, b, bgG, pitchDp = 5.5f)
-        } else if (gType == 3) {
-            // 3D: 상단 곡면 돔 입체광
-            val dHi = (0x80 * bgG).toInt().coerceIn(0, 255)
-            val dMid = (0x32 * bgG).toInt().coerceIn(0, 255)
-            val dSh = (0x34 * bgG).toInt().coerceIn(0, 255)
+        if (gType == 1) {
+            // 2. 블러: 부드러운 젖빛 유리 확산 광택
+            val bHi = (0x52 * bgG).toInt().coerceIn(0, 255)
+            val bMid = (0x24 * bgG).toInt().coerceIn(0, 255)
             glassPaint.shader = android.graphics.RadialGradient(
-                w * 0.5f, -extra + h * 0.18f, max(w, h) * 0.78f,
+                w * 0.28f, -extra + h * 0.22f, max(w, h) * 0.72f,
+                intArrayOf((bHi shl 24) or 0xFFFFFF, (bMid shl 24) or 0xFFFFFF, 0x00FFFFFF),
+                floatArrayOf(0f, 0.45f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRect(l, t, r, b, glassPaint)
+        } else if (gType == 2) {
+            // 3. 리드글래스: 9.0dp 간격 세로 모루 굴절 줄무늬 (덜 촘촘하고 선명하게)
+            drawReedOverlay(canvas, l, t, r, b, bgG, pitchDp = 9.0f)
+        } else if (gType == 3) {
+            // 4. 3D: 볼록 돔 입체광 + 상·하단 3D 유리 베벨 음영
+            val dHi = (0xA8 * bgG).toInt().coerceIn(0, 255)
+            val dMid = (0x44 * bgG).toInt().coerceIn(0, 255)
+            val dSh = (0x48 * bgG).toInt().coerceIn(0, 255)
+            glassPaint.shader = android.graphics.RadialGradient(
+                w * 0.5f, -extra + h * 0.16f, max(w, h) * 0.80f,
                 intArrayOf((dHi shl 24) or 0xFFFFFF, (dMid shl 24) or 0xFFFFFF, 0x00FFFFFF, dSh shl 24),
-                floatArrayOf(0f, 0.42f, 0.72f, 1f),
+                floatArrayOf(0f, 0.40f, 0.70f, 1f),
                 Shader.TileMode.CLAMP,
             )
             canvas.drawRect(l, t, r, b, glassPaint)
         }
 
-        // 유리판 전체를 비스듬히 가로지르는 대각선 유리창 반사면 (좌상단 밝은 반사광 → 사선 경계 컷)
-        val diagTopA = (0x34 * bgG).toInt().coerceIn(0, 255)
-        val diagMidA = (0x20 * bgG).toInt().coerceIn(0, 255)
-        val diagEdgeA = (0x46 * bgG).toInt().coerceIn(0, 255)
+        // 유리판 전체를 비스듬히 가로지르는 선명한 대각선 유리창 빛반사면 (어두운/밝은 배경 모두 확실히 보이도록)
+        val diagTopA = (0x6A * bgG).toInt().coerceIn(0, 255)
+        val diagMidA = (0x42 * bgG).toInt().coerceIn(0, 255)
+        val diagEdgeA = (0x88 * bgG).toInt().coerceIn(0, 255)
         glassPaint.shader = LinearGradient(
             0f, -extra, w * 0.62f, h * 0.92f,
             intArrayOf(
@@ -974,7 +985,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 0x00FFFFFF,
                 0x00FFFFFF,
             ),
-            floatArrayOf(0f, 0.44f, 0.495f, 0.505f, 1f),
+            floatArrayOf(0f, 0.43f, 0.492f, 0.506f, 1f),
             Shader.TileMode.CLAMP,
         )
         canvas.drawRect(l, t, r, b, glassPaint)
@@ -1016,7 +1027,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         if (glassType >= 0 && bgGlassStrength > 0.01f) {
             val bgG = bgGlassStrength.coerceIn(0f, 1f)
             if (effGlass == 2) {
-                drawReedOverlay(canvas, 0f, 0f, tabW, tabH, bgG * 0.65f, pitchDp = 5.5f)
+                drawReedOverlay(canvas, 0f, 0f, tabW, tabH, bgG * 0.65f, pitchDp = 9.0f)
             }
             val ins = 1.6f * density
             val r = frostKeyRadiusPx() + minOf(fnTabPadPx(), fnTabLeftPx() + fnTabInsetPx(), 10 * density)
@@ -1204,7 +1215,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
 
         if (gType == 2) {
             // 리드글래스: 키캡 내부 4.5dp 촘촘한 간격의 고대비 세로 모루 굴절 줄무늬
-            drawReedOverlay(canvas, r.left, r.top, r.right, r.bottom, keyG, pitchDp = 4.5f, tabShiftX = tabShiftX, tabShiftY = tabShiftY)
+            drawReedOverlay(canvas, r.left, r.top, r.right, r.bottom, keyG, pitchDp = 7.0f, tabShiftX = tabShiftX, tabShiftY = tabShiftY)
         } else if (gType == 3) {
             // 3D: 볼록 렌즈 돔 입체 유리 — ① 상단 라운드 곡면 반사 띠 ② 구면 볼록 하이라이트 + 안쪽 베벨 음영 ③ 하단 라운드 굴절 Caustic
             val domeHi = (0xE0 * keyG).toInt().coerceIn(0, 255)
