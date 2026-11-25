@@ -77,14 +77,13 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         (getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager)?.addPrimaryClipChangedListener(clipListener)
         // 설정 앱에서 크기·위치를 바꾸면 키보드가 켜져 있는 동안에도 바로 반영한다
         getSharedPreferences(Prefs.FILE, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(prefsListener)
-    
-        MirrorAccessibilityService.onMirrorUpdated = { if (::view.isInitialized) mainHandler.post { view.invalidate() } }
+
     }
     
     /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (::host.isInitialized && key == Prefs.KEY_THEME) applyTheme()
-        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE || key == Prefs.KEY_NUMBER_LEFT || key == Prefs.KEY_FONT_SCALE || key == Prefs.KEY_FN_TAB || key == Prefs.KEY_FN_TAB_ALPHA || key == Prefs.KEY_KEY_OPACITY || key == Prefs.KEY_BG_OPACITY || key == Prefs.KEY_MIRROR_ON || key == Prefs.KEY_MIRROR_STRENGTH)) loadTimings()
+        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE || key == Prefs.KEY_NUMBER_LEFT || key == Prefs.KEY_FONT_SCALE || key == Prefs.KEY_FN_TAB || key == Prefs.KEY_FN_TAB_ALPHA || key == Prefs.KEY_KEY_OPACITY || key == Prefs.KEY_BG_OPACITY || key == Prefs.KEY_GLASS_TYPE || key == Prefs.KEY_KEY_GLASS_STRENGTH || key == Prefs.KEY_BG_GLASS_STRENGTH)) loadTimings()
         if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen" || key == Prefs.KEY_SPLIT_DUP)) {
             updateSplit(resources.configuration)
             applyGeometry(resources.configuration)
@@ -115,7 +114,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         (getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager)?.removePrimaryClipChangedListener(clipListener)
         getSharedPreferences(Prefs.FILE, MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(prefsListener)
         voice.destroy()
-        MirrorAccessibilityService.onMirrorUpdated = null; MirrorAccessibilityService.keyboardVisible = false; super.onDestroy()
+        super.onDestroy()
     }
 
     private val voiceCallback = object : VoiceInput.Callback {
@@ -214,8 +213,9 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.frostFadeAlpha = Prefs.fnTabAlphaPercent(this) / 100f
         view.keyOpacity = Prefs.keyOpacityPercent(this) / 100f
         view.bgOpacity = Prefs.bgOpacityPercent(this) / 100f
-        view.mirrorEnabled = Prefs.mirrorEnabled(this)
-        view.mirrorStrength = Prefs.mirrorStrengthPercent(this) / 100f
+        view.glassType = Prefs.glassType(this)
+        view.keyGlassStrength = Prefs.keyGlassStrengthPercent(this) / 100f
+        view.bgGlassStrength = Prefs.bgGlassStrengthPercent(this) / 100f
         refreshFnTab()
     }
 
@@ -233,7 +233,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onComputeInsets(outInsets: InputMethodService.Insets) {
-      syncMirrorBounds()
+
         super.onComputeInsets(outInsets)
         if (!::fnTab.isInitialized || isFullscreenMode) return
         val tabH = if (fnTab.visibility == View.GONE) 0 else (host.layoutParams as FrameLayout.LayoutParams).topMargin
@@ -284,19 +284,9 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.fnTabPadDp = g.fnTabPadDp
         view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp, g.rowGapDp, g.numHeightScale, g.numRowGapDp, g.hitShifts, g.spaceRowScale)
         refreshFnTab()
-        syncMirrorBounds()
+
     }
-    private fun syncMirrorBounds() {
-        if (!::view.isInitialized || view.height <= 0) return
-        val loc = IntArray(2)
-        view.getLocationOnScreen(loc)
-        if (loc[1] > 0) {
-            MirrorAccessibilityService.keyboardTopPx = loc[1]
-            MirrorAccessibilityService.keyboardHeightPx = view.height
-            MirrorAccessibilityService.keyboardVisible = view.isShown
-            if (Prefs.mirrorEnabled(this)) MirrorAccessibilityService.requestCapture()
-        }
-    }
+
     
     /** 가장 짧은 변이 600dp 이상(폴드 안쪽 화면, 태블릿)이면 나눠쓰기. 폰 가로 모드는 해당 없음 */
     private fun updateSplit(config: Configuration) {
