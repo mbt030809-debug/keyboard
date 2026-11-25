@@ -95,7 +95,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             val l = cl + gx
             val r = cl + kw - gx
           val baseColor = if (theme.frost) (if (i == pressed) theme.keyPressed else theme.key) else (if (i == pressed) theme.keyPressed else theme.specialKey)
-          if (theme.frost && theme.frostStyle == 7) {
+          if (src.glassType != 0 && src.keyGlassStrength > 0.02f) {
                 src.drawFrostKey(canvas, RectF(l, top, r, kh), radius, src.withKeyOpacity(baseColor), i == pressed, tabShiftX = src.frostTabLeftPx, tabShiftY = -(height + src.fnTabGapPx()))
             } else {
                 paint.color = src.withKeyOpacity(baseColor)
