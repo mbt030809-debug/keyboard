@@ -127,7 +127,7 @@ class ResizeActivityTest {
                 val hr = previewHost(a)
                 hr.layout(0, 50, 1000, 450)
                 ov.layout(0, 0, 1000, 500)
-                drag(ov, hr.left + hr.width() * 0.25f, hr.top.toFloat(), hr.left + hr.width() * 0.25f, hr.top - 60f)
+                drag(ov, hr.left + hr.width * 0.25f, hr.top.toFloat(), hr.left + hr.width * 0.25f, hr.top - 60f)
                 assertTrue(Prefs.geometry(a, large = false).heightPct > 100)
             }
         }
@@ -142,7 +142,7 @@ class ResizeActivityTest {
                 val hr = previewHost(a)
                 hr.layout(0, 50, 1000, 450)
                 ov.layout(0, 0, 1000, 500)
-                drag(ov, (hr.left + hr.right) / 2f, hr.top + hr.height() * 0.25f, (hr.left + hr.right) / 2f + 30f, hr.top + hr.height() * 0.25f)
+                drag(ov, (hr.left + hr.right) / 2f, hr.top + hr.height * 0.25f, (hr.left + hr.right) / 2f + 30f, hr.top + hr.height * 0.25f)
                 assertTrue(Prefs.geometry(a, large = true).gapPct > KeyboardGeometry.GAP_DEFAULT)
                 assertEquals(KeyboardGeometry.GAP_DEFAULT, Prefs.geometry(a, large = false).gapPct)   // 접힘(폰) 설정은 그대로
                 a.findViewById<View>(R.id.resetButton).performClick()

@@ -529,7 +529,7 @@ class HitShiftTest {
 
     @Test fun fourRowMainLayoutKeepsTopLetterRowAtTopEdge() {
         view.numberLeft = false; relayout()
-        assertEquals(4f, inner("ㅂ").top / density, 0.1f)
+        assertEquals(4f, view.keyInnerRects().first { it.first.label == "ㅂ" }.second.top / density, 0.1f)
     }
 
     @Test fun eachRowHasItsOwnShiftAndNegativeShrinksTheRowAbove() {
