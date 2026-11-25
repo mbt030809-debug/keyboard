@@ -61,7 +61,7 @@ class SettingsActivityTest {
     }
 
     private fun visibleSections(a: SettingsActivity) =
-        listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionInfo)
+        listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionTheme)
             .map { a.findViewById<android.view.View>(it).visibility == android.view.View.VISIBLE }
 
     @Test fun tabsShowExactlyOneSectionAtATime() {
@@ -86,7 +86,7 @@ class SettingsActivityTest {
             sc.onActivity { a ->
                 fun parentSection(id: Int): Int {
                     var v: android.view.View? = a.findViewById(id)
-                    val sections = listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionInfo)
+                    val sections = listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionTheme)
                     while (v != null) { if (v.id in sections) return sections.indexOf(v.id); v = v.parent as? android.view.View }
                     return -1
                 }
@@ -95,9 +95,9 @@ class SettingsActivityTest {
                 assertEquals(1, parentSection(R.id.sliderPause)); assertEquals(1, parentSection(R.id.sliderRepeat))
                 assertEquals(1, parentSection(R.id.switchHaptic)); assertEquals(1, parentSection(R.id.switchClipboard))
                 assertEquals(1, parentSection(R.id.editPhrases))
-                assertEquals(2, parentSection(R.id.switchNumberLeft)); assertEquals(2, parentSection(R.id.themeList)); assertEquals(2, parentSection(R.id.btnResize))
+                assertEquals(2, parentSection(R.id.switchNumberLeft)); assertEquals(3, parentSection(R.id.themeList)); assertEquals(2, parentSection(R.id.btnResize))
                 assertEquals(2, parentSection(R.id.switchSplit)); assertEquals(2, parentSection(R.id.switchSplitDup))
-                assertEquals(3, parentSection(R.id.versionText))
+                assertEquals(0, parentSection(R.id.versionText)); assertEquals(3, parentSection(R.id.glassTypeChips)); assertEquals(3, parentSection(R.id.sliderKeyOpacity))
             }
         }
     }
@@ -115,7 +115,7 @@ class SettingsActivityTest {
         ActivityScenario.launch(SettingsActivity::class.java).use { sc ->
             sc.onActivity { a ->
                 val btn = a.findViewById<android.view.View>(R.id.btnTry)
-                val sections = listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionInfo)
+                val sections = listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionTheme)
                 var v: android.view.View? = btn
                 var inside = false
                 while (v != null) { if (v.id in sections) inside = true; v = v.parent as? android.view.View }
