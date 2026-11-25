@@ -7,13 +7,25 @@ import android.graphics.RectF
 import android.view.View
 import com.mbt.keyboard.ime.KeyboardTheme
 
-/** 테마 미리보기: 배경 위에 키 몇 개와 강조색 점을 작게 그린 그림. [selected]면 강조색 테두리 */
+/** 테마 미리보기: 배경 위에 문자키 2줄(각 4개) + 하단(쉬프트 · 스페이스바 · 엔터) 색을 모두 보여준다 */
 class ThemeSwatch(context: Context, val theme: KeyboardTheme) : View(context) {
     var chosen = false
         set(v) { field = v; invalidate() }
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val d = resources.displayMetrics.density
+
+    private fun drawKey(canvas: Canvas, l: Float, t: Float, r: Float, b: Float, color: Int, cr: Float) {
+        paint.style = Paint.Style.FILL
+        paint.color = color
+        canvas.drawRoundRect(RectF(l, t, r, b), cr, cr, paint)
+        if (theme.keyBorder != 0) {
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 0.8f * d
+            paint.color = theme.keyBorder
+            canvas.drawRoundRect(RectF(l + 0.4f * d, t + 0.4f * d, r - 0.4f * d, b - 0.4f * d), cr, cr, paint)
+        }
+    }
 
     override fun onDraw(canvas: Canvas) {
         val w = width.toFloat()
@@ -25,35 +37,29 @@ class ThemeSwatch(context: Context, val theme: KeyboardTheme) : View(context) {
         canvas.drawRoundRect(RectF(0f, 0f, w, h), r, r, paint)
         paint.shader = null
 
-        // 키 2줄: 일반 키 4개 + (둘째 줄) 기능키 + 강조색 엔터
-        val pad = 8 * d
-        val gap = 4 * d
-        val rows = 2
+        val pad = 7 * d
+        val gap = 3.5f * d
+        val cr = 3.5f * d
+        val rows = 3
         val keyH = (h - pad * 2 - gap * (rows - 1)) / rows
-        for (row in 0 until rows) {
+        val availW = w - pad * 2
+
+        val charW = (availW - gap * 3) / 4f
+        for (row in 0..1) {
             val top = pad + row * (keyH + gap)
-            val n = 5
-            val keyW = (w - pad * 2 - gap * (n - 1)) / n
-            for (i in 0 until n) {
-                paint.color = when {
-                    row == 1 && i == 0 -> theme.specialKey
-                    row == 1 && i == n - 1 -> theme.accent
-                    row == 0 && i == 2 -> theme.keyPressed
-                    else -> theme.key
-                }
-                val left = pad + i * (keyW + gap)
-                canvas.drawRoundRect(RectF(left, top, left + keyW, top + keyH), 4 * d, 4 * d, paint)
-                if (theme.keyBorder != 0) {
-                    val keep = paint.color
-                    paint.style = Paint.Style.STROKE; paint.strokeWidth = d; paint.color = theme.keyBorder
-                    canvas.drawRoundRect(RectF(left + d / 2, top + d / 2, left + keyW - d / 2, top + keyH - d / 2), 4 * d, 4 * d, paint)
-                    paint.style = Paint.Style.FILL; paint.color = keep
-                }
+            for (i in 0 until 4) {
+                val left = pad + i * (charW + gap)
+                drawKey(canvas, left, top, left + charW, top + keyH, theme.key, cr)
             }
         }
-        // 글자색 표시: 첫 키 가운데 작은 점
-        paint.color = theme.text
-        canvas.drawCircle(pad + (w - pad * 2 - gap * 4) / 10f, pad + keyH / 2f, 2.5f * d, paint)
+
+        val bTop = pad + 2 * (keyH + gap)
+        val bAvail = availW - gap * 2
+        val shiftW = bAvail * 0.25f
+        val spaceW = bAvail * 0.50f
+        drawKey(canvas, pad, bTop, pad + shiftW, bTop + keyH, theme.specialKey, cr)
+        drawKey(canvas, pad + shiftW + gap, bTop, pad + shiftW + gap + spaceW, bTop + keyH, theme.effectiveSpaceKey, cr)
+        drawKey(canvas, pad + shiftW + gap + spaceW + gap, bTop, w - pad, bTop + keyH, theme.enterKey, cr)
 
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = (if (chosen) 3 else 1) * d
