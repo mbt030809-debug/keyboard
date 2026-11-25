@@ -79,7 +79,8 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         getSharedPreferences(Prefs.FILE, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(prefsListener)
     
         MirrorAccessibilityService.onMirrorUpdated = { if (::view.isInitialized) mainHandler.post { view.invalidate() } }
-
+    }
+    
     /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (::host.isInitialized && key == Prefs.KEY_THEME) applyTheme()
