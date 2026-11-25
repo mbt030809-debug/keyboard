@@ -1206,29 +1206,64 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             // 리드글래스: 키캡 내부 4.5dp 촘촘한 간격의 고대비 세로 모루 굴절 줄무늬
             drawReedOverlay(canvas, r.left, r.top, r.right, r.bottom, keyG, pitchDp = 4.5f, tabShiftX = tabShiftX, tabShiftY = tabShiftY)
         } else if (gType == 3) {
-            // 3D: 볼록한 렌즈(돔)처럼 둥글게 빛나는 입체 곡면 하이라이트 + 외곽 구면 음영 + 우하단 곡면 반사광
-            val domeHi = (0xCC * keyG).toInt().coerceIn(0, 255)
-            val domeMid = (0x5E * keyG).toInt().coerceIn(0, 255)
-            val domeRimShade = (0x46 * keyG).toInt().coerceIn(0, 255)
-            val domeRad = max(w, h) * 0.74f
+            // 3D: 볼록 렌즈 돔 입체 유리 — ① 상단 라운드 곡면 반사 띠 ② 구면 볼록 하이라이트 + 안쪽 베벨 음영 ③ 하단 라운드 굴절 Caustic
+            val domeHi = (0xE0 * keyG).toInt().coerceIn(0, 255)
+            val domeMid = (0x72 * keyG).toInt().coerceIn(0, 255)
+            val domeShade = (0x54 * keyG).toInt().coerceIn(0, 255)
+            val domeRad = max(w, h) * 0.78f
             glassPaint.shader = android.graphics.RadialGradient(
-                r.centerX(), r.top + h * 0.26f, domeRad,
+                r.centerX(), r.top + h * 0.24f, domeRad,
                 intArrayOf(
                     (domeHi shl 24) or 0xFFFFFF,
                     (domeMid shl 24) or 0xFFFFFF,
                     0x00FFFFFF,
-                    domeRimShade shl 24,
+                    domeShade shl 24,
                 ),
-                floatArrayOf(0f, 0.38f, 0.68f, 1f),
+                floatArrayOf(0f, 0.36f, 0.64f, 1f),
                 Shader.TileMode.CLAMP,
             )
             canvas.drawRoundRect(r, radius, radius, glassPaint)
-            val caus1 = (0x32 * keyG).toInt().coerceIn(0, 255)
-            val caus2 = (0x8E * keyG).toInt().coerceIn(0, 255)
+
+            // 상단 라운드 모서리 바로 안쪽을 감싸는 선명한 유리 곡면 반사광 (볼록 돔 느낌 강조)
+            val arcIns = 2.2f * density
+            val arcRect = RectF(r.left + arcIns, r.top + arcIns, r.right - arcIns, r.bottom - arcIns)
+            val arcR = (radius - arcIns).coerceAtLeast(0f)
+            glassPaint.style = Paint.Style.STROKE
+            glassPaint.strokeWidth = 2.6f * density
             glassPaint.shader = LinearGradient(
-                r.left + w * 0.15f, r.bottom - h * 0.34f, r.right, r.bottom,
-                intArrayOf(0x00FFFFFF, (caus1 shl 24) or 0xFFFFFF, (caus2 shl 24) or 0xFFFFFF),
+                0f, arcRect.top, 0f, arcRect.top + h * 0.44f,
+                intArrayOf(
+                    scaleAlpha(0xF5FFFFFF.toInt(), keyG),
+                    scaleAlpha(0x88FFFFFF.toInt(), keyG),
+                    0x00FFFFFF,
+                ),
+                floatArrayOf(0f, 0.42f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRoundRect(arcRect, arcR, arcR, glassPaint)
+
+            // 하단 라운드 곡면을 따라 빛이 한 번 더 굴절되어 모이는 Caustic 하이라이트
+            glassPaint.strokeWidth = 2.0f * density
+            glassPaint.shader = LinearGradient(
+                0f, arcRect.bottom - h * 0.36f, 0f, arcRect.bottom,
+                intArrayOf(
+                    0x00FFFFFF,
+                    scaleAlpha(0x66FFFFFF, keyG),
+                    scaleAlpha(0xCCFFFFFF.toInt(), keyG),
+                ),
                 floatArrayOf(0f, 0.55f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRoundRect(arcRect, arcR, arcR, glassPaint)
+            glassPaint.style = Paint.Style.FILL
+
+            // 하단 돔 내부 굴절 광택 면
+            val caus1 = (0x3C * keyG).toInt().coerceIn(0, 255)
+            val caus2 = (0x9C * keyG).toInt().coerceIn(0, 255)
+            glassPaint.shader = LinearGradient(
+                r.left + w * 0.12f, r.bottom - h * 0.36f, r.right, r.bottom,
+                intArrayOf(0x00FFFFFF, (caus1 shl 24) or 0xFFFFFF, (caus2 shl 24) or 0xFFFFFF),
+                floatArrayOf(0f, 0.52f, 1f),
                 Shader.TileMode.CLAMP,
             )
             canvas.drawRect(r, glassPaint)
