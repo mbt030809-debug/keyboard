@@ -161,27 +161,33 @@ class SettingsActivity : AppCompatActivity() {
             valueBgOpacity.text = "${value.toInt()}%"
             if (fromUser) Prefs.setBgOpacityPercent(this, value.toInt())
         }
+        val sliderKeyGlass = findViewById<Slider>(R.id.sliderKeyGlass)
+        val valueKeyGlass = findViewById<TextView>(R.id.valueKeyGlass)
+        sliderKeyGlass.value = Prefs.keyGlassStrengthPercent(this).toFloat()
+        valueKeyGlass.text = "${Prefs.keyGlassStrengthPercent(this)}%"
+        sliderKeyGlass.addOnChangeListener { _, value, fromUser ->
+            valueKeyGlass.text = "${value.toInt()}%"
+            if (fromUser) Prefs.setKeyGlassStrengthPercent(this, value.toInt())
+        }
 
-        // 상단 화면 거울 반사 ON/OFF, 접근성 권한 버튼, 반사 선명도 슬라이더
-        val swMirror = findViewById<MaterialSwitch>(R.id.switchMirror)
-        val btnMirrorPerm = findViewById<MaterialButton>(R.id.btnMirrorPermission)
-        val sliderMirror = findViewById<Slider>(R.id.sliderMirrorStrength)
-        val valueMirror = findViewById<TextView>(R.id.valueMirrorStrength)
-        swMirror.isChecked = Prefs.mirrorEnabled(this)
-        sliderMirror.isEnabled = swMirror.isChecked
-        sliderMirror.value = Prefs.mirrorStrengthPercent(this).toFloat()
-        valueMirror.text = "${Prefs.mirrorStrengthPercent(this)}%"
-        swMirror.setOnCheckedChangeListener { _, on ->
-            Prefs.setMirrorEnabled(this, on)
-            sliderMirror.isEnabled = on
+        val sliderBgGlass = findViewById<Slider>(R.id.sliderBgGlass)
+        val valueBgGlass = findViewById<TextView>(R.id.valueBgGlass)
+        sliderBgGlass.value = Prefs.bgGlassStrengthPercent(this).toFloat()
+        valueBgGlass.text = "${Prefs.bgGlassStrengthPercent(this)}%"
+        sliderBgGlass.addOnChangeListener { _, value, fromUser ->
+            valueBgGlass.text = "${value.toInt()}%"
+            if (fromUser) Prefs.setBgGlassStrengthPercent(this, value.toInt())
         }
-        sliderMirror.addOnChangeListener { _, value, fromUser ->
-            valueMirror.text = "${value.toInt()}%"
-            if (fromUser) Prefs.setMirrorStrengthPercent(this, value.toInt())
+
+        val glassChips = findViewById<com.google.android.material.chip.ChipGroup>(R.id.glassTypeChips)
+        val glassChipIds = listOf(R.id.chipGlassNormal, R.id.chipGlassBlur, R.id.chipGlassReed, R.id.chipGlass3d)
+        glassChips.check(glassChipIds[Prefs.glassType(this).coerceIn(0, 3)])
+        glassChips.setOnCheckedStateChangeListener { _, checkedIds ->
+            val checked = checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener
+            val idx = glassChipIds.indexOf(checked)
+            if (idx >= 0) Prefs.setGlassType(this, idx)
         }
-        btnMirrorPerm.setOnClickListener {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        }
+        
         
         // 키 글자 크기 배율
         val sliderFont = findViewById<Slider>(R.id.sliderFontScale)
@@ -279,7 +285,7 @@ class SettingsActivity : AppCompatActivity() {
 
     /** 위쪽 탭(시작·입력·화면·정보)을 누르면 그 탭의 카드들만 보인다 */
     private fun setupTabs(saved: Bundle?) {
-        val ids = listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionInfo)
+        val ids = listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionTheme)
         val tabs = findViewById<TabLayout>(R.id.tabs)
         val scroll = findViewById<android.widget.ScrollView>(R.id.scroll)
         fun show(i: Int) {
@@ -329,22 +335,26 @@ class SettingsActivity : AppCompatActivity() {
             val cur = Prefs.themeId(this)
             swatches.forEach { (id, v) -> v.chosen = id == cur || (cur !in items.map { it.first } && id == KeyboardThemes.SYSTEM) }
         }
-        items.chunked(2).forEach { pair ->
-            val row = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
-            pair.forEachIndexed { i, (id, name, theme) ->
-                val cell = android.widget.LinearLayout(this).apply {
-                    orientation = android.widget.LinearLayout.VERTICAL
-                    setPadding((4 * d).toInt(), (4 * d).toInt(), (4 * d).toInt(), (8 * d).toInt())
-                    setOnClickListener { Prefs.setThemeId(this@SettingsActivity, id); refresh() }
-                }
-                val sw = ThemeSwatch(this, theme)
-                swatches += id to sw
-                cell.addView(sw, android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, (64 * d).toInt()))
-                cell.addView(TextView(this).apply { text = name; textSize = 13f; setPadding((2 * d).toInt(), (4 * d).toInt(), 0, 0) })
-                row.addView(cell, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        list.orientation = android.widget.LinearLayout.HORIZONTAL
+        items.forEach { (id, name, theme) ->
+            val cell = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding((4 * d).toInt(), (4 * d).toInt(), (4 * d).toInt(), (4 * d).toInt())
+                setOnClickListener { Prefs.setThemeId(this@SettingsActivity, id); refresh() }
             }
-            if (pair.size == 1) row.addView(android.view.View(this), android.widget.LinearLayout.LayoutParams(0, 1, 1f))
-            list.addView(row)
+            val sw = ThemeSwatch(this, theme)
+            swatches += id to sw
+            cell.addView(sw, android.widget.LinearLayout.LayoutParams((108 * d).toInt(), (74 * d).toInt()))
+            cell.addView(TextView(this).apply {
+                text = name
+                textSize = 12f
+                maxLines = 1
+                setPadding((2 * d).toInt(), (4 * d).toInt(), 0, 0)
+            })
+            list.addView(cell, android.widget.LinearLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            ))
         }
         refresh()
     }
@@ -391,9 +401,6 @@ class SettingsActivity : AppCompatActivity() {
             setStatus(status2, selected, getString(R.string.status_todo))
             btnSelect.isEnabled = true      // 이미 선택돼 있어도 다시 고를 수 있게 둔다
         }
-        findViewById<MaterialButton>(R.id.btnMirrorPermission)?.text =
-            if (com.mbt.keyboard.ime.MirrorAccessibilityService.isServiceEnabled(this)) "✓ 상단 화면 반사 접근성 권한 켜짐"
-            else "상단 화면 반사용 접근성 권한 켜기"
     }
 
     private fun setStatus(v: TextView, done: Boolean, todo: String) {
@@ -413,7 +420,7 @@ class SettingsActivity : AppCompatActivity() {
     /** 설정 내보내기·불러오기 (파일 저장/열기 및 클립보드 백업/복원) 카드를 정보 탭과 시작 탭에 추가 */
     private fun setupBackupRestore() {
         val d = resources.displayMetrics.density
-        listOf(R.id.sectionInfo, R.id.sectionStart).forEach { secId ->
+        listOf(R.id.sectionStart).forEach { secId ->
             val section = findViewById<android.widget.LinearLayout>(secId) ?: return@forEach
             val box = android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
