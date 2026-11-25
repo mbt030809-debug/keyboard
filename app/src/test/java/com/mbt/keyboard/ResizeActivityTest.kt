@@ -53,7 +53,7 @@ class ResizeActivityTest {
                 tabs.getTabAt(2)!!.select()
                 assertEquals(View.VISIBLE, a.findViewById<View>(R.id.sectionScreen).visibility)
                 assertTrue(a.findViewById<View>(R.id.previewContainer) != null)
-                assertEquals(7, a.findViewById<ChipGroup>(R.id.pageChips).childCount)
+                assertEquals(6, a.findViewById<ChipGroup>(R.id.pageChips).childCount)
             }
         }
     }
@@ -80,9 +80,9 @@ class ResizeActivityTest {
     @Test fun sevenTabsInPriorityOrderAndTheFirstIsSelected() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertEquals(7, chips(a).childCount)
+                assertEquals(6, chips(a).childCount)
                 assertTrue(title(a).startsWith("① 전체 크기"))
-                listOf("② 상하좌우 여백", "③ 키 사이 간격", "④ 보조탭", "⑤ 숫자줄·스페이스바 줄 크기", "⑥ 숫자줄 여백", "⑦ 터치 인식 영역").forEachIndexed { i, t ->
+                listOf("② 키 사이 간격", "③ 보조탭", "④ 숫자줄·스페이스바 줄 크기", "⑤ 숫자줄 여백", "⑥ 터치 인식 영역").forEachIndexed { i, t ->
                     goTo(a, i + 1)
                     assertTrue("${title(a)} vs $t", title(a).startsWith(t))
                 }
@@ -100,7 +100,7 @@ class ResizeActivityTest {
                 a.findViewById<View>(R.id.prevButton).performClick()
                 assertTrue(title(a).startsWith("① "))
                 repeat(10) { a.findViewById<View>(R.id.nextButton).performClick() }
-                assertTrue(title(a).startsWith("⑦ "))
+                assertTrue(title(a).startsWith("⑥ "))
                 assertEquals(false, a.findViewById<View>(R.id.nextButton).isEnabled)
             }
         }
@@ -133,38 +133,18 @@ class ResizeActivityTest {
         }
     }
 
-    @Test fun paddingPageAdjustsFourSidesAndKeepsTheKeyboardTotalHeight() {
-        ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
-            sc.onActivity { a ->
-                val before = previewKeyboard(a).let { it.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)); it.measuredHeight }
-                goTo(a, 1)
-                assertEquals(4, controls(a).childCount)
-                step(a, 0, plus = true); step(a, 0, plus = true)                            // 위쪽 +2
-                step(a, 1, plus = false)                                                      // 아래쪽 -1
-                step(a, 2, plus = true)                                                       // 왼쪽 +1
-                step(a, 3, plus = false); step(a, 3, plus = false)                          // 오른쪽 -2
-                val g = Prefs.geometry(a, large = false)
-                assertEquals(6, g.padTopDp); assertEquals(3, g.padBottomDp); assertEquals(5, g.padLeftDp); assertEquals(2, g.padRightDp)
-                assertEquals("6dp", value(a, 0))
-                val kb = previewKeyboard(a)
-                kb.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
-                assertEquals(before.toDouble(), kb.measuredHeight.toDouble(), 1.0)
-            }
-        }
-    }
-
     @Test fun gapAndNumGapUseSteppersWhileTabUsesDirectDrag() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                goTo(a, 2)                                                                   // ③ 간격
+                goTo(a, 1)                                                                   // ② 간격
                 step(a, 0, plus = true)                                                      // 가로 +1
                 step(a, 1, plus = false); step(a, 1, plus = false)                         // 세로 -2
-                goTo(a, 3)                                                                   // ④ 보조탭
+                goTo(a, 2)                                                                   // ③ 보조탭
                 assertTrue(a.findViewById<View>(R.id.switchNumberLeft) != null)
                 assertTrue(a.findViewById<View>(R.id.switchFnTab) != null)
                 assertTrue(a.findViewById<View>(R.id.stepPlus) == null)
                 assertEquals(View.VISIBLE, a.findViewById<View>(R.id.pageNote).visibility)
-                goTo(a, 5); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑥ 숫자줄 여백 +2
+                goTo(a, 4); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑤ 숫자줄 여백 +2
                 val g = Prefs.geometry(a, large = false)
                 assertEquals(7, g.keyGapDp); assertEquals(4, g.rowGapDp)
                 assertEquals(8, g.numRowGapDp)
@@ -175,9 +155,9 @@ class ResizeActivityTest {
     @Test fun hitZonePageShowsReadoutsAndResetRestoresTheDefaults() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                goTo(a, 6)
+                goTo(a, 5)
                 assertTrue(a.findViewById<View>(R.id.stepPlus) == null)
-                goTo(a, 2); step(a, 0, plus = true)
+                goTo(a, 1); step(a, 0, plus = true)
                 a.findViewById<View>(R.id.resetButton).performClick()
                 assertEquals(KeyboardGeometry(), Prefs.geometry(a, large = false))
             }

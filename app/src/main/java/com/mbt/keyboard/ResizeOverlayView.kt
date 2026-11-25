@@ -17,10 +17,10 @@ import kotlin.math.roundToInt
 
 /**
  * 미리보기([previewContainer]) 위에 겹쳐 그려지는 직접 드래그 조절 오버레이.
- * - page 0 (① 전체 크기): 키보드 오른쪽(가로), 위쪽(세로), 가운데 틈(갈라짐) 핸들 드래그
- * - page 3 (④ 보조탭): 탭 가운데 드래그(위치 이동) + 우하단 모서리 핸들 드래그(크기 조절)
- * - page 4 (⑤ 숫자·스페이스줄): 숫자 띠 경계선(좌우) + 스페이스바 윗변(상하) 드래그
- * - page 6 (⑦ 인식): 줄별 인식 경계 점선 상하 드래그
+ * - page 0 (① 크기): 바깥 파란 점선(전체 가로·세로·갈라짐) + 안쪽 보라 점선(키 영역 상하좌우 테두리 여백)
+ * - page 2 (③ 보조탭): 가운데(위치 이동) + 오른쪽 변(가로)·아래 변(세로)·우하단 모서리(가로+세로)
+ * - page 3 (④ 숫자·스페이스줄): 숫자 띠 경계선(좌우) + 스페이스바 윗변(상하)
+ * - page 5 (⑥ 인식): 줄별 인식 경계 점선 상하 드래그
  */
 @SuppressLint("ViewConstructor")
 class ResizeOverlayView(
@@ -42,6 +42,7 @@ class ResizeOverlayView(
 
     private val d = resources.displayMetrics.density
     private val accent = 0xFF1A73E8.toInt()
+    private val padAccent = 0xFF7B1FA2.toInt()
     private val tabAccent = 0xFF0F9D58.toInt()
     private val hitAccent = 0xFFE65100.toInt()
 
@@ -65,7 +66,8 @@ class ResizeOverlayView(
     private enum class DragTarget {
         NONE,
         KB_WIDTH, KB_HEIGHT, KB_GAP,
-        TAB_MOVE, TAB_RESIZE,
+        PAD_LEFT, PAD_TOP, PAD_RIGHT, PAD_BOTTOM, PAD_MOVE,
+        TAB_MOVE, TAB_WIDTH, TAB_HEIGHT, TAB_CORNER,
         NUM_WIDTH, SPACE_HEIGHT,
         HIT_LINE,
     }
@@ -77,6 +79,12 @@ class ResizeOverlayView(
     private var startGeo = KeyboardGeometry()
 
     private fun hostRect(): RectF = RectF(host.left.toFloat(), host.top.toFloat(), host.right.toFloat(), host.bottom.toFloat())
+    private fun keysRect(hr: RectF, g: KeyboardGeometry): RectF = RectF(
+        (hr.left + g.padLeftDp * d).coerceAtMost(hr.centerX()),
+        (hr.top + g.padTopDp * d).coerceAtMost(hr.centerY()),
+        (hr.right - g.padRightDp * d).coerceAtLeast(hr.centerX()),
+        (hr.bottom - g.padBottomDp * d).coerceAtLeast(hr.centerY()),
+    )
     private fun tabRect(): RectF = RectF(fnTab.left.toFloat(), fnTab.top.toFloat(), fnTab.right.toFloat(), fnTab.bottom.toFloat())
 
     private fun drawHandle(canvas: Canvas, cx: Float, cy: Float, color: Int, radiusDp: Float = 8.5f) {
@@ -89,34 +97,49 @@ class ResizeOverlayView(
     override fun onDraw(canvas: Canvas) {
         val hr = hostRect()
         if (hr.width() <= 0f || hr.height() <= 0f) return
+        val g = getGeometry()
         when (activePage) {
             0 -> {
+                // 바깥 파란 점선: 전체 키보드 크기 (위·오른쪽 1/4 지점에 핸들 배치해 안쪽 여백 핸들과 겹치지 않음)
                 dashPaint.color = accent
                 canvas.drawRect(hr.left + d, hr.top + d, hr.right - d, hr.bottom - d, dashPaint)
-                drawHandle(canvas, hr.right - 2 * d, hr.centerY(), accent)
-                drawHandle(canvas, hr.centerX(), hr.top + 2 * d, accent)
+                val outTopX = hr.left + hr.width() * 0.25f
+                val outRightY = hr.top + hr.height() * 0.25f
+                drawHandle(canvas, outTopX, hr.top + 2 * d, accent)
+                drawHandle(canvas, hr.right - 2 * d, outRightY, accent)
                 if (isSplitActive()) {
                     val gx = hr.centerX()
                     canvas.drawLine(gx, hr.top + 8 * d, gx, hr.bottom - 8 * d, dashPaint)
-                    drawHandle(canvas, gx, hr.centerY(), accent, 7.5f)
+                    drawHandle(canvas, gx, hr.top + hr.height() * 0.25f, accent, 7.5f)
                 }
+
+                // 안쪽 보라 점선: 키 영역 테두리 여백 (상하좌우 중앙 핸들 + 가운데 이동)
+                val kr = keysRect(hr, g)
+                dashPaint.color = padAccent
+                canvas.drawRect(kr, dashPaint)
+                drawHandle(canvas, kr.left, kr.centerY(), padAccent, 7.5f)
+                drawHandle(canvas, kr.right, kr.centerY(), padAccent, 7.5f)
+                drawHandle(canvas, kr.centerX(), kr.top, padAccent, 7.5f)
+                drawHandle(canvas, kr.centerX(), kr.bottom, padAccent, 7.5f)
             }
-            3 -> {
+            2 -> {
                 if (fnTab.visibility != VISIBLE) return
                 val tr = tabRect()
                 if (tr.width() <= 0f || tr.height() <= 0f) return
                 dashPaint.color = tabAccent
                 canvas.drawRoundRect(tr, 8 * d, 8 * d, dashPaint)
-                // 이동 중심 핸들
+                // 가운데 이동 핸들
                 drawHandle(canvas, tr.centerX(), tr.centerY(), tabAccent, 7f)
-                // 우하단 모서리 크기 조절 핸들
+                // 오른쪽 변(가로), 아래 변(세로), 우하단 모서리(가로+세로) 핸들
+                drawHandle(canvas, tr.right - 1 * d, tr.centerY(), tabAccent, 7f)
+                drawHandle(canvas, tr.centerX(), tr.bottom - 1 * d, tabAccent, 7f)
                 cornerPaint.color = tabAccent
                 val r = 10 * d
                 canvas.drawLine(tr.right - r, tr.bottom, tr.right, tr.bottom, cornerPaint)
                 canvas.drawLine(tr.right, tr.bottom - r, tr.right, tr.bottom, cornerPaint)
                 drawHandle(canvas, tr.right - 2 * d, tr.bottom - 2 * d, tabAccent, 8.5f)
             }
-            4 -> {
+            3 -> {
                 dashPaint.color = accent
                 if (keyboard.hasSideStrip) {
                     val sx = hr.left + keyboard.stripRightPx()
@@ -129,7 +152,7 @@ class ResizeOverlayView(
                     drawHandle(canvas, hr.centerX(), sy, accent)
                 }
             }
-            6 -> {
+            5 -> {
                 val ys = keyboard.hitZoneYs()
                 dashPaint.color = hitAccent
                 for (r in 1 until ys.size) {
@@ -142,46 +165,51 @@ class ResizeOverlayView(
         }
     }
 
-    private fun near(px: Float, py: Float, tx: Float, ty: Float, tolDp: Float = 26f): Boolean {
+    private fun near(px: Float, py: Float, tx: Float, ty: Float, tolDp: Float = 24f): Boolean {
         val tol = tolDp * d
         return abs(px - tx) <= tol && abs(py - ty) <= tol
     }
 
     override fun onTouchEvent(e: MotionEvent): Boolean {
-        if (activePage !in setOf(0, 3, 4, 6)) return false
+        if (activePage !in setOf(0, 2, 3, 5)) return false
         val hr = hostRect()
+        val g = getGeometry()
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 downX = e.x; downY = e.y
-                startGeo = getGeometry()
+                startGeo = g
                 dragTarget = DragTarget.NONE
                 hitLineIndex = -1
                 when (activePage) {
                     0 -> {
-                        val rightHit = near(e.x, e.y, hr.right, hr.centerY(), 30f) ||
-                            (abs(e.x - hr.right) <= 24 * d && e.y in hr.top..hr.bottom)
-                        val topHit = near(e.x, e.y, hr.centerX(), hr.top, 30f) ||
-                            (abs(e.y - hr.top) <= 24 * d && e.x in hr.left..hr.right)
-                        val gapHit = isSplitActive() && (near(e.x, e.y, hr.centerX(), hr.centerY(), 30f) ||
-                            (abs(e.x - hr.centerX()) <= 20 * d && e.y in hr.top..hr.bottom))
+                        val kr = keysRect(hr, g)
+                        val outTopX = hr.left + hr.width() * 0.25f
+                        val outRightY = hr.top + hr.height() * 0.25f
                         dragTarget = when {
-                            gapHit -> DragTarget.KB_GAP
-                            rightHit -> DragTarget.KB_WIDTH
-                            topHit -> DragTarget.KB_HEIGHT
+                            isSplitActive() && near(e.x, e.y, hr.centerX(), hr.top + hr.height() * 0.25f, 24f) -> DragTarget.KB_GAP
+                            near(e.x, e.y, outTopX, hr.top, 26f) -> DragTarget.KB_HEIGHT
+                            near(e.x, e.y, hr.right, outRightY, 26f) -> DragTarget.KB_WIDTH
+                            near(e.x, e.y, kr.left, kr.centerY(), 24f) -> DragTarget.PAD_LEFT
+                            near(e.x, e.y, kr.right, kr.centerY(), 24f) -> DragTarget.PAD_RIGHT
+                            near(e.x, e.y, kr.centerX(), kr.top, 24f) -> DragTarget.PAD_TOP
+                            near(e.x, e.y, kr.centerX(), kr.bottom, 24f) -> DragTarget.PAD_BOTTOM
+                            e.x in (kr.left + 20 * d)..(kr.right - 20 * d) && e.y in (kr.top + 20 * d)..(kr.bottom - 20 * d) -> DragTarget.PAD_MOVE
                             else -> DragTarget.NONE
                         }
                     }
-                    3 -> {
+                    2 -> {
                         if (fnTab.visibility == VISIBLE) {
                             val tr = tabRect()
-                            if (near(e.x, e.y, tr.right, tr.bottom, 26f)) {
-                                dragTarget = DragTarget.TAB_RESIZE
-                            } else if (e.x in (tr.left - 12 * d)..(tr.right + 12 * d) && e.y in (tr.top - 12 * d)..(tr.bottom + 12 * d)) {
-                                dragTarget = DragTarget.TAB_MOVE
+                            dragTarget = when {
+                                near(e.x, e.y, tr.right, tr.bottom, 22f) -> DragTarget.TAB_CORNER
+                                near(e.x, e.y, tr.right, tr.centerY(), 22f) -> DragTarget.TAB_WIDTH
+                                near(e.x, e.y, tr.centerX(), tr.bottom, 22f) -> DragTarget.TAB_HEIGHT
+                                e.x in (tr.left - 12 * d)..(tr.right + 12 * d) && e.y in (tr.top - 12 * d)..(tr.bottom + 12 * d) -> DragTarget.TAB_MOVE
+                                else -> DragTarget.NONE
                             }
                         }
                     }
-                    4 -> {
+                    3 -> {
                         val sx = hr.left + keyboard.stripRightPx()
                         val sy = hr.top + keyboard.spaceRowTopPx()
                         val numHit = keyboard.hasSideStrip && abs(e.x - sx) <= 26 * d && e.y in hr.top..hr.bottom
@@ -192,7 +220,7 @@ class ResizeOverlayView(
                             else -> DragTarget.NONE
                         }
                     }
-                    6 -> {
+                    5 -> {
                         val ys = keyboard.hitZoneYs()
                         var bestIdx = -1
                         var bestDist = 28f * d
@@ -219,6 +247,8 @@ class ResizeOverlayView(
                 if (dragTarget == DragTarget.NONE) return false
                 val dx = e.x - downX
                 val dy = e.y - downY
+                val dxDp = (dx / d).roundToInt()
+                val dyDp = (dy / d).roundToInt()
                 val cw = getContainerWidth().coerceAtLeast(1)
                 val updated = when (dragTarget) {
                     DragTarget.KB_WIDTH -> {
@@ -234,18 +264,36 @@ class ResizeOverlayView(
                         val deltaPct = (dx / cw * 160f).roundToInt()
                         startGeo.copy(gapPct = startGeo.gapPct + deltaPct).clamped()
                     }
+                    DragTarget.PAD_LEFT -> startGeo.copy(padLeftDp = startGeo.padLeftDp + dxDp).clamped()
+                    DragTarget.PAD_RIGHT -> startGeo.copy(padRightDp = startGeo.padRightDp - dxDp).clamped()
+                    DragTarget.PAD_TOP -> startGeo.copy(padTopDp = startGeo.padTopDp + dyDp).clamped()
+                    DragTarget.PAD_BOTTOM -> startGeo.copy(padBottomDp = startGeo.padBottomDp - dyDp).clamped()
+                    DragTarget.PAD_MOVE -> startGeo.copy(
+                        padLeftDp = startGeo.padLeftDp + dxDp,
+                        padRightDp = startGeo.padRightDp - dxDp,
+                        padTopDp = startGeo.padTopDp + dyDp,
+                        padBottomDp = startGeo.padBottomDp - dyDp,
+                    ).clamped()
                     DragTarget.TAB_MOVE -> {
-                        val dxDp = if (keyboard.hasTopNumberRow) 0 else (dx / d).roundToInt()
-                        val dyDp = (dy / d).roundToInt()
-                        startGeo.copy(
-                            fnTabXdp = startGeo.fnTabXdp + dxDp,
-                            fnTabYdp = startGeo.fnTabYdp + dyDp,
-                        ).clamped()
+                        val tx = if (keyboard.hasTopNumberRow) 0 else dxDp
+                        startGeo.copy(fnTabXdp = startGeo.fnTabXdp + tx, fnTabYdp = startGeo.fnTabYdp + dyDp).clamped()
                     }
-                    DragTarget.TAB_RESIZE -> {
+                    DragTarget.TAB_WIDTH -> {
+                        val baseW = (fnTab.width.takeIf { it > 0 } ?: 1).toFloat() / (startGeo.fnTabWidthPct / 100f)
+                        val maxW = if (keyboard.hasTopNumberRow) 100 else KeyboardGeometry.FN_TAB_WIDTH_MAX
+                        val wPct = (startGeo.fnTabWidthPct + (dx / baseW * 100f).roundToInt()).coerceIn(KeyboardGeometry.FN_TAB_WIDTH_MIN, maxW)
+                        startGeo.copy(fnTabWidthPct = wPct).clamped()
+                    }
+                    DragTarget.TAB_HEIGHT -> {
+                        val baseH = (fnTab.height.takeIf { it > 0 } ?: 1).toFloat() / (startGeo.fnTabHeightPct / 100f)
+                        val hPct = startGeo.fnTabHeightPct + (dy / baseH * 100f).roundToInt()
+                        startGeo.copy(fnTabHeightPct = hPct).clamped()
+                    }
+                    DragTarget.TAB_CORNER -> {
                         val baseW = (fnTab.width.takeIf { it > 0 } ?: 1).toFloat() / (startGeo.fnTabWidthPct / 100f)
                         val baseH = (fnTab.height.takeIf { it > 0 } ?: 1).toFloat() / (startGeo.fnTabHeightPct / 100f)
-                        val wPct = if (keyboard.hasTopNumberRow) startGeo.fnTabWidthPct else startGeo.fnTabWidthPct + (dx / baseW * 100f).roundToInt()
+                        val maxW = if (keyboard.hasTopNumberRow) 100 else KeyboardGeometry.FN_TAB_WIDTH_MAX
+                        val wPct = (startGeo.fnTabWidthPct + (dx / baseW * 100f).roundToInt()).coerceIn(KeyboardGeometry.FN_TAB_WIDTH_MIN, maxW)
                         val hPct = startGeo.fnTabHeightPct + (dy / baseH * 100f).roundToInt()
                         startGeo.copy(fnTabWidthPct = wPct, fnTabHeightPct = hPct).clamped()
                     }
@@ -260,13 +308,12 @@ class ResizeOverlayView(
                         startGeo.copy(spaceRowPct = startGeo.spaceRowPct + deltaPct).clamped()
                     }
                     DragTarget.HIT_LINE -> {
-                        val deltaDp = (dy / d).roundToInt()
                         val first = if ((keyboard.hasSideStrip || keyboard.hasTopNumberRow) && keyboard.keyboardLayout?.moaki != true) 1 else 0
                         when (hitLineIndex - 1 + first) {
-                            0 -> startGeo.copy(hit0Dp = startGeo.hit0Dp + deltaDp).clamped()
-                            1 -> startGeo.copy(hit1Dp = startGeo.hit1Dp + deltaDp).clamped()
-                            2 -> startGeo.copy(hit2Dp = startGeo.hit2Dp + deltaDp).clamped()
-                            3 -> startGeo.copy(hit3Dp = startGeo.hit3Dp + deltaDp).clamped()
+                            0 -> startGeo.copy(hit0Dp = startGeo.hit0Dp + dyDp).clamped()
+                            1 -> startGeo.copy(hit1Dp = startGeo.hit1Dp + dyDp).clamped()
+                            2 -> startGeo.copy(hit2Dp = startGeo.hit2Dp + dyDp).clamped()
+                            3 -> startGeo.copy(hit3Dp = startGeo.hit3Dp + dyDp).clamped()
                             else -> startGeo
                         }
                     }

@@ -28,9 +28,9 @@ import com.mbt.keyboard.settings.ResizeDiagram
 import com.mbt.keyboard.settings.ScreenProfile
 
 /**
- * 키보드 크기·여백·보조탭·인식영역 조절 UI 컨트롤러.
- * ① 전체 크기 · ④ 보조탭 · ⑤ 숫자·스페이스줄 · ⑦ 인식은 미리보기 위 직접 드래그로 조절하고,
- * ② 여백 · ③ 간격 · ⑥ 숫자 여백은 － ＋ 버튼으로 조절한다.
+ * 키보드 크기·여백·보조탭·인식영역 조절 UI 컨트롤러 (6개 탭).
+ * ① 크기(여백 통합) · ③ 보조탭 · ④ 숫자·스페이스줄 · ⑥ 인식은 미리보기 위 직접 드래그로 조절하고,
+ * ② 간격 · ⑤ 숫자 여백은 － ＋ 버튼으로 조절한다.
  */
 class ResizePane(
     private val context: Context,
@@ -121,25 +121,15 @@ class ResizePane(
 
         pages = listOf(
             Page(R.string.resize_page_size, R.string.resize_title_size, R.string.resize_badge_base, R.string.resize_desc_size, ResizeDiagram.Part.SIZE) {
-                addDragHint("위·오른쪽 파란 점선 핸들을 끌어 가로·세로 크기를 조절하세요")
-                addReadout(R.string.resize_width) { "${geometry.widthPct}%" }
-                addReadout(R.string.resize_height) { "${geometry.heightPct}%" }
+                addDragHint("바깥 파란 점선으로 전체 크기를, 안쪽 보라 점선과 가운데를 끌어 상하좌우 여백을 조절하세요")
+                addReadout("전체 크기") { "가로 ${geometry.widthPct}% · 세로 ${geometry.heightPct}%" }
+                addReadout("테두리 여백") { "위 ${geometry.padTopDp} · 아래 ${geometry.padBottomDp} · 왼 ${geometry.padLeftDp} · 오른 ${geometry.padRightDp}dp" }
                 if (splitActive) {
                     addReadout(R.string.resize_gap) {
                         if (!large && geometry.gapPct == 0) context.getString(R.string.resize_gap_off) else "${geometry.gapPct}%"
                     }
                 }
                 addFontScaleSlider()
-            },
-            Page(R.string.resize_page_pad, R.string.resize_title_pad, R.string.resize_badge_1, R.string.resize_desc_pad, ResizeDiagram.Part.PAD) {
-                addStepper(R.string.resize_pad_top, { geometry = geometry.padTopBy(it) }, { "${geometry.padTopDp}dp" },
-                    { geometry.padTopDp > KeyboardGeometry.PAD_MIN }, { geometry.padTopDp < KeyboardGeometry.PAD_MAX })
-                addStepper(R.string.resize_pad_bottom, { geometry = geometry.padBottomBy(it) }, { "${geometry.padBottomDp}dp" },
-                    { geometry.padBottomDp > KeyboardGeometry.PAD_MIN }, { geometry.padBottomDp < KeyboardGeometry.PAD_MAX })
-                addStepper(R.string.resize_pad_left, { geometry = geometry.padLeftBy(it) }, { "${geometry.padLeftDp}dp" },
-                    { geometry.padLeftDp > KeyboardGeometry.PAD_MIN }, { geometry.padLeftDp < KeyboardGeometry.PAD_MAX })
-                addStepper(R.string.resize_pad_right, { geometry = geometry.padRightBy(it) }, { "${geometry.padRightDp}dp" },
-                    { geometry.padRightDp > KeyboardGeometry.PAD_MIN }, { geometry.padRightDp < KeyboardGeometry.PAD_MAX })
             },
             Page(R.string.resize_page_gap, R.string.resize_title_gap, R.string.resize_badge_12, R.string.resize_desc_gap, ResizeDiagram.Part.GAP) {
                 addStepper(R.string.resize_key_gap, { geometry = geometry.keyGapBy(it) }, { "${geometry.keyGapDp}dp" },
@@ -152,8 +142,8 @@ class ResizePane(
                     { Prefs.numberKeysLeft(context) }, { on -> Prefs.setNumberKeysLeft(context, on) })
                 addSwitch(R.id.switchFnTab, R.string.fn_tab_switch, R.string.fn_tab_desc,
                     { Prefs.fnTabEnabled(context) }, { on -> Prefs.setFnTabEnabled(context, on) })
-                addDragHint("미리보기의 초록 보조탭 가운데를 끌면 위치 이동, 오른쪽 아래 모서리를 끌면 크기 조절됩니다")
-                addReadout(R.string.resize_tab_height) { "높이 ${geometry.fnTabHeightPct}% · 너비 ${geometry.fnTabWidthPct}%" }
+                addDragHint("가운데를 끌면 위치 이동, 오른쪽·아래·우하단 모서리를 끌면 가로·세로 크기가 조절됩니다")
+                addReadout(R.string.resize_tab_height) { "너비 ${geometry.fnTabWidthPct}% · 높이 ${geometry.fnTabHeightPct}%" }
                 addReadout("보조탭 위치") {
                     if (keyboard.hasTopNumberRow) "상하 ${geometry.fnTabYdp}dp" else "좌우 ${geometry.fnTabXdp}dp · 상하 ${geometry.fnTabYdp}dp"
                 }
