@@ -939,7 +939,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             }
             glassPaint.alpha = 255; glassPaint.shader = null
             val tintBase = if (t >= 0f) withBgOpacity(theme.frostTint) else theme.frostTint
-            val tintA = (((tintBase ushr 24) and 0xFF) * bgG * (if (theme.frost) 0.68f else 0.36f)).toInt().coerceIn(0, 255)
+            val tintA = (((tintBase ushr 24) and 0xFF) * bgG * (if (theme.frost) 0.48f else 0.28f)).toInt().coerceIn(0, 255)
             glassPaint.color = (tintA shl 24) or (tintBase and 0x00FFFFFF)
             canvas.drawRect(l, t, r, b, glassPaint)
         }
@@ -972,20 +972,21 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             canvas.drawRect(l, t, r, b, glassPaint)
         }
 
-        // 유리판 전체를 비스듬히 가로지르는 선명한 대각선 유리창 빛반사면 (어두운/밝은 배경 모두 확실히 보이도록)
-        val diagTopA = (0x6A * bgG).toInt().coerceIn(0, 255)
-        val diagMidA = (0x42 * bgG).toInt().coerceIn(0, 255)
-        val diagEdgeA = (0x88 * bgG).toInt().coerceIn(0, 255)
+        // 유리판 전체를 비스듬히 가로지르는 선명한 대각선 유리창 빛반사면 (밝은 배경에서도 보이도록 반사 + 미세 굴절 음영 대비)
+        val diagTopA = (0x84 * bgG).toInt().coerceIn(0, 255)
+        val diagMidA = (0x54 * bgG).toInt().coerceIn(0, 255)
+        val diagEdgeA = (0xA8 * bgG).toInt().coerceIn(0, 255)
+        val diagShadowA = (0x24 * bgG).toInt().coerceIn(0, 255)
         glassPaint.shader = LinearGradient(
-            0f, -extra, w * 0.62f, h * 0.92f,
+            0f, -extra, w * 0.65f, h * 0.95f,
             intArrayOf(
                 (diagTopA shl 24) or 0xFFFFFF,
                 (diagMidA shl 24) or 0xFFFFFF,
                 (diagEdgeA shl 24) or 0xFFFFFF,
-                0x00FFFFFF,
-                0x00FFFFFF,
+                (diagShadowA shl 24) or 0x182230,
+                0x00000000,
             ),
-            floatArrayOf(0f, 0.43f, 0.492f, 0.506f, 1f),
+            floatArrayOf(0f, 0.42f, 0.488f, 0.508f, 0.62f),
             Shader.TileMode.CLAMP,
         )
         canvas.drawRect(l, t, r, b, glassPaint)
@@ -1075,10 +1076,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         canvas.save()
         glassPaint.style = Paint.Style.STROKE
         glassPaint.shader = null
-        glassPaint.strokeWidth = 1.2f * density
-        glassPaint.color = scaleAlpha(0x28000000, bgG)
+        glassPaint.strokeWidth = 1.6f * density
+        glassPaint.color = scaleAlpha(0x3C141E2B, bgG)
         canvas.drawPath(glassPath, glassPaint)
-        glassPaint.strokeWidth = (if (effGlass == 3) 2.4f else 2f) * density
+        glassPaint.strokeWidth = (if (effGlass == 3) 2.8f else 2.2f) * density
         glassPaint.shader = frostRimShader(w, h, bgG)
         canvas.drawPath(glassPath, glassPaint)
         glassPaint.strokeWidth = (if (effGlass == 3) 2.0f else 1.4f) * density

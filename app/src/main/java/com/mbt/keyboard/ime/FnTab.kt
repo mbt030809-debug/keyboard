@@ -107,7 +107,6 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             val isDigit = k.type == KeyType.CHAR
             val baseColor = when {
                 i == pressed -> theme.keyPressed
-                theme.frost -> if (isDigit) theme.numberKey else theme.key
                 isDigit -> theme.numberKey
                 else -> theme.specialKey
             }

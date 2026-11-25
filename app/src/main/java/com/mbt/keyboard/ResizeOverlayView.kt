@@ -139,14 +139,9 @@ class ResizeOverlayView(
                 canvas.drawRoundRect(tr, 8 * d, 8 * d, dashPaint)
                 // 가운데 이동 핸들
                 drawHandle(canvas, tr.centerX(), tr.centerY(), tabAccent, 7f)
-                // 오른쪽 변(가로), 아래 변(세로), 우하단 모서리(가로+세로) 핸들
-                drawHandle(canvas, tr.right - 1 * d, tr.centerY(), tabAccent, 7f)
-                drawHandle(canvas, tr.centerX(), tr.bottom - 1 * d, tabAccent, 7f)
-                cornerPaint.color = tabAccent
-                val r = 10 * d
-                canvas.drawLine(tr.right - r, tr.bottom, tr.right, tr.bottom, cornerPaint)
-                canvas.drawLine(tr.right, tr.bottom - r, tr.right, tr.bottom, cornerPaint)
-                drawHandle(canvas, tr.right - 2 * d, tr.bottom - 2 * d, tabAccent, 8.5f)
+                // 오른쪽 변(가로) + 위쪽 변(세로: 위로 끌면 위로 커짐) 핸들
+                drawHandle(canvas, tr.right - 1 * d, tr.centerY(), tabAccent, 7.5f)
+                drawHandle(canvas, tr.centerX(), tr.top + 1 * d, tabAccent, 7.5f)
             }
             3 -> {
                 dashPaint.color = accent
@@ -210,9 +205,8 @@ class ResizeOverlayView(
                         if (fnTab.visibility == VISIBLE) {
                             val tr = tabRect()
                             dragTarget = when {
-                                near(e.x, e.y, tr.right, tr.bottom, 22f) -> DragTarget.TAB_CORNER
                                 near(e.x, e.y, tr.right, tr.centerY(), 22f) -> DragTarget.TAB_WIDTH
-                                near(e.x, e.y, tr.centerX(), tr.bottom, 22f) -> DragTarget.TAB_HEIGHT
+                                near(e.x, e.y, tr.centerX(), tr.top, 22f) -> DragTarget.TAB_HEIGHT
                                 e.x in (tr.left - 12 * d)..(tr.right + 12 * d) && e.y in (tr.top - 12 * d)..(tr.bottom + 12 * d) -> DragTarget.TAB_MOVE
                                 else -> DragTarget.NONE
                             }
@@ -294,7 +288,7 @@ class ResizeOverlayView(
                         startGeo.copy(fnTabWidthPct = wPct).clamped()
                     }
                     DragTarget.TAB_HEIGHT -> {
-                        val hPct = startGeo.fnTabHeightPct + (dy / startTabBaseH * 100f).roundToInt()
+                        val hPct = startGeo.fnTabHeightPct + (-dy / startTabBaseH * 100f).roundToInt()
                         startGeo.copy(fnTabHeightPct = hPct).clamped()
                     }
                     DragTarget.TAB_CORNER -> {

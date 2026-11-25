@@ -142,7 +142,7 @@ class ResizePane(
                     { Prefs.numberKeysLeft(context) }, { on -> Prefs.setNumberKeysLeft(context, on) })
                 addSwitch(R.id.switchFnTab, R.string.fn_tab_switch, R.string.fn_tab_desc,
                     { Prefs.fnTabEnabled(context) }, { on -> Prefs.setFnTabEnabled(context, on) })
-                addDragHint("가운데를 끌면 위치 이동, 오른쪽·아래·우하단 모서리를 끌면 가로·세로 크기가 조절됩니다")
+                addDragHint("가운데를 끌면 위치 이동, 오른쪽·위쪽 변 핸들을 끌면 가로·세로 크기가 조절됩니다")
                 addReadout(R.string.resize_tab_height) { "너비 ${geometry.fnTabWidthPct}% · 높이 ${geometry.fnTabHeightPct}%" }
                 addReadout("보조탭 위치") {
                     if (keyboard.hasTopNumberRow) "상하 ${geometry.fnTabYdp}dp" else "좌우 ${geometry.fnTabXdp}dp · 상하 ${geometry.fnTabYdp}dp"
