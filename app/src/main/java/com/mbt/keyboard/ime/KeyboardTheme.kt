@@ -34,8 +34,10 @@ data class KeyboardTheme(
     val numberKeyGlass: Int = 0,
     /** 0이 아니면 엔터 키를 이 색의 투명한 "색입힌 유리"로 그린다 (글래스 테마용, ARGB) */
     val enterKeyGlass: Int = 0,
+    val spaceKey: Int = 0,
 ) {
     val hasGradient: Boolean get() = backgroundEnd != 0
+    val effectiveSpaceKey: Int get() = if (spaceKey != 0) spaceKey else key
 
     /** 숫자 키 배경: 글자 키 색을 모든 테마에서 똑같이 [NUMBER_KEY_DARKEN] 만큼 어둡게 (투명도는 그대로) */
     val numberKey: Int
