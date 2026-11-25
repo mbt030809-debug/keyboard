@@ -60,7 +60,7 @@ class MirrorAccessibilityService : AccessibilityService() {
             captureNow()
         } else if (!pendingCapture) {
             pendingCapture = true
-            handler.postDelayed(captureRunnable, (MIN_INTERVAL_MS - elapsed).coerceAtLeast(60L))
+            handler.postDelayed(captureRunnable, (MIN_INTERVAL_MS - elapsed).coerceAtLeast(16L))
         }
     }
 
@@ -104,7 +104,7 @@ class MirrorAccessibilityService : AccessibilityService() {
     }
 
     companion object {
-        private const val MIN_INTERVAL_MS = 360L
+        private const val MIN_INTERVAL_MS = 33L
 
         @Volatile var instance: MirrorAccessibilityService? = null
         @Volatile var keyboardVisible: Boolean = false
