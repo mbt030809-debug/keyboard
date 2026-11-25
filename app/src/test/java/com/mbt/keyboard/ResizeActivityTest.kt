@@ -106,15 +106,29 @@ class ResizeActivityTest {
         }
     }
 
-    @Test fun sizePageChangesWidthAndHeightByOnePercentAndIsSaved() {
+    private fun overlay(a: ResizeActivity): ResizeOverlayView {
+        val c = a.findViewById<android.view.ViewGroup>(R.id.previewContainer)
+        return (0 until c.childCount).map { c.getChildAt(it) }.filterIsInstance<ResizeOverlayView>().single()
+    }
+
+    private fun drag(v: View, x0: Float, y0: Float, x1: Float, y1: Float) {
+        val t = android.os.SystemClock.uptimeMillis()
+        v.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, x0, y0, 0))
+        v.dispatchTouchEvent(MotionEvent.obtain(t, t + 20, MotionEvent.ACTION_MOVE, x1, y1, 0))
+        v.dispatchTouchEvent(MotionEvent.obtain(t, t + 40, MotionEvent.ACTION_UP, x1, y1, 0))
+    }
+
+    @Test fun sizePageUsesDirectDragWithoutStepperButtons() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertTrue(controls(a).childCount >= 2)                 // 가로·세로 + 글자 크기 슬라이더
-                step(a, 0, plus = false); step(a, 0, plus = false); step(a, 0, plus = false)
-                step(a, 1, plus = false); step(a, 1, plus = false); step(a, 1, plus = true)
-                val g = Prefs.geometry(a, large = false)
-                assertEquals(97, g.widthPct); assertEquals(99, g.heightPct)
-                assertEquals("97%", value(a, 0))
+                assertTrue(a.findViewById<View>(R.id.stepPlus) == null)
+                assertTrue(a.findViewById<View>(R.id.sliderFontScale) != null)
+                val ov = overlay(a)
+                val hr = previewHost(a)
+                hr.layout(0, 50, 1000, 450)
+                ov.layout(0, 0, 1000, 500)
+                drag(ov, hr.left + hr.width() * 0.25f, hr.top.toFloat(), hr.left + hr.width() * 0.25f, hr.top - 60f)
+                assertTrue(Prefs.geometry(a, large = false).heightPct > 100)
             }
         }
     }
@@ -123,9 +137,13 @@ class ResizeActivityTest {
     fun splitGapShowsOnLargeScreenSeparatelyFromPhoneAndResetRestoresEverything() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertTrue(controls(a).childCount >= 3)
-                step(a, 2, plus = true); step(a, 2, plus = true)
-                assertEquals(20, Prefs.geometry(a, large = true).gapPct)
+                assertTrue(controls(a).childCount >= 4)
+                val ov = overlay(a)
+                val hr = previewHost(a)
+                hr.layout(0, 50, 1000, 450)
+                ov.layout(0, 0, 1000, 500)
+                drag(ov, (hr.left + hr.right) / 2f, hr.top + hr.height() * 0.25f, (hr.left + hr.right) / 2f + 30f, hr.top + hr.height() * 0.25f)
+                assertTrue(Prefs.geometry(a, large = true).gapPct > KeyboardGeometry.GAP_DEFAULT)
                 assertEquals(KeyboardGeometry.GAP_DEFAULT, Prefs.geometry(a, large = false).gapPct)   // 접힘(폰) 설정은 그대로
                 a.findViewById<View>(R.id.resetButton).performClick()
                 assertEquals(KeyboardGeometry(), Prefs.geometry(a, large = true))
