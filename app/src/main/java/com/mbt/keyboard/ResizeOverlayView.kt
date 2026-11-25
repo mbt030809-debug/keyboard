@@ -74,9 +74,12 @@ class ResizeOverlayView(
 
     private var dragTarget = DragTarget.NONE
     private var hitLineIndex = -1
-    private var downX = 0f
-    private var downY = 0f
+    private var downRawX = 0f
+    private var downRawY = 0f
     private var startGeo = KeyboardGeometry()
+    private var startKbBaseH = 1f
+    private var startTabBaseW = 1f
+    private var startTabBaseH = 1f
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
@@ -182,8 +185,11 @@ class ResizeOverlayView(
         val g = getGeometry()
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                downX = e.x; downY = e.y
+                downRawX = e.rawX; downRawY = e.rawY
                 startGeo = g
+                startKbBaseH = ((keyboard.height.takeIf { it > 0 } ?: 1).toFloat() / (g.heightPct / 100f)).coerceAtLeast(1f)
+                startTabBaseW = ((fnTab.width.takeIf { it > 0 } ?: 1).toFloat() / (g.fnTabWidthPct / 100f)).coerceAtLeast(1f)
+                startTabBaseH = ((fnTab.height.takeIf { it > 0 } ?: 1).toFloat() / (g.fnTabHeightPct / 100f)).coerceAtLeast(1f)
                 dragTarget = DragTarget.NONE
                 hitLineIndex = -1
                 when (activePage) {
@@ -250,8 +256,8 @@ class ResizeOverlayView(
             }
             MotionEvent.ACTION_MOVE -> {
                 if (dragTarget == DragTarget.NONE) return false
-                val dx = e.x - downX
-                val dy = e.y - downY
+                val dx = e.rawX - downRawX
+                val dy = e.rawY - downRawY
                 val dxDp = (dx / d).roundToInt()
                 val dyDp = (dy / d).roundToInt()
                 val cw = getContainerWidth().coerceAtLeast(1)
@@ -261,8 +267,7 @@ class ResizeOverlayView(
                         startGeo.copy(widthPct = startGeo.widthPct + deltaPct).clamped()
                     }
                     DragTarget.KB_HEIGHT -> {
-                        val baseH = (keyboard.height.takeIf { it > 0 } ?: 1).toFloat() / (startGeo.heightPct / 100f)
-                        val deltaPct = (-dy / baseH * 100f).roundToInt()
+                        val deltaPct = (-dy / startKbBaseH * 100f).roundToInt()
                         startGeo.copy(heightPct = startGeo.heightPct + deltaPct).clamped()
                     }
                     DragTarget.KB_GAP -> {
@@ -284,22 +289,18 @@ class ResizeOverlayView(
                         startGeo.copy(fnTabXdp = startGeo.fnTabXdp + tx, fnTabYdp = startGeo.fnTabYdp + dyDp).clamped()
                     }
                     DragTarget.TAB_WIDTH -> {
-                        val baseW = (fnTab.width.takeIf { it > 0 } ?: 1).toFloat() / (startGeo.fnTabWidthPct / 100f)
                         val maxW = if (keyboard.hasTopNumberRow) 100 else KeyboardGeometry.FN_TAB_WIDTH_MAX
-                        val wPct = (startGeo.fnTabWidthPct + (dx / baseW * 100f).roundToInt()).coerceIn(KeyboardGeometry.FN_TAB_WIDTH_MIN, maxW)
+                        val wPct = (startGeo.fnTabWidthPct + (dx / startTabBaseW * 100f).roundToInt()).coerceIn(KeyboardGeometry.FN_TAB_WIDTH_MIN, maxW)
                         startGeo.copy(fnTabWidthPct = wPct).clamped()
                     }
                     DragTarget.TAB_HEIGHT -> {
-                        val baseH = (fnTab.height.takeIf { it > 0 } ?: 1).toFloat() / (startGeo.fnTabHeightPct / 100f)
-                        val hPct = startGeo.fnTabHeightPct + (dy / baseH * 100f).roundToInt()
+                        val hPct = startGeo.fnTabHeightPct + (dy / startTabBaseH * 100f).roundToInt()
                         startGeo.copy(fnTabHeightPct = hPct).clamped()
                     }
                     DragTarget.TAB_CORNER -> {
-                        val baseW = (fnTab.width.takeIf { it > 0 } ?: 1).toFloat() / (startGeo.fnTabWidthPct / 100f)
-                        val baseH = (fnTab.height.takeIf { it > 0 } ?: 1).toFloat() / (startGeo.fnTabHeightPct / 100f)
                         val maxW = if (keyboard.hasTopNumberRow) 100 else KeyboardGeometry.FN_TAB_WIDTH_MAX
-                        val wPct = (startGeo.fnTabWidthPct + (dx / baseW * 100f).roundToInt()).coerceIn(KeyboardGeometry.FN_TAB_WIDTH_MIN, maxW)
-                        val hPct = startGeo.fnTabHeightPct + (dy / baseH * 100f).roundToInt()
+                        val wPct = (startGeo.fnTabWidthPct + (dx / startTabBaseW * 100f).roundToInt()).coerceIn(KeyboardGeometry.FN_TAB_WIDTH_MIN, maxW)
+                        val hPct = startGeo.fnTabHeightPct + (dy / startTabBaseH * 100f).roundToInt()
                         startGeo.copy(fnTabWidthPct = wPct, fnTabHeightPct = hPct).clamped()
                     }
                     DragTarget.NUM_WIDTH -> {
@@ -324,8 +325,10 @@ class ResizeOverlayView(
                     }
                     DragTarget.NONE -> startGeo
                 }
-                onGeometryChanged(updated)
-                invalidate()
+                if (updated != getGeometry()) {
+                    onGeometryChanged(updated)
+                    invalidate()
+                }
                 return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
