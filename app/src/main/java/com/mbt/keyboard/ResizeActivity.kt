@@ -277,6 +277,9 @@ class ResizeActivity : AppCompatActivity() {
         keyboard.heightScale = geometry.heightScale
         keyboard.splitGapFraction = geometry.gapFraction
         keyboard.keyOpacity = Prefs.keyOpacityPercent(this) / 100f
+        keyboard.bgOpacity = Prefs.bgOpacityPercent(this) / 100f
+        keyboard.mirrorEnabled = Prefs.mirrorEnabled(this)
+        keyboard.mirrorStrength = Prefs.mirrorStrengthPercent(this) / 100f
         keyboard.split = splitActive && (large || geometry.gapPct > 0)
         keyboard.frame = KeyboardFrame(
             geometry.padLeftDp, geometry.padTopDp, geometry.padRightDp, geometry.padBottomDp, geometry.keyGapDp,
