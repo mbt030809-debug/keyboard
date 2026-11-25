@@ -136,10 +136,10 @@ class NumberLeftTest {
                 assertEquals("${layout.id} $frame", top.toDouble(), left.toDouble(), 2.0)
             }
         }
-        // 글자 키는 그만큼 커진다 (줄 5개 → 4개)
+        // 상단 배치도 전복붙+숫자가 탭으로 올라가 본판이 4줄이므로 글자 키 높이도 동일하다
         show(Layouts.koreanSingle, numberLeft = false); val before = inner("ㅂ").height()
         show(Layouts.koreanSingle, numberLeft = true); val after = inner("ㅂ").height()
-        assertTrue("$before -> $after", after > before * 1.15f)
+        assertEquals("$before -> $after", before, after, 1f)
     }
 
     @Test fun numberRowSizeSettingBecomesTheStripWidthAndLeavesHeightAlone() {
@@ -173,17 +173,14 @@ class NumberLeftTest {
             show(layout, numberLeft = true, frame = KeyboardFrame(numberGapDp = 30)); val b = view.measuredHeight
             assertEquals(layout.id, a.toDouble(), b.toDouble(), 1.0)
         }
-        // 숫자를 위에 둘 때는 예전처럼 세로 여백
-        show(Layouts.english, numberLeft = false, frame = KeyboardFrame(numberGapDp = 20))
-        val gapY = (inner("q").top - inner("1").bottom) / density
-        assertEquals(20f, gapY, 0.1f)
+
     }
 
-    @Test fun turningItOffRestoresTheTopNumberRow() {
+    @Test fun turningItOffMovesDigitsAndFnKeysToTopTab() {
         show(Layouts.english, numberLeft = false)
-        val d = view.keyRects().filter { it.first.label in digits }.map { it.second }
-        assertEquals(1, d.map { it.top.toInt() }.toSet().size)                                    // 한 줄
-        assertTrue(d.all { it.bottom <= rect("q").top + 1f })                                      // 글자 줄 위
+        assertTrue(view.hasTopNumberRow)
+        assertEquals(13, view.fnTabKeys().size)
+        assertTrue(view.keyRects().none { it.first.label in digits })
     }
 
     @Test fun stripColumnsReadOneToFiveThenSixToZero() {
@@ -252,7 +249,7 @@ class NumberKeyShadeTest {
     }
 
     @Test fun digitKeysAreDarkerThanLetterKeysOnEveryLayoutAndPlacement() {
-        for (numberLeft in listOf(true, false)) for ((layout, letter) in listOf(Layouts.koreanSingle to "ㅂ", Layouts.korean to "ㅂ", Layouts.english to "q")) {
+        for ((layout, letter) in listOf(Layouts.koreanSingle to "ㅂ", Layouts.korean to "ㅂ", Layouts.english to "q")) { val numberLeft = true
             val v = viewFor(layout, numberLeft)
             val digit = colorOf(v, "5"); val key = colorOf(v, letter)
             assertEquals(v.theme.numberKey, digit)

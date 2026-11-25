@@ -161,22 +161,46 @@ class KeyboardView(context: Context) : View(context) {
     /** 지금 자판에 왼쪽 숫자 띠가 있는가 (모아키 또는 숫자 왼쪽 옵션) */
     val hasSideStrip: Boolean get() = effective()?.sideKeys?.isNotEmpty() == true
 
+    /** 숫자가 상단 배치일 때 전복붙+숫자(1~0)를 상단 탭으로 띄우는 자판인가 (단모음·두벌식·영어에서 숫자 좌측 OFF) */
+    val hasTopNumberRow: Boolean
+        get() {
+            val base = keyboardLayout ?: return false
+            return !numberLeft && !base.moaki && base.sideKeys.isEmpty() &&
+                base.rows.firstOrNull()?.any { it.type == KeyType.SELECT_ALL } == true
+        }
+
+    /** 상단 탭(FnTab)에 들어갈 키 목록: 좌측 숫자 띠면 3키(전·복·붙), 상단 숫자면 13키(전·복·붙 + 1~0) */
+    fun fnTabKeys(): List<Key> = when {
+        hasSideStrip -> listOf(Key("전체", KeyType.SELECT_ALL), Key("복사", KeyType.COPY), Key("붙임", KeyType.PASTE))
+        hasTopNumberRow -> keyboardLayout?.rows?.firstOrNull().orEmpty()
+        else -> emptyList()
+    }
+
     private var effCacheKey: Triple<KeyboardLayout?, Boolean, Boolean>? = null
     private var effCache: KeyboardLayout? = null
 
-    /** 실제로 그리는 자판: [numberLeft]이면 숫자 줄을 왼쪽 띠로, 전체·복사·붙임을 맨 아래 줄 앞으로 옮긴 사본 */
+    /**
+     * 실제로 그리는 본판 자판:
+     * - [numberLeft]가 켜지면 숫자를 왼쪽 띠로, 전복붙을 맨 아래 줄(또는 상단 탭)로 옮긴 4줄
+     * - [numberLeft]가 꺼지면 전복붙+숫자 줄을 상단 탭으로 빼고 문자 3줄 + 하단 1줄 = 동일한 4줄
+     */
     private fun effective(): KeyboardLayout? {
         val base = keyboardLayout ?: return null
         val key = Triple(base, numberLeft, fnTab)
         if (effCacheKey == key) return effCache
         val numRow = base.rows.firstOrNull()
-        val convert = numberLeft && !base.moaki && base.sideKeys.isEmpty() && numRow?.any { it.type == KeyType.SELECT_ALL } == true
-        val conv = if (!convert) base else {
+        val hasNumRow = !base.moaki && base.sideKeys.isEmpty() && numRow?.any { it.type == KeyType.SELECT_ALL } == true
+        val conv = if (!hasNumRow) {
+            base
+        } else if (numberLeft) {
             val digits = numRow!!.filter { it.type == KeyType.CHAR && it.label.length == 1 && it.label[0].isDigit() }
             val fn = numRow.filter { it.type in FN_TYPES }
             val rows = base.rows.drop(1).toMutableList()
             rows[rows.lastIndex] = fn + rows.last()
             base.copy(rows = rows, rowHeights = List(rows.size) { 1f }, splitAt = base.splitAt.drop(1), sideKeys = digits)
+        } else {
+            val rows = base.rows.drop(1)
+            base.copy(rows = rows, rowHeights = List(rows.size) { 1f }, splitAt = base.splitAt.drop(1))
         }
         val eff = if (!fnTab || conv.sideKeys.isEmpty()) conv
         else conv.copy(rows = conv.rows.dropLast(1) + listOf(conv.rows.last().filter { it.type !in FN_TYPES }))
@@ -361,8 +385,8 @@ class KeyboardView(context: Context) : View(context) {
     private fun naturalBodyPx(r: Int, f: KeyboardFrame): Float {
         val base = (keyHeightPx - LEGACY_GAP_DP * density).coerceAtLeast(1f)
         val eff = effective()
-        if (eff != null && eff.sideKeys.isNotEmpty()) {
-            // 숫자가 왼쪽 띠에 있는 자판(모아키·숫자 왼쪽 옵션)은 모든 줄 높이가 같다
+        if (eff != null && (eff.sideKeys.isNotEmpty() || hasTopNumberRow)) {
+            // 숫자 좌측이든 상단(탭)이든 본판 4줄(문자 3줄 + 하단 1줄)의 세로 크기와 줄 높이는 완전히 동일하다
             val n = eff.rows.size
             val single = base * DEFAULT_NUMBER_ROW_SCALE + 4f * base + DEFAULT_NUMBER_GAP_DP * density + 4f * ref.rowGapDp * density
             return ((single - n * ref.rowGapDp * density) / n).coerceAtLeast(1f) * spaceRowFactor(r, f)
@@ -435,11 +459,17 @@ class KeyboardView(context: Context) : View(context) {
         onRelayoutRequested?.invoke()
     }
 
-    /** 반투명 탭 버튼 하나의 가로 길이 = 숫자 키 한 칸 (띠 폭의 절반) */
-    fun fnKeyWidthPx(): Float = stripWidthFor(layoutWidth()) / 2f
+    /** 반투명 탭 버튼 하나의 가로 길이: 좌측 숫자 띠면 숫자 키 한 칸, 상단 통합 탭이면 본판 전체 폭 ÷ 13 */
+    fun fnKeyWidthPx(): Float {
+        if (hasTopNumberRow) {
+            val usableW = (layoutWidth() - padL - padR + 2 * halfKeyGapPx).coerceAtLeast(1f)
+            return usableW / fnTabKeys().size.coerceAtLeast(1)
+        }
+        return stripWidthFor(layoutWidth()) / 2f
+    }
 
     /**
-     * 반투명 탭 버튼 높이 = 숫자 키 높이. 숫자 띠(전체 줄)를 숫자 한 열 개수(5)로 나눈 칸에서 줄 여백을 뺀 값이다
+     * 반투명 탭 버튼 높이 = 숫자 키 높이. 좌측 숫자 띠와 상단 통합 탭 모두 동일한 숫자 키 높이를 쓴다
      */
     /** 탭 버튼 높이 배율 (숫자 키 높이 대비, 1 = 같음) */
     var fnTabHeightScale: Float = 1f
@@ -449,7 +479,13 @@ class KeyboardView(context: Context) : View(context) {
 
     private fun digitKeyHeightPx(): Float {
         val n = (effective()?.sideKeys?.size ?: 0) / 2
-        if (rowCount == 0 || n == 0) return if (rowCount == 0) 0f else keyBodyPx(rowCount - 1)
+        if (rowCount == 0) return 0f
+        if (n == 0) {
+            if (!hasTopNumberRow) return keyBodyPx(rowCount - 1)
+            val region = (0 until rowCount).sumOf { rowHeightPx(it).toDouble() }.toFloat()
+            val rowGap = frame.rowGapDp * density
+            return ((region - 4 * rowGap) / 5).coerceAtLeast(1f)
+        }
         // 탭이 있으면 숫자 띠가 전체 줄에 걸친다 (computeCells와 같은 식)
         val stripRows = if (fnTab) rowCount else rowCount - 1
         val region = (0 until stripRows).sumOf { rowHeightPx(it).toDouble() }.toFloat()
@@ -592,10 +628,10 @@ class KeyboardView(context: Context) : View(context) {
         cells = out
         rowCells = rows
         hitTops = FloatArray(rowTops.size) { rowTops[it] }
-        if (isNumberRow(0) || layout.moaki || layout.sideKeys.isNotEmpty()) {
+        if (isNumberRow(0) || layout.moaki || layout.sideKeys.isNotEmpty() || hasTopNumberRow) {
             // 줄 k(0=숫자 줄(모아키는 쌍자음 줄), 1~3=글자 줄)의 아래 경계 = 다음 줄의 윗경계를 hitShiftDp[k]만큼 아래로.
-            // 숫자 왼쪽 자판은 숫자 줄이 없어 첫 글자 줄이 1번이다
-            val first = if (layout.sideKeys.isNotEmpty() && !layout.moaki) 1 else 0
+            // 숫자 왼쪽/상단탭 자판은 본판에 숫자 줄이 없어 첫 글자 줄이 1번이다
+            val first = if ((layout.sideKeys.isNotEmpty() || hasTopNumberRow) && !layout.moaki) 1 else 0
             for (r in 1..minOf(4, rowTops.size - 1)) {
                 val shift = frame.hitShiftDp.getOrElse(r - 1 + first) { 0 } * density
                 hitTops[r] = (rowTops[r] + shift).coerceAtLeast(hitTops[r - 1] + 1f)
@@ -702,8 +738,28 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
 
     private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val glassPath = Path()
-    private val edgeColors = intArrayOf(0xF2FFFFFF.toInt(), 0x2EFFFFFF, 0x0FFFFFFF, 0x33FFFFFF, 0xCCFFFFFF.toInt())
-    private val edgeStops = floatArrayOf(0f, 0.22f, 0.5f, 0.78f, 1f)
+    private val rimBaseColors = intArrayOf(
+        0xFFFFFFFF.toInt(),
+        0xE0FFFFFF.toInt(),
+        0x22FFFFFF,
+        0x22FFFFFF,
+        0xD8FFFFFF.toInt(),
+        0xFAFFFFFF.toInt(),
+    )
+    private val innerRimBaseColors = intArrayOf(
+        0x98FFFFFF.toInt(),
+        0x52FFFFFF,
+        0x08FFFFFF,
+        0x08FFFFFF,
+        0x4EFFFFFF,
+        0x90FFFFFF.toInt(),
+    )
+    private val rimBaseStops = floatArrayOf(0f, 0.28f, 0.46f, 0.54f, 0.72f, 1f)
+
+    private fun scaleAlpha(color: Int, factor: Float): Int {
+        val a = (((color ushr 24) and 0xFF) * factor.coerceIn(0f, 1f) + 0.5f).toInt().coerceIn(0, 255)
+        return (color and 0x00FFFFFF) or (a shl 24)
+    }
 
     /** 글래스 테마의 키 모서리 반지름 (판 모서리와 동심원을 이루도록 한곳에서 정한다) */
     fun frostKeyRadiusPx(): Float = 7 * density * FROST_KEY_RADIUS_SCALE
@@ -718,48 +774,49 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         return (k + minOf(padL, padT, cap)) to (k + minOf(padR, padT, cap))
     }
 
-    /**
-     * 키보드 판 전체가 한 장의 두꺼운 유리: ① 뒷배경을 흐리게 비춤 ② 투명한 흰색 ③ 왼쪽 위 비스듬한 빛과 가는 빛줄
-     * ④ 가장자리 림(왼쪽 위·오른쪽 아래가 밝음) ⑤ 안쪽 가는 이중 테두리. 위쪽 모서리만 둥글다.
-     */
     /** 판 맨 위에서 뒤 앱 화면이 비치는 띠의 높이 (아래로 갈수록 불투명해져 판과 이어진다) */
     fun frostFadePx(): Float = FROST_FADE_DP * density
 
     /** 위 띠의 시작 불투명도(0~1). 전복붙 탭과 같은 값이라 탭과 판이 같은 재질로 이어져 보인다 */
     var frostFadeAlpha: Float = 0.5f
         set(v) { if (field != v) { field = v; invalidate() } }
+
     /** 모든 테마의 키 불투명도 비율 (0.2f ~ 1.0f) */
     var keyOpacity: Float = 1f
-    set(v) { if (field != v) { field = v; invalidate() } }
+        set(v) { if (field != v) { field = v; invalidate() } }
+
     /** 모든 테마의 키보드 배경 판 불투명도 비율 (0f ~ 1f) */
     var bgOpacity: Float = 1f
-set(v) { if (field != v) { field = v; invalidate() } }
+        set(v) { if (field != v) { field = v; invalidate() } }
 
-private fun withBgOpacity(color: Int): Int {
-if (bgOpacity >= 0.999f) return color
-val a = (((color ushr 24) and 0xFF) * bgOpacity + 0.5f).toInt().coerceIn(0, 255)
-return (color and 0x00FFFFFF) or (a shl 24)
-}
+    private fun withBgOpacity(color: Int): Int {
+        if (bgOpacity >= 0.999f) return color
+        val a = (((color ushr 24) and 0xFF) * bgOpacity + 0.5f).toInt().coerceIn(0, 255)
+        return (color and 0x00FFFFFF) or (a shl 24)
+    }
 
-fun withKeyOpacity(color: Int): Int {
-if (keyOpacity >= 0.999f) return color
-val a = (((color ushr 24) and 0xFF) * keyOpacity + 0.5f).toInt().coerceIn(0, 255)
-return (color and 0x00FFFFFF) or (a shl 24)
-}
-    
+    fun withKeyOpacity(color: Int): Int {
+        if (keyOpacity >= 0.999f) return color
+        val a = (((color ushr 24) and 0xFF) * keyOpacity + 0.5f).toInt().coerceIn(0, 255)
+        return (color and 0x00FFFFFF) or (a shl 24)
+    }
+
     var glassType: Int = -1
         set(v) { if (field != v) { field = v; invalidate() } }
     var keyGlassStrength: Float = 0.85f
         set(v) { if (field != v) { field = v; invalidate() } }
     var bgGlassStrength: Float = 0.85f
         set(v) { if (field != v) { field = v; invalidate() } }
+
     private val effGlass: Int get() = if (glassType >= 0) glassType else if (theme.frost) 1 else 0
-    
+    val bgGlassOn: Boolean get() = if (glassType >= 0) bgGlassStrength > 0.01f else theme.frost
+    val keyGlassOn: Boolean get() = if (glassType >= 0) keyGlassStrength > 0.01f else theme.frost
+
     private val fadeMaskPaint = Paint().apply { xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN) }
 
     /**
-     * 글래스 테마에서 전복붙 탭이 판과 "같은 유리 표면"을 쓰는가 (탭이 켜져 있고 보일 때. [KeyboardHost]가 정한다).
-     * 탭은 판과 떨어진 둥근 알약 그대로이고, 번짐 배경·빛·빛띠만 판에서 이어져 한 장의 유리로 보인다.
+     * 글래스 상태에서 전복붙 탭이 판과 "같은 유리 표면"을 쓰는가 (탭이 켜져 있고 보일 때. [KeyboardHost]가 정한다).
+     * 탭은 판과 떨어진 둥근 알약 그대로이고, 번짐 배경·빛·림 반사가 판과 같은 재질로 이어진다.
      */
     var frostTabAttached: Boolean = false
         set(v) { if (field != v) { field = v; invalidate() } }
@@ -769,29 +826,57 @@ return (color and 0x00FFFFFF) or (a shl 24)
         set(v) { if (field != v) { field = v; invalidate() } }
 
     /** 탭 전체 폭 (탭 뷰의 onMeasure와 같은 식) */
-    fun fnTabWidthPx(): Float = fnTabLeftPx() + 3 * fnKeyWidthPx() + fnTabRightPx()
-
-    /** 판 위쪽에 놓인 탭(과 그 아래 틈)이 차지하는 높이(px). 같은 표면을 쓰지 않으면 0 */
-    private fun frostExtraTopPx(): Float = if (frostTabAttached && fnTab && theme.frost) fnTabHeightPx() + fnTabGapPx() else 0f
-
-    /**
-     * 유리 표면(흐린 번짐 배경 + 투명 흰색 + 위쪽 빛 + 비스듬한 빛띠)을 판 좌표계의 [l,t,r,b] 칸에 그린다.
-     * 판과 이어 붙은 탭이 같은 함수로 그리므로 둘이 한 장의 유리처럼 이어진다 (판 좌표: 왼쪽 위가 (0,0), 탭은 y < 0).
-     */
-    private fun drawReedOverlay(canvas: Canvas, l: Float, t: Float, r: Float, b: Float, strength: Float) {
-        val s = strength.coerceIn(0f, 1f); if (s <= 0.01f) return
-        val reedW = (10f * density).coerceAtLeast(6f)
-        val hiA = (0x44 * s).toInt().coerceIn(0, 255); val shA = (0x28 * s).toInt().coerceIn(0, 255)
-        glassPaint.style = Paint.Style.FILL
-        glassPaint.shader = LinearGradient(l, 0f, l + reedW, 0f, intArrayOf((hiA shl 24) or 0xFFFFFF, 0x00FFFFFF, shA shl 24, 0x00000000), floatArrayOf(0f, 0.38f, 0.72f, 1f), Shader.TileMode.REPEAT)
-        canvas.drawRect(l, t, r, b, glassPaint); glassPaint.shader = null
+    fun fnTabWidthPx(): Float {
+        val count = fnTabKeys().size.let { if (it > 0) it else 3 }
+        return fnTabLeftPx() + count * fnKeyWidthPx() + fnTabRightPx()
     }
 
+    /** 판 위쪽에 놓인 탭(과 그 아래 틈)이 차지하는 높이(px). 같은 표면을 쓰지 않으면 0 */
+    private fun frostExtraTopPx(): Float = if (frostTabAttached && fnTab && bgGlassOn) fnTabHeightPx() + fnTabGapPx() else 0f
+
+    /**
+     * 리드글래스(모루 유리) 세로 줄무늬: [pitchDp](키 4.5dp, 배경 5.5dp) 간격의 촘촘한 세로 굴절 마루 + 음영 골.
+     * 투명도를 낮춰도 [strength](유리 강도) 그대로 100% 선명하게 유지된다.
+     */
+    private fun drawReedOverlay(canvas: Canvas, l: Float, t: Float, r: Float, b: Float, strength: Float, pitchDp: Float = 5.0f) {
+        val s = strength.coerceIn(0f, 1f)
+        if (s <= 0.01f) return
+        val reedW = (pitchDp * density).coerceAtLeast(4f)
+        val hi1 = (0xBC * s).toInt().coerceIn(0, 255)
+        val hi2 = (0x4E * s).toInt().coerceIn(0, 255)
+        val sh1 = (0x58 * s).toInt().coerceIn(0, 255)
+        val edge = (0x86 * s).toInt().coerceIn(0, 255)
+        val sh2 = (0x34 * s).toInt().coerceIn(0, 255)
+        glassPaint.style = Paint.Style.FILL
+        glassPaint.shader = LinearGradient(
+            l, 0f, l + reedW, 0f,
+            intArrayOf(
+                (hi1 shl 24) or 0xFFFFFF,
+                (hi2 shl 24) or 0xFFFFFF,
+                0x00FFFFFF,
+                sh1 shl 24,
+                (edge shl 24) or 0xFFFFFF,
+                sh2 shl 24,
+            ),
+            floatArrayOf(0f, 0.20f, 0.44f, 0.72f, 0.88f, 1f),
+            Shader.TileMode.REPEAT,
+        )
+        canvas.drawRect(l, t, r, b, glassPaint)
+        glassPaint.shader = null
+    }
+
+    /**
+     * 유리 표면(일반·블러·리드글래스·3D)을 판 좌표계의 [l,t,r,b] 칸에 그린다.
+     * 배경 투명도(bgOpacity)는 밑바탕 색/블러에만 적용되고, 유리 질감과 테두리 빛반사는 bgGlassStrength 그대로 유지된다.
+     */
     private fun drawFrostSurface(canvas: Canvas, l: Float, t: Float, r: Float, b: Float) {
         val w = width.toFloat(); val h = height.toFloat()
-        val bgG = bgGlassStrength.coerceIn(0f, 1f)
+        val bgG = if (glassType >= 0) bgGlassStrength.coerceIn(0f, 1f) else 1f
+        val gType = effGlass
+        val extra = frostExtraTopPx()
         glassPaint.style = Paint.Style.FILL; glassPaint.shader = null; glassPaint.alpha = 255
-        if (effGlass == 0 || bgG <= 0.02f) {
+        if (gType == 0) {
+            // 1. 일반(맑은 크리스탈 유리): 가우시안 블러 없이 맑은 배경 위에 유리 틴트와 테두리 반사광만 적용
             val shader = theme.backgroundShader(w, h)
             if (shader == null) {
                 glassPaint.color = if (t >= 0f) withBgOpacity(theme.background) else theme.background
@@ -799,36 +884,71 @@ return (color and 0x00FFFFFF) or (a shl 24)
             } else {
                 glassPaint.shader = shader
                 glassPaint.alpha = if (t >= 0f) (bgOpacity * 255f).toInt().coerceIn(0, 255) else 255
-                canvas.drawRect(l, t, r, b, glassPaint); glassPaint.alpha = 255; glassPaint.shader = null
+                canvas.drawRect(l, t, r, b, glassPaint)
+                glassPaint.alpha = 255; glassPaint.shader = null
             }
-            return
+            val clearTintA = (((theme.frostTint ushr 24) and 0xFF) * bgG * 0.45f).toInt().coerceIn(0, 255)
+            glassPaint.color = (clearTintA shl 24) or (theme.frostTint and 0x00FFFFFF)
+            canvas.drawRect(l, t, r, b, glassPaint)
+        } else {
+            // 2. 블러 / 3. 리드글래스 / 4. 3D: 가우시안 블러 배경 + 유리 틴트
+            val bmp = frostBlur
+            if (bmp != null) {
+                val sl = l.coerceIn(0f, bmp.width.toFloat()); val sr = r.coerceIn(0f, bmp.width.toFloat())
+                val st = (t + extra).coerceIn(0f, bmp.height.toFloat()); val sb = (b + extra).coerceIn(0f, bmp.height.toFloat())
+                if (t >= 0f) glassPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
+                if (sr > sl && sb > st) canvas.drawBitmap(bmp, Rect(sl.toInt(), st.toInt(), sr.toInt(), sb.toInt()), RectF(l, t, r, b), glassPaint)
+            }
+            glassPaint.alpha = 255; glassPaint.shader = null
+            val tintBase = if (t >= 0f) withBgOpacity(theme.frostTint) else theme.frostTint
+            val tintA = (((tintBase ushr 24) and 0xFF) * bgG).toInt().coerceIn(0, 255)
+            glassPaint.color = (tintA shl 24) or (tintBase and 0x00FFFFFF)
+            canvas.drawRect(l, t, r, b, glassPaint)
         }
-        val extra = frostExtraTopPx(); val bmp = frostBlur
-        if (bmp != null) {
-            val sl = l.coerceIn(0f, bmp.width.toFloat()); val sr = r.coerceIn(0f, bmp.width.toFloat())
-            val st = (t + extra).coerceIn(0f, bmp.height.toFloat()); val sb = (b + extra).coerceIn(0f, bmp.height.toFloat())
-            if (t >= 0f) glassPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
-            if (sr > sl && sb > st) canvas.drawBitmap(bmp, Rect(sl.toInt(), st.toInt(), sr.toInt(), sb.toInt()), RectF(l, t, r, b), glassPaint)
+
+        if (gType == 2) {
+            // 리드글래스: 5.5dp 간격 세로 모루 줄무늬 (배경 투명도와 무관하게 bgG 강도 100% 유지)
+            drawReedOverlay(canvas, l, t, r, b, bgG, pitchDp = 5.5f)
+        } else if (gType == 3) {
+            // 3D: 상단 곡면 돔 입체광
+            val dHi = (0x80 * bgG).toInt().coerceIn(0, 255)
+            val dMid = (0x32 * bgG).toInt().coerceIn(0, 255)
+            val dSh = (0x34 * bgG).toInt().coerceIn(0, 255)
+            glassPaint.shader = android.graphics.RadialGradient(
+                w * 0.5f, -extra + h * 0.18f, max(w, h) * 0.78f,
+                intArrayOf((dHi shl 24) or 0xFFFFFF, (dMid shl 24) or 0xFFFFFF, 0x00FFFFFF, dSh shl 24),
+                floatArrayOf(0f, 0.42f, 0.72f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRect(l, t, r, b, glassPaint)
         }
-        glassPaint.alpha = 255; glassPaint.shader = null
-        val tintBase = if (t >= 0f) withBgOpacity(theme.frostTint) else theme.frostTint
-        val tintA = (((tintBase ushr 24) and 0xFF) * bgG).toInt().coerceIn(0, 255)
-        glassPaint.color = (tintA shl 24) or (tintBase and 0x00FFFFFF)
+
+        // 좌상단 테두리와 우하단 테두리를 따라 흐르는 가장자리 유리 광택 (중앙 가로지르는 사선 빛띠 제거)
+        val topA1 = ((if (gType == 3) 0x7A else 0x62) * bgG).toInt().coerceIn(0, 255)
+        val topA2 = ((if (gType == 3) 0x26 else 0x1E) * bgG).toInt().coerceIn(0, 255)
+        glassPaint.shader = LinearGradient(
+            0f, -extra, 0f, h * 0.36f,
+            intArrayOf((topA1 shl 24) or 0xFFFFFF, (topA2 shl 24) or 0xFFFFFF, 0x00FFFFFF),
+            floatArrayOf(0f, 0.45f, 1f),
+            Shader.TileMode.CLAMP,
+        )
         canvas.drawRect(l, t, r, b, glassPaint)
-        if (effGlass == 2) drawReedOverlay(canvas, l, t, r, b, bgG * (if (t >= 0f) bgOpacity else 1f))
-        val topA1 = (0x5C * bgG).toInt().coerceIn(0, 255); val topA2 = (0x1F * bgG).toInt().coerceIn(0, 255)
-        glassPaint.shader = LinearGradient(0f, -extra, 0f, h * 0.45f, intArrayOf((topA1 shl 24) or 0xFFFFFF, (topA2 shl 24) or 0xFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+
+        val brA1 = ((if (gType == 3) 0x28 else 0x1E) * bgG).toInt().coerceIn(0, 255)
+        val brA2 = ((if (gType == 3) 0x6A else 0x52) * bgG).toInt().coerceIn(0, 255)
+        glassPaint.shader = LinearGradient(
+            w * 0.35f, h * 0.64f, w, h,
+            intArrayOf(0x00FFFFFF, (brA1 shl 24) or 0xFFFFFF, (brA2 shl 24) or 0xFFFFFF),
+            floatArrayOf(0f, 0.62f, 1f),
+            Shader.TileMode.CLAMP,
+        )
         canvas.drawRect(l, t, r, b, glassPaint)
-        if (effGlass == 3 || theme.frost) {
-            glassPaint.shader = LinearGradient(0f, -extra, w * 0.62f, h * 1.9f, GLASS_BAND_COLORS, GLASS_BAND_STOPS, Shader.TileMode.CLAMP)
-            glassPaint.alpha = (bgG * 255f).toInt().coerceIn(0, 255); canvas.drawRect(l, t, r, b, glassPaint); glassPaint.alpha = 255
-        }
         glassPaint.shader = null
     }
 
     /**
-     * 이어 붙은 전복붙 탭의 유리 바탕. 판과 같은 표면을 [alpha](0~255)만큼 투명하게 그린다.
-     * 호출하는 쪽이 탭 모양으로 clip한 뒤 부른다. (탭 좌표 → 판 좌표로 옮겨 그림)
+     * 이어 붙은 전복붙 탭의 유리 바탕. 판과 같은 표면을 [alpha](0~255)만큼 투명하게 그리고,
+     * 리드 줄무늬와 테두리를 따라 흐르는 안쪽 림 반사는 유리 강도 그대로 선명하게 유지한다.
      */
     fun drawFrostTabSurface(canvas: Canvas, tabW: Float, tabH: Float, alpha: Int) {
         ensureFrostBitmaps()
@@ -837,14 +957,41 @@ return (color and 0x00FFFFFF) or (a shl 24)
         canvas.translate(-frostTabLeftPx, shift)
         drawFrostSurface(canvas, frostTabLeftPx, -shift, frostTabLeftPx + tabW, -shift + tabH)
         canvas.restoreToCount(layer)
+        if (glassType >= 0 && bgGlassStrength > 0.01f) {
+            val bgG = bgGlassStrength.coerceIn(0f, 1f)
+            if (effGlass == 2) {
+                drawReedOverlay(canvas, 0f, 0f, tabW, tabH, bgG * 0.65f, pitchDp = 5.5f)
+            }
+            val ins = 1.6f * density
+            val r = frostKeyRadiusPx() + minOf(fnTabPadPx(), fnTabLeftPx() + fnTabInsetPx(), 10 * density)
+            glassPaint.style = Paint.Style.STROKE
+            glassPaint.strokeWidth = 1.5f * density
+            glassPaint.shader = frostInnerRimShader(tabW, tabH, bgG)
+            val ir = (r - ins).coerceAtLeast(0f)
+            canvas.drawRoundRect(ins, ins, tabW - ins, tabH - ins, ir, ir, glassPaint)
+            glassPaint.shader = null
+            glassPaint.style = Paint.Style.FILL
+        }
     }
 
-    /** 가장자리 림 그라데이션 (판·탭이 같은 색을 쓴다) */
-    fun frostRimShader(w: Float, h: Float): Shader = LinearGradient(0f, 0f, w, h, edgeColors, edgeStops, Shader.TileMode.CLAMP)
+    /** 가장자리 바깥 림 그라데이션: 좌상단 테두리와 우하단 테두리를 따라 흐르는 빛반사 */
+    fun frostRimShader(w: Float, h: Float, strength: Float = if (glassType >= 0) bgGlassStrength else 1f): Shader {
+        val s = strength.coerceIn(0f, 1f)
+        val cols = IntArray(rimBaseColors.size) { scaleAlpha(rimBaseColors[it], s) }
+        return LinearGradient(0f, 0f, w, h, cols, rimBaseStops, Shader.TileMode.CLAMP)
+    }
+
+    /** 가장자리 안쪽 부드러운 림 그라데이션: 테두리 곡선을 따라 은은하게 감싸는 빛반사 */
+    fun frostInnerRimShader(w: Float, h: Float, strength: Float = if (glassType >= 0) bgGlassStrength else 1f): Shader {
+        val s = strength.coerceIn(0f, 1f)
+        val cols = IntArray(innerRimBaseColors.size) { scaleAlpha(innerRimBaseColors[it], s) }
+        return LinearGradient(0f, 0f, w, h, cols, rimBaseStops, Shader.TileMode.CLAMP)
+    }
 
     private fun drawFrostPlate(canvas: Canvas) {
         ensureFrostBitmaps()
         val w = width.toFloat(); val h = height.toFloat()
+        val bgG = if (glassType >= 0) bgGlassStrength.coerceIn(0f, 1f) else 1f
         val layer = canvas.saveLayer(0f, 0f, w, h, null)
         val (rl, rr) = frostPlateRadiiPx()
         glassPath.rewind()
@@ -857,73 +1004,221 @@ return (color and 0x00FFFFFF) or (a shl 24)
         fadeMaskPaint.shader = LinearGradient(0f, 0f, 0f, frostFadePx(), ((frostFadeAlpha * 255f).toInt().coerceIn(0, 255) shl 24) or 0x00FFFFFF, 0xFFFFFFFF.toInt(), Shader.TileMode.CLAMP)
         canvas.drawRect(0f, 0f, w, h, fadeMaskPaint)
         canvas.restoreToCount(layer)
-        // 림: 밝은 가장자리 선 (2dp) + 안쪽 가는 선
+        // 테두리를 따라 빛나는 이중 림 (바깥 선명한 림 + 안쪽 부드러운 림 반사광, 투명도와 무관하게 bgG 강도 유지)
         canvas.save()
         glassPaint.style = Paint.Style.STROKE
-        glassPaint.strokeWidth = 2 * density
-        glassPaint.shader = frostRimShader(w, h)
+        glassPaint.strokeWidth = (if (effGlass == 3) 2.4f else 2f) * density
+        glassPaint.shader = frostRimShader(w, h, bgG)
         canvas.drawPath(glassPath, glassPaint)
-        glassPaint.strokeWidth = density
-        glassPaint.shader = null
-        glassPaint.color = 0x2EFFFFFF
+        glassPaint.strokeWidth = (if (effGlass == 3) 2.0f else 1.4f) * density
+        glassPaint.shader = frostInnerRimShader(w, h, bgG)
         canvas.save()
-        canvas.translate(3 * density, 3 * density)
-        canvas.scale((w - 6 * density) / w, (h - 6 * density) / h)
+        val ins = (if (effGlass == 3) 2.6f else 2.2f) * density
+        canvas.translate(ins, ins)
+        canvas.scale((w - 2 * ins) / w, (h - 2 * ins) / h)
         canvas.drawPath(glassPath, glassPaint)
         canvas.restore()
         canvas.restore()
+        glassPaint.shader = null
         glassPaint.style = Paint.Style.FILL
     }
 
     private val keyPath = Path()
 
     /**
-     * 판 위의 키: 뒤가 살짝 비치는 투명한 유리 버튼. [tint]는 키 면의 ARGB 색(알파가 있어 뒤 판이 비친다).
-     * ① 키 바깥에만 부드러운 그림자(투명한 키 안으로는 안 비치게 잘라냄) ② 색입힌 투명 면 ③ 위쪽 광택·아래쪽 빛 번짐
-     * ④ 왼쪽 위 모서리 반짝임 + 비스듬한 빛띠 ⑤ 왼쪽 위는 밝고 오른쪽 아래는 옅은 유리 테두리.
+     * 판 위의 키(및 전복붙 탭 버튼): 일반·블러·리드글래스·3D 4종 유리 효과를 모두 지원한다.
+     * [tint]는 키 투명도(keyOpacity)가 반영된 기본 색이며, 유리 테두리·림 빛반사·블러·리드 줄무늬·3D 돔 하이라이트는
+     * 키 투명도를 낮춰도 [keyGlassStrength] 설정 강도(%) 그대로 100% 유지된다.
      */
     internal fun drawFrostKey(canvas: Canvas, r: RectF, radius: Float, tint: Int, pressed: Boolean, tabShiftX: Float = 0f, tabShiftY: Float = 0f) {
+        val keyG = if (glassType >= 0) keyGlassStrength.coerceIn(0f, 1f) else 1f
+        val gType = effGlass
         keyPath.rewind()
         keyPath.addRoundRect(r, radius, radius, Path.Direction.CW)
         glassPaint.shader = null
         glassPaint.style = Paint.Style.FILL
-        // ① 그림자: 키 모양을 잘라낸 바깥쪽에만
+        // ① 그림자: 키 모양을 잘라낸 바깥쪽에만 (3D는 더 깊은 입체 부양 그림자)
         canvas.save()
-        canvas.clipOutPath(keyPath); if (theme.frostStyle == 7) { glassPaint.color = 0x2473685C; canvas.drawRoundRect(r.left + density, r.top + 1.8f * density, r.right - density, r.bottom + 1.8f * density, radius, radius, glassPaint) } else {
-        glassPaint.color = 0x16000000                    // 넓고 옅은 그림자
-        canvas.drawRoundRect(r.left - density, r.top + 2 * density, r.right + density, r.bottom + 4 * density, radius + density, radius + density, glassPaint)
-        glassPaint.color = 0x30000000                    // 가깝고 진한 아랫선
-        canvas.drawRoundRect(r.left, r.top + density, r.right, r.bottom + 1.5f * density, radius, radius, glassPaint) }
+        canvas.clipOutPath(keyPath)
+        if (gType == 3) {
+            glassPaint.color = scaleAlpha(0x32000000, keyG)
+            canvas.drawRoundRect(r.left - 1.2f * density, r.top + 2.4f * density, r.right + 1.2f * density, r.bottom + 4.8f * density, radius + density, radius + density, glassPaint)
+            glassPaint.color = scaleAlpha(0x52000000, keyG)
+            canvas.drawRoundRect(r.left, r.top + 1.4f * density, r.right, r.bottom + 2.2f * density, radius, radius, glassPaint)
+        } else if (theme.frostStyle == 7) {
+            glassPaint.color = scaleAlpha(0x2873685C, keyG)
+            canvas.drawRoundRect(r.left + density, r.top + 1.8f * density, r.right - density, r.bottom + 1.8f * density, radius, radius, glassPaint)
+        } else {
+            glassPaint.color = scaleAlpha(0x18000000, keyG)
+            canvas.drawRoundRect(r.left - density, r.top + 2 * density, r.right + density, r.bottom + 4 * density, radius + density, radius + density, glassPaint)
+            glassPaint.color = scaleAlpha(0x34000000, keyG)
+            canvas.drawRoundRect(r.left, r.top + density, r.right, r.bottom + 1.5f * density, radius, radius, glassPaint)
+        }
         canvas.restore()
-        // ② 색입힌 투명 면
-     
-           if (theme.frostStyle == 7) { canvas.save(); canvas.clipPath(keyPath); if (tabShiftY >= 0f) frostKeyBlur?.let { kb -> val et = frostExtraTopPx(); val ox = 2.8f * density; val oy = 2.2f * density; val src = android.graphics.Rect((r.left + tabShiftX + ox).toInt().coerceIn(0, kb.width - 1), (r.top + et + tabShiftY + oy).toInt().coerceIn(0, kb.height - 1), (r.right + tabShiftX + ox).toInt().coerceIn(1, kb.width), (r.bottom + et + tabShiftY + oy).toInt().coerceIn(1, kb.height)); if (src.width() > 0 && src.height() > 0) { glassPaint.alpha = (keyOpacity * 170f).toInt().coerceIn(15, 190); canvas.drawBitmap(kb, src, r, glassPaint); glassPaint.alpha = 255 } }; val base = if (pressed) withKeyOpacity(theme.keyPressed) else tint; val baseA = (base ushr 24) and 0xFF; val cr = (base ushr 16) and 0xFF; val cg = (base ushr 8) and 0xFF; val cb = base and 0xFF; val rgb = base and 0x00FFFFFF; val lr = (cr * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255); val lg = (cg * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255); val lb = (cb * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255); val liftRgb = (lr shl 16) or (lg shl 8) or lb; val aTop = (baseA * 1.05f).toInt().coerceIn(0, 255); val aMid = (baseA * 0.74f).toInt().coerceIn(0, 255); val aBot = (baseA * 0.92f).toInt().coerceIn(0, 255); glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, intArrayOf((aTop shl 24) or liftRgb, (aMid shl 24) or rgb, (aBot shl 24) or rgb), floatArrayOf(0f, 0.5f, 1f), android.graphics.Shader.TileMode.CLAMP); canvas.drawRect(r, glassPaint); glassPaint.shader = null; canvas.restore() } else { glassPaint.color = if (pressed) theme.keyPressed else tint
-        canvas.drawRoundRect(r, radius, radius, glassPaint) }
-        // ③④ 면 위의 유리 빛
+
+        // ② 색입힌 투명 면 (블러·리드·3D는 뒷배경 굴절 블러를 투과하고, 일반은 맑은 크리스탈 면으로 표현)
+        val useBlurRefract = theme.frostStyle == 7 || (glassType >= 0 && gType != 0)
+        if (useBlurRefract) {
+            canvas.save()
+            canvas.clipPath(keyPath)
+            frostKeyBlur?.let { kb ->
+                val et = frostExtraTopPx()
+                val ox = (if (gType == 2) 3.6f else 2.8f) * density
+                val oy = 2.2f * density
+                val sx = (r.left + tabShiftX + ox).toInt().coerceIn(0, kb.width - 1)
+                val sy = (r.top + et + tabShiftY + oy).toInt().coerceIn(0, kb.height - 1)
+                val ex = (r.right + tabShiftX + ox).toInt().coerceIn(sx + 1, kb.width)
+                val ey = (r.bottom + et + tabShiftY + oy).toInt().coerceIn(sy + 1, kb.height)
+                val src = Rect(sx, sy, ex, ey)
+                if (src.width() > 0 && src.height() > 0) {
+                    glassPaint.alpha = (keyG * 185f).toInt().coerceIn(0, 210)
+                    canvas.drawBitmap(kb, src, r, glassPaint)
+                    glassPaint.alpha = 255
+                }
+            }
+            val base = if (pressed) withKeyOpacity(theme.keyPressed) else tint
+            val baseA = (base ushr 24) and 0xFF
+            val cr = (base ushr 16) and 0xFF
+            val cg = (base ushr 8) and 0xFF
+            val cb = base and 0xFF
+            val rgb = base and 0x00FFFFFF
+            val lr = (cr * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255)
+            val lg = (cg * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255)
+            val lb = (cb * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255)
+            val liftRgb = (lr shl 16) or (lg shl 8) or lb
+            val glassTrans = if (glassType >= 0) (1f - 0.24f * keyG) else 1f
+            val aTop = (baseA * 1.02f * glassTrans).toInt().coerceIn(0, 255)
+            val aMid = (baseA * 0.74f * glassTrans).toInt().coerceIn(0, 255)
+            val aBot = (baseA * 0.90f * glassTrans).toInt().coerceIn(0, 255)
+            glassPaint.shader = LinearGradient(
+                r.left, r.top, r.right, r.bottom,
+                intArrayOf((aTop shl 24) or liftRgb, (aMid shl 24) or rgb, (aBot shl 24) or rgb),
+                floatArrayOf(0f, 0.5f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRoundRect(r, radius, radius, glassPaint)
+            glassPaint.shader = null
+            canvas.restore()
+        } else {
+            glassPaint.color = if (pressed) withKeyOpacity(theme.keyPressed) else tint
+            canvas.drawRoundRect(r, radius, radius, glassPaint)
+        }
+
+        // ③④ 면 위의 유리 질감 (점광원 및 중앙 사선 빛띠 제거 → 테두리 곡선을 따라 감싸는 반사광 + 리드/3D 전용 질감)
         canvas.save()
         canvas.clipPath(keyPath)
         val h = r.height(); val w = r.width()
-        glassPaint.shader = LinearGradient(0f, r.top, 0f, r.bottom, intArrayOf(withKeyOpacity(0x73FFFFFF), withKeyOpacity(0x1AFFFFFF), 0x00FFFFFF, 0x00FFFFFF, withKeyOpacity(0x3DFFFFFF)), floatArrayOf(0f, 0.28f, 0.5f, 0.7f, 1f), Shader.TileMode.CLAMP)
+        val topA = ((if (gType == 3) 0x8C else 0x72) * keyG).toInt().coerceIn(0, 255)
+        val topMidA = ((if (gType == 3) 0x28 else 0x1E) * keyG).toInt().coerceIn(0, 255)
+        val botMidA = ((if (gType == 3) 0x26 else 0x1C) * keyG).toInt().coerceIn(0, 255)
+        val botA = ((if (gType == 3) 0x6C else 0x52) * keyG).toInt().coerceIn(0, 255)
+        glassPaint.shader = LinearGradient(
+            0f, r.top, 0f, r.bottom,
+            intArrayOf(
+                (topA shl 24) or 0xFFFFFF,
+                (topMidA shl 24) or 0xFFFFFF,
+                0x00FFFFFF,
+                0x00FFFFFF,
+                (botMidA shl 24) or 0xFFFFFF,
+                (botA shl 24) or 0xFFFFFF,
+            ),
+            floatArrayOf(0f, 0.22f, 0.36f, 0.64f, 0.78f, 1f),
+            Shader.TileMode.CLAMP,
+        )
         canvas.drawRect(r, glassPaint)
-        glassPaint.shader = if (theme.frostStyle == 7) LinearGradient(r.left, r.top, r.left + w * 0.9f, r.top + h * 1.8f, intArrayOf(0x00FFFFFF, 0x00FFFFFF, withKeyOpacity(0x5CFFFFFF), withKeyOpacity(0x08FFFFFF), withKeyOpacity(0x08FFFFFF), withKeyOpacity(0x33FFFFFF), 0x00FFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.18f, 0.27f, 0.36f, 0.45f, 0.51f, 0.58f, 1f), Shader.TileMode.CLAMP) else LinearGradient(r.left, r.top, r.left + w * 0.9f, r.top + h * 1.8f, intArrayOf(0x00FFFFFF, withKeyOpacity(0x40FFFFFF), 0x00FFFFFF, 0x00FFFFFF), floatArrayOf(0.20f, 0.30f, 0.42f, 1f), Shader.TileMode.CLAMP)
+
+        val tlEdgeA = (0x58 * keyG).toInt().coerceIn(0, 255)
+        val brEdgeA = (0x64 * keyG).toInt().coerceIn(0, 255)
+        glassPaint.shader = LinearGradient(
+            r.left, r.top, r.right, r.bottom,
+            intArrayOf(
+                (tlEdgeA shl 24) or 0xFFFFFF,
+                0x00FFFFFF,
+                0x00FFFFFF,
+                (brEdgeA shl 24) or 0xFFFFFF,
+            ),
+            floatArrayOf(0f, 0.26f, 0.74f, 1f),
+            Shader.TileMode.CLAMP,
+        )
         canvas.drawRect(r, glassPaint)
-        val sr = radius * 2.4f
-        glassPaint.shader = if (theme.frostStyle == 7) android.graphics.RadialGradient(r.left + radius * 0.9f, r.top + radius * 0.9f, sr, intArrayOf(withKeyOpacity(0xBDFFFFFF.toInt()), withKeyOpacity(0x38FFFFFF), 0x00FFFFFF), floatArrayOf(0f, 0.45f, 1f), Shader.TileMode.CLAMP) else android.graphics.RadialGradient(r.left + radius * 0.9f, r.top + radius * 0.9f, sr, withKeyOpacity(0x8CFFFFFF.toInt()), 0x00FFFFFF, Shader.TileMode.CLAMP)
-        canvas.drawRect(r, glassPaint)
+
+        if (gType == 2) {
+            // 리드글래스: 키캡 내부 4.5dp 촘촘한 간격의 고대비 세로 모루 굴절 줄무늬
+            drawReedOverlay(canvas, r.left, r.top, r.right, r.bottom, keyG, pitchDp = 4.5f)
+        } else if (gType == 3) {
+            // 3D: 볼록한 렌즈(돔)처럼 둥글게 빛나는 입체 곡면 하이라이트 + 외곽 구면 음영 + 우하단 곡면 반사광
+            val domeHi = (0xCC * keyG).toInt().coerceIn(0, 255)
+            val domeMid = (0x5E * keyG).toInt().coerceIn(0, 255)
+            val domeRimShade = (0x46 * keyG).toInt().coerceIn(0, 255)
+            val domeRad = max(w, h) * 0.74f
+            glassPaint.shader = android.graphics.RadialGradient(
+                r.centerX(), r.top + h * 0.26f, domeRad,
+                intArrayOf(
+                    (domeHi shl 24) or 0xFFFFFF,
+                    (domeMid shl 24) or 0xFFFFFF,
+                    0x00FFFFFF,
+                    domeRimShade shl 24,
+                ),
+                floatArrayOf(0f, 0.38f, 0.68f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRoundRect(r, radius, radius, glassPaint)
+            val caus1 = (0x32 * keyG).toInt().coerceIn(0, 255)
+            val caus2 = (0x8E * keyG).toInt().coerceIn(0, 255)
+            glassPaint.shader = LinearGradient(
+                r.left + w * 0.15f, r.bottom - h * 0.34f, r.right, r.bottom,
+                intArrayOf(0x00FFFFFF, (caus1 shl 24) or 0xFFFFFF, (caus2 shl 24) or 0xFFFFFF),
+                floatArrayOf(0f, 0.55f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRect(r, glassPaint)
+        }
         glassPaint.shader = null
         canvas.restore()
-        // ⑤ 유리 테두리
+
+        // ⑤ 테두리를 따라 빛나는 이중 유리 림 (점이 아니라 좌상단·우하단 테두리 곡선을 따라 감싸며 흐르는 반사광)
         glassPaint.style = Paint.Style.STROKE
-        if (theme.frostStyle == 7) { val ins = 1.25f * density; glassPaint.strokeWidth = 0.8f * density; glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, intArrayOf(0x8CFFFFFF.toInt(), 0x14FFFFFF, 0x52FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP); val ir = (radius - ins).coerceAtLeast(0f); canvas.drawRoundRect(r.left + ins, r.top + ins, r.right - ins, r.bottom - ins, ir, ir, glassPaint); val rimW = 1.1f * density; glassPaint.strokeWidth = rimW; glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, intArrayOf(0xFFFFFFFF.toInt(), 0xE0FFFFFF.toInt(), 0x57FFFFFF, 0x4DFFFFFF, 0xCCFFFFFF.toInt(), 0xF5FFFFFF.toInt()), floatArrayOf(0f, 0.2f, 0.4f, 0.6f, 0.8f, 1f), Shader.TileMode.CLAMP); val hh = rimW / 2f; canvas.drawRoundRect(r.left + hh, r.top + hh, r.right - hh, r.bottom - hh, radius, radius, glassPaint); glassPaint.strokeWidth = 1.25f * density; glassPaint.shader = LinearGradient(r.left + radius * 0.5f, r.top, r.right - radius * 0.5f, r.top, intArrayOf(0xFFFFFFFF.toInt(), 0xD9FFFFFF.toInt(), 0x52FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP); canvas.drawLine(r.left + radius * 0.6f, r.top + hh, r.right - radius * 0.6f, r.top + hh, glassPaint) } else { glassPaint.strokeWidth = density
-        glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, intArrayOf(0xF2FFFFFF.toInt(), 0x59FFFFFF, 0x26FFFFFF, 0xB3FFFFFF.toInt()), floatArrayOf(0f, 0.35f, 0.65f, 1f), Shader.TileMode.CLAMP)
-        val hh = density / 2f
-        canvas.drawRoundRect(r.left + hh, r.top + hh, r.right - hh, r.bottom - hh, radius, radius, glassPaint) }
+        val innerIns = (if (gType == 3) 1.65f else 1.2f) * density
+        glassPaint.strokeWidth = (if (gType == 3) 1.85f else 1.25f) * density
+        glassPaint.shader = LinearGradient(
+            r.left, r.top, r.right, r.bottom,
+            intArrayOf(
+                scaleAlpha(0xA8FFFFFF.toInt(), keyG),
+                scaleAlpha(0x58FFFFFF, keyG),
+                scaleAlpha(0x0AFFFFFF, keyG),
+                scaleAlpha(0x0AFFFFFF, keyG),
+                scaleAlpha(0x5CFFFFFF, keyG),
+                scaleAlpha(0xB4FFFFFF.toInt(), keyG),
+            ),
+            floatArrayOf(0f, 0.28f, 0.46f, 0.54f, 0.72f, 1f),
+            Shader.TileMode.CLAMP,
+        )
+        val ir = (radius - innerIns).coerceAtLeast(0f)
+        canvas.drawRoundRect(r.left + innerIns, r.top + innerIns, r.right - innerIns, r.bottom - innerIns, ir, ir, glassPaint)
+
+        val rimW = (if (gType == 3) 1.45f else 1.15f) * density
+        glassPaint.strokeWidth = rimW
+        glassPaint.shader = LinearGradient(
+            r.left, r.top, r.right, r.bottom,
+            intArrayOf(
+                scaleAlpha(0xFFFFFFFF.toInt(), keyG),
+                scaleAlpha(0xE0FFFFFF.toInt(), keyG),
+                scaleAlpha(0x36FFFFFF, keyG),
+                scaleAlpha(0x36FFFFFF, keyG),
+                scaleAlpha(0xE0FFFFFF.toInt(), keyG),
+                scaleAlpha(0xFFFFFFFF.toInt(), keyG),
+            ),
+            floatArrayOf(0f, 0.26f, 0.45f, 0.55f, 0.74f, 1f),
+            Shader.TileMode.CLAMP,
+        )
+        val hh = rimW / 2f
+        canvas.drawRoundRect(r.left + hh, r.top + hh, r.right - hh, r.bottom - hh, radius, radius, glassPaint)
         glassPaint.shader = null
         glassPaint.style = Paint.Style.FILL
     }
 
     private fun drawBackground(canvas: Canvas) {
-        if (theme.frost || (effGlass != 0 && bgGlassStrength > 0.02f)) { drawFrostPlate(canvas); return }
+        if (bgGlassOn) { drawFrostPlate(canvas); return }
         val w = width.toFloat(); val h = height.toFloat(); val shader = theme.backgroundShader(w, h)
         if (shader == null) {
             canvas.drawColor(withBgOpacity(theme.background))
@@ -935,6 +1230,7 @@ return (color and 0x00FFFFFF) or (a shl 24)
     }
 
     override fun onDraw(canvas: Canvas) {
+        if (bgGlassOn || keyGlassOn) ensureFrostBitmaps()
         drawBackground(canvas)
         val gap = 3 * density
         if (showHitZones) drawHitZones(canvas)
@@ -947,16 +1243,16 @@ return (color and 0x00FFFFFF) or (a shl 24)
                 key.type == KeyType.VOICE && voiceListening -> theme.accent
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
                 key.type == KeyType.ENTER -> theme.enterKey
-                    key.type == KeyType.SPACE -> theme.effectiveSpaceKey        // 엔터: 색은 유지하되 덜 진하게
+                key.type == KeyType.SPACE -> theme.effectiveSpaceKey        // 엔터: 색은 유지하되 덜 진하게
                 isSpecial || cell.duplicate -> theme.specialKey      // 복제 키는 기능키 색으로 살짝 구분
                 isDigitKey(key) -> theme.numberKey                    // 숫자 키는 조금 어둡게
                 else -> theme.key
             }
             paint.color = withKeyOpacity(paint.color)
             val r = cell.inner
-            val useFrostKey = theme.frost || (effGlass != 0 && keyGlassStrength > 0.02f)
-                if (useFrostKey) {
-                    drawFrostKey(canvas, r, frostKeyRadiusPx(), paint.color, isPressed(cell))
+            val useFrostKey = keyGlassOn
+            if (useFrostKey) {
+                drawFrostKey(canvas, r, frostKeyRadiusPx(), paint.color, isPressed(cell))
             } else if (theme.keyShadow) {
                 val keep = paint.color
                 paint.color = 0x26000000
@@ -964,7 +1260,7 @@ return (color and 0x00FFFFFF) or (a shl 24)
                 paint.color = keep
             }
             if (!useFrostKey) canvas.drawRoundRect(r.left, r.top, r.right, r.bottom, radius, radius, paint)
-                if (theme.keyBorder != 0 && !useFrostKey) {
+            if (theme.keyBorder != 0 && !useFrostKey) {
                 borderPaint.strokeWidth = density
                 borderPaint.color = theme.keyBorder
                 val h = density / 2f

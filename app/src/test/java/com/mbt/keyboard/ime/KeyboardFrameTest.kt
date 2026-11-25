@@ -196,8 +196,10 @@ class KeyboardFrameTest {
         val expectedVoice = voice.height() * 0.34f * view.theme.textScale        // 기본 글자 +1dp 에서 아이콘 -1dp 라 그대로
         assertEquals(expectedVoice, texts.first { it.text == "🎤" }.size, 0.01f)
         // 다른 툴바 글자(전체·복사·붙임)는 그대로 (줄이지 않음)
+        view.numberLeft = true; relayout()
         val edit = view.keyRects().first { it.first.label == "전체" }.second
-        assertEquals(edit.height() * 0.34f * view.theme.textScale + density, texts.first { it.text == "전체" }.size, 0.01f)
+        val textsLeft = drawnTexts()
+        assertEquals(edit.height() * 0.34f * view.theme.textScale + density, textsLeft.first { it.text == "전체" }.size, 0.01f)
     }
 
     @Test fun backspaceIsDrawnOnePointTwoFiveTimesALetterKeyOnEveryLayout() {
@@ -324,7 +326,7 @@ class RowGapFrameTest {
         assertTrue(inner("ㅂ").height() < keyH)                         // 키가 그만큼 작아지고
         assertEquals(14f, (inner("ㅁ").top - inner("ㅂ").bottom) / density, 0.05f)
         assertEquals(heightBefore.toDouble(), view.measuredHeight.toDouble(), 1.0)   // 전체 높이는 그대로
-        assertEquals(4f, inner("1").top / density, 0.05f)                // 바깥 여백도 그대로 (위 여백 설정값)
+        assertEquals(4f, inner("ㅂ").top / density, 0.05f)                // 바깥 여백도 그대로 (위 여백 설정값)
         view.frame = KeyboardFrame(rowGapDp = 0); relayout()
         assertTrue(inner("ㅂ").height() > keyH)
         assertEquals(0f, (inner("ㅁ").top - inner("ㅂ").bottom) / density, 0.05f)
@@ -332,21 +334,18 @@ class RowGapFrameTest {
     }
 
     @Test fun gapBetweenNumberRowAndLetterRowIsSeparate() {
-        fun numGap() = (inner("ㅂ").top - inner("1").bottom) / density
+        view.numberLeft = true; relayout()
+        fun numGap() = (inner("ㅂ").left - inner("6").right) / density
         fun letterGap() = (inner("ㅁ").top - inner("ㅂ").bottom) / density
         assertEquals(6f, numGap(), 0.05f)
-        val keyH = inner("ㅂ").height(); val numH = inner("1").height()
         val before = view.measuredHeight
         view.frame = KeyboardFrame(numberGapDp = 20); relayout()
         assertEquals(20f, numGap(), 0.05f)
         assertEquals(6f, letterGap(), 0.05f)                            // 글자 줄 사이는 그대로
-        assertTrue(inner("ㅂ").height() < keyH)                         // 전체 높이가 고정이라 키가 조금 작아진다
-        assertEquals(numH / keyH, inner("1").height() / inner("ㅂ").height(), 0.01f)   // 숫자 줄 비율은 그대로
         assertEquals(before.toDouble(), view.measuredHeight.toDouble(), 1.0)
         view.frame = KeyboardFrame(rowGapDp = 12, numberGapDp = 0); relayout()
         assertEquals(0f, numGap(), 0.05f)
         assertEquals(12f, letterGap(), 0.05f)
-        // 맨 위 키는 위쪽 여백(4dp)에서 바로 시작 (줄 여백과 무관)
         assertEquals(4f, inner("1").top / density, 0.1f)
     }
 
@@ -359,12 +358,12 @@ class RowGapFrameTest {
         assertEquals(2f, hgap(), 0.05f)
     }
 
-    @Test fun numberRowKeyHeightIsRelativeToANormalKey() {
-        assertEquals(0.8f, inner("1").height() / inner("ㅂ").height(), 0.01f)     // 기본 80%
-        view.frame = KeyboardFrame(numberRowScale = 1.2f); relayout()
-        assertEquals(1.2f, inner("1").height() / inner("ㅂ").height(), 0.01f)
-        view.frame = KeyboardFrame(numberRowScale = 0.5f, rowGapDp = 16); relayout()
-        assertEquals(0.5f, inner("1").height() / inner("ㅂ").height(), 0.01f)      // 세로 여백과 무관
+    @Test fun topNumberTabHeightMatchesLeftDigitKeyHeight() {
+        view.numberLeft = false; relayout()
+        val topTabH = view.fnKeyHeightPx()
+        view.numberLeft = true; view.fnTab = true; relayout()
+        val leftTabH = view.fnKeyHeightPx()
+        assertEquals(leftTabH, topTabH, 1f)
     }
 
     @Test fun keypadsKeepFourEqualRows() {
@@ -528,16 +527,9 @@ class HitShiftTest {
         assertEquals("ㅁ", tapAt(m.centerX(), m.centerY()))
     }
 
-    @Test fun theNumberRowHasItsOwnAdjustableBoundary() {
-        view.frame = KeyboardFrame(hitShiftDp = listOf(10, 0, 0, 0)); relayout()
-        val n = rect("1"); val b = rect("ㅂ")
-        // 숫자 줄 바로 아래(원래는 ㅂ 영역) 5dp 지점이 이제 숫자로 읽힌다
-        assertEquals("1", tapAt(n.centerX(), n.bottom + 5 * density))
-        assertEquals("ㅂ", tapAt(b.centerX(), b.centerY()))
-        // 위로 좁히면 숫자 줄의 아래쪽이 ㅂ 줄로 넘어간다
-        view.frame = KeyboardFrame(hitShiftDp = listOf(-6, 0, 0, 0)); relayout()
-        val hit = tapAt(n.centerX(), n.bottom - 3 * density)
-        assertTrue("글자 줄 키여야 한다: $hit", hit != null && hit in "ㅂㅈㄷㄱㅅㅗㅐㅔ")
+    @Test fun fourRowMainLayoutKeepsTopLetterRowAtTopEdge() {
+        view.numberLeft = false; relayout()
+        assertEquals(4f, inner("ㅂ").top / density, 0.1f)
     }
 
     @Test fun eachRowHasItsOwnShiftAndNegativeShrinksTheRowAbove() {

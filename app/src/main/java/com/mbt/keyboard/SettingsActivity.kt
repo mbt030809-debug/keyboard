@@ -88,10 +88,7 @@ class SettingsActivity : AppCompatActivity() {
 
         buildThemePicker(findViewById(R.id.themeList))
 
-        // 키보드 크기·위치 조정 화면
-        findViewById<MaterialButton>(R.id.btnResize).setOnClickListener {
-            startActivity(Intent(this, ResizeActivity::class.java))
-        }
+
 
         // 입력 타이밍: 슬라이더 값은 정수 단위(멈춤 0.1초, 꾹 누르기 0.05초)라 저장값과 어긋나지 않는다
         val sliderPause = findViewById<Slider>(R.id.sliderPause)
@@ -125,18 +122,11 @@ class SettingsActivity : AppCompatActivity() {
             if (fromUser) Prefs.setRepeatCps(this, value.toInt())
         }
 
-        // 전체·복사·붙임 반투명 탭
-        val swFnTab = findViewById<MaterialSwitch>(R.id.switchFnTab)
+        // 탭 불투명도 슬라이더 (탭 표시 스위치는 화면 › ④ 보조탭 안으로 이동)
         val sliderFnAlpha = findViewById<Slider>(R.id.sliderFnTabAlpha)
         val valueFnAlpha = findViewById<TextView>(R.id.valueFnTabAlpha)
-        swFnTab.isChecked = Prefs.fnTabEnabled(this)
-        sliderFnAlpha.isEnabled = swFnTab.isChecked
         sliderFnAlpha.value = Prefs.fnTabAlphaPercent(this).toFloat()
         valueFnAlpha.text = getString(R.string.fn_tab_alpha_value, Prefs.fnTabAlphaPercent(this))
-        swFnTab.setOnCheckedChangeListener { _, on ->
-            Prefs.setFnTabEnabled(this, on)
-            sliderFnAlpha.isEnabled = on
-        }
         sliderFnAlpha.addOnChangeListener { _, value, fromUser ->
             valueFnAlpha.text = getString(R.string.fn_tab_alpha_value, value.toInt())
             if (fromUser) Prefs.setFnTabAlphaPercent(this, value.toInt())
@@ -189,15 +179,7 @@ class SettingsActivity : AppCompatActivity() {
         }
         
         
-        // 키 글자 크기 배율
-        val sliderFont = findViewById<Slider>(R.id.sliderFontScale)
-        val valueFont = findViewById<TextView>(R.id.valueFontScale)
-        sliderFont.value = Prefs.fontScalePercent(this).toFloat()
-        valueFont.text = getString(R.string.font_scale_value, Prefs.fontScalePercent(this))
-        sliderFont.addOnChangeListener { _, value, fromUser ->
-            valueFont.text = getString(R.string.font_scale_value, value.toInt())
-            if (fromUser) Prefs.setFontScalePercent(this, value.toInt())
-        }
+
 
         // 진동 피드백: 바꾸는 즉시 저장하고 체험 진동
         val preview = Haptics(this)
@@ -262,10 +244,7 @@ class SettingsActivity : AppCompatActivity() {
             )
         }
 
-        // 숫자 키를 왼쪽 띠로 (모아키처럼)
-        val numberLeft = findViewById<MaterialSwitch>(R.id.switchNumberLeft)
-        numberLeft.isChecked = Prefs.numberKeysLeft(this)
-        numberLeft.setOnCheckedChangeListener { _, on -> Prefs.setNumberKeysLeft(this, on) }
+
 
         // 단모음 개선판 (밀어서 쌍자음·ㅑㅕㅛㅠ)
         val swipeDouble = findViewById<MaterialSwitch>(R.id.switchSwipeDouble)
@@ -285,12 +264,21 @@ class SettingsActivity : AppCompatActivity() {
 
     /** 위쪽 탭(시작·입력·화면·정보)을 누르면 그 탭의 카드들만 보인다 */
     private fun setupTabs(saved: Bundle?) {
-        val ids = listOf(R.id.sectionStart, R.id.sectionInput, R.id.sectionScreen, R.id.sectionTheme)
+        val screenSection = findViewById<View>(R.id.sectionScreen)
+        resizePane = ResizePane(this, screenSection, layoutInflater)
+        val scrollIds = listOf(R.id.sectionStart, R.id.sectionInput, null, R.id.sectionTheme)
         val tabs = findViewById<TabLayout>(R.id.tabs)
         val scroll = findViewById<android.widget.ScrollView>(R.id.scroll)
         fun show(i: Int) {
-            ids.forEachIndexed { j, id -> findViewById<View>(id).visibility = if (j == i) View.VISIBLE else View.GONE }
-            scroll.scrollTo(0, 0)
+            val isScreen = (i == 2)
+            scroll.visibility = if (isScreen) View.GONE else View.VISIBLE
+            screenSection.visibility = if (isScreen) View.VISIBLE else View.GONE
+            if (isScreen) {
+                resizePane.refresh()
+            } else {
+                scrollIds.forEachIndexed { j, id -> if (id != null) findViewById<View>(id).visibility = if (j == i) View.VISIBLE else View.GONE }
+                scroll.scrollTo(0, 0)
+            }
             currentTab = i
         }
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -305,6 +293,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private var currentTab = 0
+    private lateinit var resizePane: ResizePane
 
     /** 어느 탭에서든 오른쪽 위 버튼으로 열어 보는 입력 테스트 창 (설정을 바꾸고 바로 눌러 보기 좋다) */
     private fun showTryDialog() {
@@ -361,10 +350,16 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (::resizePane.isInitialized) resizePane.refresh()
         refreshStatus()
     }
 
     /** 키보드 선택 창에서 돌아오면 포커스가 바뀌므로 포커스 변경 시에도 갱신 */
+    override fun onDestroy() {
+        if (::resizePane.isInitialized) resizePane.destroy()
+        super.onDestroy()
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) refreshStatus()

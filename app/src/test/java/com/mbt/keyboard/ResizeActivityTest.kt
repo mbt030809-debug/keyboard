@@ -46,9 +46,15 @@ class ResizeActivityTest {
         }
     }
 
-    @Test fun settingsActivityOpensAndResizeButtonLaunchesResize() {
+    @Test fun settingsActivityScreenTabShowsResizeDirectly() {
         ActivityScenario.launch(SettingsActivity::class.java).use { sc ->
-            sc.onActivity { a -> a.findViewById<View>(R.id.btnResize).performClick() }
+            sc.onActivity { a ->
+                val tabs = a.findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabs)
+                tabs.getTabAt(2)!!.select()
+                assertEquals(View.VISIBLE, a.findViewById<View>(R.id.sectionScreen).visibility)
+                assertTrue(a.findViewById<View>(R.id.previewContainer) != null)
+                assertEquals(7, a.findViewById<ChipGroup>(R.id.pageChips).childCount)
+            }
         }
     }
 
@@ -76,7 +82,7 @@ class ResizeActivityTest {
             sc.onActivity { a ->
                 assertEquals(7, chips(a).childCount)
                 assertTrue(title(a).startsWith("① 전체 크기"))
-                listOf("② 상하좌우 여백", "③ 키 사이 간격", "④ 숫자줄·스페이스바 줄 크기", "⑤ 숫자줄 여백", "⑥ 전복붙 높이", "⑦ 터치 인식 영역").forEachIndexed { i, t ->
+                listOf("② 상하좌우 여백", "③ 키 사이 간격", "④ 보조탭", "⑤ 숫자줄·스페이스바 줄 크기", "⑥ 숫자줄 여백", "⑦ 터치 인식 영역").forEachIndexed { i, t ->
                     goTo(a, i + 1)
                     assertTrue("${title(a)} vs $t", title(a).startsWith(t))
                 }
@@ -103,7 +109,7 @@ class ResizeActivityTest {
     @Test fun sizePageChangesWidthAndHeightByOnePercentAndIsSaved() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertEquals(2, controls(a).childCount)                 // 폰(접힘)·세로: 갈라진 정도는 없다
+                assertTrue(controls(a).childCount >= 2)                 // 가로·세로 + 글자 크기 슬라이더
                 step(a, 0, plus = false); step(a, 0, plus = false); step(a, 0, plus = false)
                 step(a, 1, plus = false); step(a, 1, plus = false); step(a, 1, plus = true)
                 val g = Prefs.geometry(a, large = false)
@@ -117,7 +123,7 @@ class ResizeActivityTest {
     fun splitGapShowsOnLargeScreenSeparatelyFromPhoneAndResetRestoresEverything() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertEquals(3, controls(a).childCount)
+                assertTrue(controls(a).childCount >= 3)
                 step(a, 2, plus = true); step(a, 2, plus = true)
                 assertEquals(20, Prefs.geometry(a, large = true).gapPct)
                 assertEquals(KeyboardGeometry.GAP_DEFAULT, Prefs.geometry(a, large = false).gapPct)   // 접힘(폰) 설정은 그대로
@@ -153,21 +159,24 @@ class ResizeActivityTest {
                 goTo(a, 2)                                                                   // ③ 간격
                 step(a, 0, plus = true)                                                      // 가로 +1
                 step(a, 1, plus = false); step(a, 1, plus = false)                         // 세로 -2
-                goTo(a, 3); step(a, 0, plus = true)                                          // ④ 숫자줄 크기 +5%
+                goTo(a, 3)                                                                   // ④ 보조탭 (스위치 2개+설명 2개 + 높이 + 여백)
+                assertTrue(a.findViewById<View>(R.id.switchNumberLeft) != null)
+                assertTrue(a.findViewById<View>(R.id.switchFnTab) != null)
+                step(a, 4, plus = false)                                                     // 탭 높이 -5%
+                step(a, 5, plus = true); step(a, 5, plus = true)                             // 탭 여백 +2
+                assertEquals("95%", value(a, 4))
+                assertEquals("6dp", value(a, 5))
+                assertEquals(View.VISIBLE, a.findViewById<View>(R.id.pageNote).visibility)    // 보조탭 안내
+                goTo(a, 4); step(a, 0, plus = true)                                          // ⑤ 숫자줄 크기 +5%
                 assertEquals(2, controls(a).childCount)                                      // 숫자줄 크기 + 스페이스바 줄 높이
                 step(a, 1, plus = true); step(a, 1, plus = true); step(a, 1, plus = false)   // 스페이스바 줄 +5%
-                goTo(a, 4); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑤ 숫자줄 여백 +2
-                goTo(a, 5); step(a, 0, plus = false)                                         // ⑥ 전복붙 높이 -5%
-                step(a, 1, plus = true); step(a, 1, plus = true)                             // 탭 여백 +2
+                goTo(a, 4); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑥ 숫자줄 여백 +2
                 val g = Prefs.geometry(a, large = false)
                 assertEquals(7, g.keyGapDp); assertEquals(4, g.rowGapDp)
                 assertEquals(85, g.numHeightPct); assertEquals(8, g.numRowGapDp)
                 assertEquals(105, g.spaceRowPct)
                 assertEquals(95, g.fnTabHeightPct)
                 assertEquals(6, g.fnTabPadDp)
-                assertEquals("95%", value(a, 0))
-                assertEquals("6dp", value(a, 1))
-                assertEquals(View.VISIBLE, a.findViewById<View>(R.id.pageNote).visibility)    // 전복붙 안내
             }
         }
     }

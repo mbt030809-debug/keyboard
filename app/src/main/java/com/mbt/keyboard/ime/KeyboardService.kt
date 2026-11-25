@@ -225,7 +225,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
      */
     private fun refreshFnTab() {
         if (!::fnTab.isInitialized || !::host.isInitialized) return
-        val on = Prefs.fnTabEnabled(this) && view.hasSideStrip
+        val on = Prefs.fnTabEnabled(this) && (view.hasSideStrip || view.hasTopNumberRow)
         view.fnTab = on
         fnTab.theme = view.theme
         fnTab.alphaPercent = Prefs.fnTabAlphaPercent(this)
@@ -238,7 +238,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         if (!::fnTab.isInitialized || isFullscreenMode) return
         val tabH = if (fnTab.visibility == View.GONE) 0 else (host.layoutParams as FrameLayout.LayoutParams).topMargin
         // 글래스 테마는 판 맨 위 띠(약 6dp)도 뒤 앱이 비치는 영역이라 앱 화면을 그만큼 더 아래까지 깐다
-        val fade = if (view.theme.frost) view.frostFadePx().toInt() else 0
+        val fade = if (view.bgGlassOn) view.frostFadePx().toInt() else 0
         if (tabH <= 0 && fade <= 0) return
         // 탭·띠 자리는 앱 화면을 밀어 올리지 않고, 터치는 탭과 키보드에만 반응한다 (탭 옆 빈 곳은 뒤의 앱으로 전달)
         val rootTop = outInsets.contentTopInsets

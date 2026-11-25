@@ -41,12 +41,16 @@ class FnTabTest {
 
     private fun labels(v: KeyboardView) = v.keyRects().map { it.first.label }
 
-    @Test fun tabModeRemovesTheThreeKeysFromTheBottomRowOnlyWhenDigitsAreOnTheLeft() {
+    @Test fun tabModeRemovesTheThreeKeysFromTheBottomRowAndMovesTopRowToTab() {
         assertTrue(labels(keyView(true, false)).containsAll(listOf("전체", "복사", "붙임")))
         assertTrue(labels(keyView(true, true)).none { it in listOf("전체", "복사", "붙임") })
         assertTrue(labels(keyView(true, true, Layouts.moaki)).none { it in listOf("전체", "복사", "붙임") })
-        // 숫자가 위에 있는 자판은 그대로 (탭을 켜도 영향 없음)
-        assertTrue(labels(keyView(false, true)).containsAll(listOf("전체", "복사", "붙임")))
+        // 숫자가 상단일 때는 전복붙+숫자 13키가 상단 탭(fnTabKeys)으로 이동하고 본판은 4줄만 남는다
+        val topOn = keyView(false, true)
+        assertTrue(labels(topOn).none { it in listOf("전체", "복사", "붙임", "1", "0") })
+        assertEquals(13, topOn.fnTabKeys().size)
+        val topOff = keyView(false, false)
+        assertTrue(labels(topOff).none { it in listOf("전체", "복사", "붙임", "1", "0") })
     }
 
     @Test fun hasSideStripReportsDigitsOnTheLeft() {
@@ -289,12 +293,30 @@ class FnTabTest {
         assertEquals(0, (host.layoutParams as FrameLayout.LayoutParams).topMargin)
     }
 
-    @Test fun noTabWhenDigitsStayOnTop() {
+    @Test fun topNumberTabShows13KeysAndHidesAllWhenTabSwitchOff() {
+        Prefs.setNumberKeysLeft(ctx, true)
+        Prefs.setFnTabEnabled(ctx, true)
+        val leftSvc = Robolectric.buildService(KeyboardService::class.java).create().get()
+        val leftRoot = leftSvc.onCreateInputView() as FrameLayout
+        measure(leftRoot); shadowOf(android.os.Looper.getMainLooper()).idle(); measure(leftRoot)
+        val leftKbH = (leftRoot.getChildAt(0) as FrameLayout).getChildAt(0).measuredHeight
+
         Prefs.setNumberKeysLeft(ctx, false)
         val service = Robolectric.buildService(KeyboardService::class.java).create().get()
         val root = service.onCreateInputView() as FrameLayout
         measure(root); shadowOf(android.os.Looper.getMainLooper()).idle(); measure(root)
-        assertEquals(View.GONE, root.getChildAt(1).visibility)
+        val kb = (root.getChildAt(0) as FrameLayout).getChildAt(0)
+        val tab = root.getChildAt(1) as FnTab
+        assertEquals(View.VISIBLE, tab.visibility)
+        assertEquals(13, tab.keys.size)
+        assertEquals(leftKbH.toFloat(), kb.measuredHeight.toFloat(), 2f)
+
+        // 탭 표시 스위치를 끄면 상단에서는 전복붙+숫자 탭 전체가 숨겨지고 본판 4줄 높이는 그대로 유지된다
+        Prefs.setFnTabEnabled(ctx, false)
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        measure(root)
+        assertEquals(View.GONE, tab.visibility)
+        assertEquals(leftKbH.toFloat(), kb.measuredHeight.toFloat(), 2f)
     }
 }
 
