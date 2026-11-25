@@ -77,7 +77,7 @@ class ResizePane(
     init {
         splitActive = if (large) Prefs.splitOnLargeScreen(context) else landscape
         keyboard = KeyboardView(context).also {
-            it.showHitZones = true
+            it.showHitZones = false
             it.theme = KeyboardTheme.current(context)
             it.numberLeft = Prefs.numberKeysLeft(context)
             it.keyboardLayout = Layouts.byId(Prefs.koreanLayout(context))
@@ -195,6 +195,7 @@ class ResizePane(
 
     private fun showPage(index: Int) {
         pageIndex = index
+        keyboard.showHitZones = (index == 5)
         overlay.activePage = index
         val page = pages[index]
         root.findViewById<TextView>(R.id.pageTitle).setText(page.title)
