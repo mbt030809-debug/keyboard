@@ -209,25 +209,6 @@ object Prefs {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
             .putInt(KEY_BG_OPACITY, pct.coerceIn(BG_OPACITY_MIN, BG_OPACITY_MAX)).apply()
 
-    const val KEY_MIRROR_ON = "mirror_reflection_enabled"
-    const val KEY_MIRROR_STRENGTH = "mirror_strength_pct"
-    const val MIRROR_STRENGTH_MIN = 10
-    const val MIRROR_STRENGTH_MAX = 100
-    const val MIRROR_STRENGTH_DEFAULT = 65
-
-    fun mirrorEnabled(context: Context): Boolean =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_MIRROR_ON, true)
-
-    fun setMirrorEnabled(context: Context, on: Boolean) =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_MIRROR_ON, on).apply()
-
-    fun mirrorStrengthPercent(context: Context): Int =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_MIRROR_STRENGTH, MIRROR_STRENGTH_DEFAULT)
-            .coerceIn(MIRROR_STRENGTH_MIN, MIRROR_STRENGTH_MAX)
-
-    fun setMirrorStrengthPercent(context: Context, pct: Int) =
-        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-            .putInt(KEY_MIRROR_STRENGTH, pct.coerceIn(MIRROR_STRENGTH_MIN, MIRROR_STRENGTH_MAX)).apply()
             
     const val KEY_FONT_SCALE = "font_scale_pct"
     const val FONT_SCALE_MIN = 70
@@ -349,4 +330,37 @@ object Prefs {
     } catch (_: Exception) {
         false
     }
+const val GLASS_NORMAL = 0
+const val GLASS_BLUR = 1
+const val GLASS_REED = 2
+const val GLASS_3D = 3
+
+const val KEY_GLASS_TYPE = "glass_type"
+const val KEY_KEY_GLASS_STRENGTH = "key_glass_strength_pct"
+const val KEY_BG_GLASS_STRENGTH = "bg_glass_strength_pct"
+    
+fun glassType(context: Context): Int =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_GLASS_TYPE, GLASS_BLUR)
+    .coerceIn(GLASS_NORMAL, GLASS_3D)
+
+    fun setGlassType(context: Context, type: Int) =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+    .putInt(KEY_GLASS_TYPE, type.coerceIn(GLASS_NORMAL, GLASS_3D)).apply()
+    
+fun keyGlassStrengthPercent(context: Context): Int =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_KEY_GLASS_STRENGTH, 65)
+    .coerceIn(0, 100)
+    
+fun setKeyGlassStrengthPercent(context: Context, pct: Int) =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+    .putInt(KEY_KEY_GLASS_STRENGTH, pct.coerceIn(0, 100)).apply()
+    
+fun bgGlassStrengthPercent(context: Context): Int =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_BG_GLASS_STRENGTH, 65)
+    .coerceIn(0, 100)
+    
+fun setBgGlassStrengthPercent(context: Context, pct: Int) =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+    .putInt(KEY_BG_GLASS_STRENGTH, pct.coerceIn(0, 100)).apply()
+
 }
