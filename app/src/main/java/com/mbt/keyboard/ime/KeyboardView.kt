@@ -747,13 +747,14 @@ val a = (((color ushr 24) and 0xFF) * keyOpacity + 0.5f).toInt().coerceIn(0, 255
 return (color and 0x00FFFFFF) or (a shl 24)
 }
     
-    var glassType: Int = 0
+    var glassType: Int = -1
         set(v) { if (field != v) { field = v; invalidate() } }
     var keyGlassStrength: Float = 0.85f
         set(v) { if (field != v) { field = v; invalidate() } }
     var bgGlassStrength: Float = 0.85f
         set(v) { if (field != v) { field = v; invalidate() } }
-
+    private val effGlass: Int get() = if (glassType >= 0) glassType else if (theme.frost) 1 else 0
+    
     private val fadeMaskPaint = Paint().apply { xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN) }
 
     /**
@@ -790,7 +791,7 @@ return (color and 0x00FFFFFF) or (a shl 24)
         val w = width.toFloat(); val h = height.toFloat()
         val bgG = bgGlassStrength.coerceIn(0f, 1f)
         glassPaint.style = Paint.Style.FILL; glassPaint.shader = null; glassPaint.alpha = 255
-        if (glassType == 0 || bgG <= 0.02f) {
+        if (effGlass == 0 || bgG <= 0.02f) {
             val shader = theme.backgroundShader(w, h)
             if (shader == null) {
                 glassPaint.color = if (t >= 0f) withBgOpacity(theme.background) else theme.background
@@ -814,11 +815,11 @@ return (color and 0x00FFFFFF) or (a shl 24)
         val tintA = (((tintBase ushr 24) and 0xFF) * bgG).toInt().coerceIn(0, 255)
         glassPaint.color = (tintA shl 24) or (tintBase and 0x00FFFFFF)
         canvas.drawRect(l, t, r, b, glassPaint)
-        if (glassType == 2) drawReedOverlay(canvas, l, t, r, b, bgG * (if (t >= 0f) bgOpacity else 1f))
+        if (effGlass == 2) drawReedOverlay(canvas, l, t, r, b, bgG * (if (t >= 0f) bgOpacity else 1f))
         val topA1 = (0x5C * bgG).toInt().coerceIn(0, 255); val topA2 = (0x1F * bgG).toInt().coerceIn(0, 255)
         glassPaint.shader = LinearGradient(0f, -extra, 0f, h * 0.45f, intArrayOf((topA1 shl 24) or 0xFFFFFF, (topA2 shl 24) or 0xFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
         canvas.drawRect(l, t, r, b, glassPaint)
-        if (glassType == 3 || theme.frost) {
+        if (effGlass == 3 || theme.frost) {
             glassPaint.shader = LinearGradient(0f, -extra, w * 0.62f, h * 1.9f, GLASS_BAND_COLORS, GLASS_BAND_STOPS, Shader.TileMode.CLAMP)
             glassPaint.alpha = (bgG * 255f).toInt().coerceIn(0, 255); canvas.drawRect(l, t, r, b, glassPaint); glassPaint.alpha = 255
         }
@@ -922,7 +923,7 @@ return (color and 0x00FFFFFF) or (a shl 24)
     }
 
     private fun drawBackground(canvas: Canvas) {
-        if (theme.frost || (glassType != 0 && bgGlassStrength > 0.02f)) { drawFrostPlate(canvas); return }
+        if (theme.frost || (effGlass != 0 && bgGlassStrength > 0.02f)) { drawFrostPlate(canvas); return }
         val w = width.toFloat(); val h = height.toFloat(); val shader = theme.backgroundShader(w, h)
         if (shader == null) {
             canvas.drawColor(withBgOpacity(theme.background))
@@ -953,7 +954,7 @@ return (color and 0x00FFFFFF) or (a shl 24)
             }
             paint.color = withKeyOpacity(paint.color)
             val r = cell.inner
-            val useFrostKey = theme.frost || (glassType != 0 && keyGlassStrength > 0.02f)
+            val useFrostKey = theme.frost || (effGlass != 0 && keyGlassStrength > 0.02f)
                 if (useFrostKey) {
                     drawFrostKey(canvas, r, frostKeyRadiusPx(), paint.color, isPressed(cell))
             } else if (theme.keyShadow) {
