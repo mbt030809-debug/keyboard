@@ -57,23 +57,8 @@ class KeyboardViewTouchTest {
 
     // ---- 좌표 도우미: 키 라벨 → 중심 좌표 (키보드 뷰의 셀 위치를 리플렉션 없이 계산) ----
     private fun center(label: String): Pair<Float, Float> {
-        val layout = Layouts.koreanSingle
-        val pad = 4 * density
-        val keyH = view.theme.keyHeightDp * density
-        var top = pad
-        layout.rows.forEachIndexed { r, row ->
-            val rowH = keyH * layout.rowHeights[r]
-            val total = row.sumOf { it.weight.toDouble() }.toFloat()
-            var x = pad
-            val usable = view.width - 2 * pad
-            for (k in row) {
-                val w = usable * k.weight / total
-                if (k.type != KeyType.SPACER && k.label == label) return Pair(x + w / 2, top + rowH / 2)
-                x += w
-            }
-            top += rowH
-        }
-        error("no key $label")
+        val r = view.keyRects().first { it.first.label == label }.second
+        return Pair(r.centerX(), r.centerY())
     }
 
     private var downTime = 0L
@@ -295,6 +280,9 @@ class KeyboardViewTouchTest {
         org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(ms))
 
     @Test fun longPressingPasteNoLongerOpensAnythingAndStillPastesOnRelease() {
+        view.numberLeft = true
+        view.measure(View.MeasureSpec.makeMeasureSpec((360 * density).toInt(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
         // 최근기록은 엔터 꾹 누르기 패널로 옮겼다. 붙임은 오래 눌러도 붙여넣기만 한다
         downTime = SystemClock.uptimeMillis()
         val a = p(0, "붙임")
@@ -348,6 +336,9 @@ class KeyboardViewTouchTest {
     }
 
     @Test fun tappingPasteStillPastes() {
+        view.numberLeft = true
+        view.measure(View.MeasureSpec.makeMeasureSpec((360 * density).toInt(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
         downTime = SystemClock.uptimeMillis()
         val a = p(0, "붙임")
         send(ev(MotionEvent.ACTION_DOWN, a))

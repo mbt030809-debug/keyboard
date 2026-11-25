@@ -274,6 +274,7 @@ class SettingsActivity : AppCompatActivity() {
             scroll.visibility = if (isScreen) View.GONE else View.VISIBLE
             screenSection.visibility = if (isScreen) View.VISIBLE else View.GONE
             if (isScreen) {
+                scrollIds.forEach { id -> if (id != null) findViewById<View>(id).visibility = View.GONE }
                 resizePane.refresh()
             } else {
                 scrollIds.forEachIndexed { j, id -> if (id != null) findViewById<View>(id).visibility = if (j == i) View.VISIBLE else View.GONE }

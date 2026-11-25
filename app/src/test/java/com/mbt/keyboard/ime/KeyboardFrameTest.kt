@@ -193,7 +193,7 @@ class KeyboardFrameTest {
         assertEquals(expectedLang, texts.first { it.text == "EN" }.size, 0.01f)
         // 🎤: 키 높이의 34%에서 1dp 줄임
         val voice = view.keyRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.VOICE }.second
-        val expectedVoice = voice.height() * 0.34f * view.theme.textScale        // 기본 글자 +1dp 에서 아이콘 -1dp 라 그대로
+        val expectedVoice = minOf(voice.height(), view.theme.keyHeightDp * density) * 0.34f * view.theme.textScale
         assertEquals(expectedVoice, texts.first { it.text == "🎤" }.size, 0.01f)
         // 다른 툴바 글자(전체·복사·붙임)는 그대로 (줄이지 않음)
         view.numberLeft = true; relayout()

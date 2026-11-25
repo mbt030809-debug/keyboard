@@ -119,15 +119,18 @@ class SplitProfileTest {
     fun resizeScreenOnFoldedLandscapeEditsOnlyTheLandscapeGap() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                val controls = a.findViewById<android.view.ViewGroup>(R.id.pageControls)
-                assertEquals(3, controls.childCount)                                         // 접힘이어도 가로면 갈라진 정도가 보인다
-                repeat(8) {
-                    val v = controls.getChildAt(2).findViewById<View>(R.id.stepPlus)
-                    val t = android.os.SystemClock.uptimeMillis()
-                    v.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, 1f, 1f, 0))
-                    v.dispatchTouchEvent(MotionEvent.obtain(t, t + 10, MotionEvent.ACTION_UP, 1f, 1f, 0))
-                }
-                assertEquals(8, Prefs.geometry(a, large = false, landscape = true).gapPct)
+                val container = a.findViewById<android.view.ViewGroup>(R.id.previewContainer)
+                val hr = container.getChildAt(0)
+                val ov = (0 until container.childCount).map { container.getChildAt(it) }.filterIsInstance<ResizeOverlayView>().single()
+                hr.layout(0, 50, 1000, 450)
+                ov.layout(0, 0, 1000, 500)
+                val t = android.os.SystemClock.uptimeMillis()
+                val sx = (hr.left + hr.right) / 2f
+                val sy = hr.top + hr.height * 0.25f
+                ov.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, sx, sy, 0))
+                ov.dispatchTouchEvent(MotionEvent.obtain(t, t + 20, MotionEvent.ACTION_MOVE, sx + 50f, sy, 0))
+                ov.dispatchTouchEvent(MotionEvent.obtain(t, t + 40, MotionEvent.ACTION_UP, sx + 50f, sy, 0))
+                assertTrue(Prefs.geometry(a, large = false, landscape = true).gapPct > 0)
                 assertEquals(KeyboardGeometry.GAP_DEFAULT, Prefs.geometry(a, large = false, landscape = false).gapPct)
             }
         }

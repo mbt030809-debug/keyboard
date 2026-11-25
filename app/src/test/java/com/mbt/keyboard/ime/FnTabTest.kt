@@ -469,6 +469,7 @@ class FrostFadeTest {
     }
 
     @Test fun otherThemesAreUnchanged() {
+        Prefs.setBgGlassStrengthPercent(ctx, 0)
         val d = ctx.resources.displayMetrics.density
         val (content, tabH, _) = insetsFor("charcoal", tab = true)
         assertEquals(tabH.toFloat(), content.toFloat(), 1.5f)           // 탭 높이만큼만
