@@ -199,7 +199,8 @@ class KeyboardFrameTest {
         view.numberLeft = true; relayout()
         val edit = view.keyRects().first { it.first.label == "전체" }.second
         val textsLeft = drawnTexts()
-        assertEquals(edit.height() * 0.34f * view.theme.textScale + density, textsLeft.first { it.text == "전체" }.size, 0.01f)
+        val editRef = minOf(edit.height(), view.theme.keyHeightDp * density, edit.width() * 1.35f)
+        assertEquals(editRef * 0.34f * view.theme.textScale + density, textsLeft.first { it.text == "전체" }.size, 0.01f)
     }
 
     @Test fun backspaceIsDrawnOnePointTwoFiveTimesALetterKeyOnEveryLayout() {
