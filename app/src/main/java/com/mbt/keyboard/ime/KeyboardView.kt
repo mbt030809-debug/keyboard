@@ -662,21 +662,57 @@ class KeyboardView(context: Context) : View(context) {
     private var cachedMirrorW: Int = 0
     private var cachedMirrorH: Int = 0
 
-    private fun ensureMirrorBitmaps() {
-        val raw = MirrorAccessibilityService.mirrorBitmap
-        if (!mirrorEnabled || raw == null || width <= 0 || height <= 0) return
-        val ver = MirrorAccessibilityService.mirrorVersion
-        if (ver == cachedMirrorVer && cachedMirrorW == width && cachedMirrorH == height && mirrorPlateBlur != null && mirrorKeyBlur != null) return
-        mirrorPlateBlur?.recycle(); mirrorKeyBlur?.recycle()
-        val pw = max(width / 6, 1); val ph = max(height / 6, 1)
-        val ps = Bitmap.createScaledBitmap(raw, pw, ph, true)
-        mirrorPlateBlur = Bitmap.createScaledBitmap(ps, width, height, true).also { if (ps !== it) ps.recycle() }
-        val kw = max(width / 14, 1); val kh = max(height / 14, 1)
-        val ks = Bitmap.createScaledBitmap(raw, kw, kh, true)
-        mirrorKeyBlur = Bitmap.createScaledBitmap(ks, width, height, true).also { if (ks !== it) ks.recycle() }
-        cachedMirrorVer = ver; cachedMirrorW = width; cachedMirrorH = height
-    }
+    private fun boxBlur(bmp: Bitmap, passes: Int): Bitmap {
+val w = bmp.width; val h = bmp.height
+if (w < 3 || h < 3) return bmp
+val px = IntArray(w * h)
+val tmp = IntArray(w * h)
+bmp.getPixels(px, 0, w, 0, 0, w, h)
+repeat(passes) {
+for (y in 0 until h) {
+val row = y * w
+for (x in 0 until w) {
+var a = 0; var r = 0; var g = 0; var b = 0; var c = 0
+for (dx in -2..2) {
+val nx = (x + dx).coerceIn(0, w - 1)
+val p = px[row + nx]
+a += (p ushr 24) and 0xFF; r += (p ushr 16) and 0xFF; g += (p ushr 8) and 0xFF; b += p and 0xFF; c++
+}
+tmp[row + x] = ((a / c) shl 24) or ((r / c) shl 16) or ((g / c) shl 8) or (b / c)
+}
+}
+for (y in 0 until h) {
+val row = y * w
+for (x in 0 until w) {
+var a = 0; var r = 0; var g = 0; var b = 0; var c = 0
+for (dy in -2..2) {
+val ny = (y + dy).coerceIn(0, h - 1)
+val p = tmp[ny * w + x]
+a += (p ushr 24) and 0xFF; r += (p ushr 16) and 0xFF; g += (p ushr 8) and 0xFF; b += p and 0xFF; c++
+}
+px[row + x] = ((a / c) shl 24) or ((r / c) shl 16) or ((g / c) shl 8) or (b / c)
+}
+}
+}
+return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
+}
 
+private fun ensureMirrorBitmaps() {
+val raw = MirrorAccessibilityService.mirrorBitmap
+if (!mirrorEnabled || raw == null || width <= 0 || height <= 0) return
+val ver = MirrorAccessibilityService.mirrorVersion
+if (ver == cachedMirrorVer && cachedMirrorW == width && cachedMirrorH == height && mirrorPlateBlur != null && mirrorKeyBlur != null) return
+mirrorPlateBlur?.recycle(); mirrorKeyBlur?.recycle()
+val pw = max(width / 16, 4); val ph = max(height / 16, 4)
+val ps = Bitmap.createScaledBitmap(raw, pw, ph, true)
+val pb = boxBlur(ps, 3); if (pb !== ps) ps.recycle()
+mirrorPlateBlur = Bitmap.createScaledBitmap(pb, width, height, true).also { if (pb !== it) pb.recycle() }
+val kw = max(width / 24, 4); val kh = max(height / 24, 4)
+val ks = Bitmap.createScaledBitmap(raw, kw, kh, true)
+val kb = boxBlur(ks, 4); if (kb !== ks) ks.recycle()
+mirrorKeyBlur = Bitmap.createScaledBitmap(kb, width, height, true).also { if (kb !== it) kb.recycle() }
+cachedMirrorVer = ver; cachedMirrorW = width; cachedMirrorH = height
+}
     /** 윗줄(1~2행)에서 진하게 비치고 아랫줄(스페이스바 줄)로 갈수록 테마 색으로 자연스럽게 페이드되는 거울 반사 그리기 */
     private fun drawMirrorPlateOverlay(canvas: Canvas, w: Float, h: Float) {
         if (!mirrorEnabled) return
