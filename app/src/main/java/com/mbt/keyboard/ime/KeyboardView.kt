@@ -624,7 +624,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawFrostBackdrop(canvas: Canvas, w: Float, h: Float) {
         bgPaint.shader = theme.backgroundShader(w, h)
         canvas.drawRect(0f, 0f, w, h, bgPaint)
-        val blobs = when (theme.frostStyle) {
+        val blobs = if (!theme.frost) listOf(Blob(0.22f, 0.20f, 0.55f, 0x44FFFFFF), Blob(0.78f, 0.72f, 0.60f, (theme.accent and 0x00FFFFFF) or 0x55000000)) else when (theme.frostStyle) {
             1 -> TAUPE_BLOBS; 2 -> NAVY_BLOBS; 3 -> SUNSET_BLOBS; 4 -> PINK_BLOBS; 5 -> AURORA_BLOBS; 6 -> MINT_BLOBS
             7 -> TAUPE_OPTICAL_BLOBS
             else -> HOLO_BLOBS
@@ -643,24 +643,23 @@ class KeyboardView(context: Context) : View(context) {
 
     /** 유리판에 비치는 "흐린 뒷배경". 크기·테마가 바뀔 때만 다시 만든다 (작게 줄였다 늘리면 부드럽게 흐려진다) */
     private fun ensureFrostBitmaps() {
-        // 탭이 판에 이어 붙으면 탭 자리(판 위쪽)까지 한 장으로 번짐 배경을 만들어 탭과 판의 재질이 끊기지 않게 한다
         val total = height + frostExtraTopPx().toInt()
         val key = Triple(width, total, theme)
-        if (frostKey == key && frostBlur != null && (theme.frostStyle != 7 || frostKeyBlur != null)) return
-        frostBlur?.recycle(); frostKeyBlur?.recycle(); frostKeyBlur = null
+        if (frostKey == key && frostBlur != null && frostKeyBlur != null) return
+        frostBlur?.recycle(); frostKeyBlur?.recycle(); frostBlur = null; frostKeyBlur = null
         val sharp = Bitmap.createBitmap(max(width, 1), max(total, 1), Bitmap.Config.ARGB_8888)
         drawFrostBackdrop(Canvas(sharp), sharp.width.toFloat(), sharp.height.toFloat())
-        val div = if (theme.frostStyle == 7) 5 else FROST_BLUR_DIV; val small = Bitmap.createScaledBitmap(sharp, max(sharp.width / div, 1), max(sharp.height / div, 1), true)
-        val blur = Bitmap.createScaledBitmap(small, sharp.width, sharp.height, true)
-        if (small !== blur) small.recycle()
-        val keyBlur = if (theme.frostStyle == 7) { val ks = Bitmap.createScaledBitmap(sharp, max(sharp.width / 14, 1), max(sharp.height / 14, 1), true); Bitmap.createScaledBitmap(ks, sharp.width, sharp.height, true).also { if (ks !== it) ks.recycle() } } else null; sharp.recycle()
+        val div = if (theme.frostStyle == 7) 5 else FROST_BLUR_DIV
+        val small = Bitmap.createScaledBitmap(sharp, max(sharp.width / div, 1), max(sharp.height / div, 1), true)
+        val smallBlur = boxBlur(small, 2); if (smallBlur !== small) small.recycle()
+        val blur = Bitmap.createScaledBitmap(smallBlur, sharp.width, sharp.height, true); if (smallBlur !== blur) smallBlur.recycle()
+        val ks = Bitmap.createScaledBitmap(sharp, max(sharp.width / 14, 1), max(sharp.height / 14, 1), true)
+        val ksBlur = boxBlur(ks, 3); if (ksBlur !== ks) ks.recycle()
+        val keyBlur = Bitmap.createScaledBitmap(ksBlur, sharp.width, sharp.height, true); if (ksBlur !== keyBlur) ksBlur.recycle()
+        sharp.recycle()
         frostBlur = blur; frostKeyBlur = keyBlur; frostKey = key
     }
-    private var mirrorPlateBlur: Bitmap? = null
-    private var mirrorKeyBlur: Bitmap? = null
-    private var cachedMirrorVer: Int = -1
-    private var cachedMirrorW: Int = 0
-    private var cachedMirrorH: Int = 0
+    
 
     private fun boxBlur(bmp: Bitmap, passes: Int): Bitmap {
 val w = bmp.width; val h = bmp.height
@@ -697,42 +696,8 @@ px[row + x] = ((a / c) shl 24) or ((r / c) shl 16) or ((g / c) shl 8) or (b / c)
 return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
 }
 
-private fun ensureMirrorBitmaps() {
-val raw = MirrorAccessibilityService.mirrorBitmap
-if (!mirrorEnabled || raw == null || width <= 0 || height <= 0) return
-val ver = MirrorAccessibilityService.mirrorVersion
-if (ver == cachedMirrorVer && cachedMirrorW == width && cachedMirrorH == height && mirrorPlateBlur != null && mirrorKeyBlur != null) return
-mirrorPlateBlur?.recycle(); mirrorKeyBlur?.recycle()
-val pw = max(width / 16, 4); val ph = max(height / 16, 4)
-val ps = Bitmap.createScaledBitmap(raw, pw, ph, true)
-val pb = boxBlur(ps, 3); if (pb !== ps) ps.recycle()
-mirrorPlateBlur = Bitmap.createScaledBitmap(pb, width, height, true).also { if (pb !== it) pb.recycle() }
-val kw = max(width / 24, 4); val kh = max(height / 24, 4)
-val ks = Bitmap.createScaledBitmap(raw, kw, kh, true)
-val kb = boxBlur(ks, 4); if (kb !== ks) ks.recycle()
-mirrorKeyBlur = Bitmap.createScaledBitmap(kb, width, height, true).also { if (kb !== it) kb.recycle() }
-cachedMirrorVer = ver; cachedMirrorW = width; cachedMirrorH = height
-}
-    /** 윗줄(1~2행)에서 진하게 비치고 아랫줄(스페이스바 줄)로 갈수록 테마 색으로 자연스럽게 페이드되는 거울 반사 그리기 */
-    private fun drawMirrorPlateOverlay(canvas: Canvas, w: Float, h: Float) {
-        if (!mirrorEnabled) return
-        ensureMirrorBitmaps()
-        val mb = mirrorPlateBlur ?: return
-        val mAlpha = (mirrorStrength * (1.15f - bgOpacity * 0.35f)).coerceIn(0.05f, 0.95f)
-        val aTop = (mAlpha * 255f).toInt().coerceIn(0, 255)
-        val aMid = (mAlpha * 0.55f * 255f).toInt().coerceIn(0, 255)
-        val aBot = (mAlpha * 0.06f * 255f).toInt().coerceIn(0, 255)
-        val ml = canvas.saveLayer(0f, 0f, w, h, null)
-        canvas.drawBitmap(mb, null, RectF(0f, 0f, w, h), null)
-        fadeMaskPaint.shader = LinearGradient(
-            0f, 0f, 0f, h,
-            intArrayOf((aTop shl 24) or 0xFFFFFF, (aMid shl 24) or 0xFFFFFF, (aBot shl 24) or 0xFFFFFF),
-            floatArrayOf(0f, 0.52f, 1f),
-            Shader.TileMode.CLAMP,
-        )
-        canvas.drawRect(0f, 0f, w, h, fadeMaskPaint)
-        canvas.restoreToCount(ml)
-    }
+
+    
     
 
     private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -770,11 +735,6 @@ cachedMirrorVer = ver; cachedMirrorW = width; cachedMirrorH = height
     var bgOpacity: Float = 1f
 set(v) { if (field != v) { field = v; invalidate() } }
 
-var mirrorEnabled: Boolean = true
-set(v) { if (field != v) { field = v; invalidate() } }
-
-var mirrorStrength: Float = 0.65f
-set(v) { if (field != v) { field = v; invalidate() } }
 private fun withBgOpacity(color: Int): Int {
 if (bgOpacity >= 0.999f) return color
 val a = (((color ushr 24) and 0xFF) * bgOpacity + 0.5f).toInt().coerceIn(0, 255)
@@ -786,6 +746,13 @@ if (keyOpacity >= 0.999f) return color
 val a = (((color ushr 24) and 0xFF) * keyOpacity + 0.5f).toInt().coerceIn(0, 255)
 return (color and 0x00FFFFFF) or (a shl 24)
 }
+    
+    var glassType: Int = 1
+        set(v) { if (field != v) { field = v; invalidate() } }
+    var keyGlassStrength: Float = 0.85f
+        set(v) { if (field != v) { field = v; invalidate() } }
+    var bgGlassStrength: Float = 0.85f
+        set(v) { if (field != v) { field = v; invalidate() } }
 
     private val fadeMaskPaint = Paint().apply { xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN) }
 
@@ -810,27 +777,51 @@ return (color and 0x00FFFFFF) or (a shl 24)
      * 유리 표면(흐린 번짐 배경 + 투명 흰색 + 위쪽 빛 + 비스듬한 빛띠)을 판 좌표계의 [l,t,r,b] 칸에 그린다.
      * 판과 이어 붙은 탭이 같은 함수로 그리므로 둘이 한 장의 유리처럼 이어진다 (판 좌표: 왼쪽 위가 (0,0), 탭은 y < 0).
      */
+    private fun drawReedOverlay(canvas: Canvas, l: Float, t: Float, r: Float, b: Float, strength: Float) {
+        val s = strength.coerceIn(0f, 1f); if (s <= 0.01f) return
+        val reedW = (10f * density).coerceAtLeast(6f)
+        val hiA = (0x44 * s).toInt().coerceIn(0, 255); val shA = (0x28 * s).toInt().coerceIn(0, 255)
+        glassPaint.style = Paint.Style.FILL
+        glassPaint.shader = LinearGradient(l, 0f, l + reedW, 0f, intArrayOf((hiA shl 24) or 0xFFFFFF, 0x00FFFFFF, shA shl 24, 0x00000000), floatArrayOf(0f, 0.38f, 0.72f, 1f), Shader.TileMode.REPEAT)
+        canvas.drawRect(l, t, r, b, glassPaint); glassPaint.shader = null
+    }
+
     private fun drawFrostSurface(canvas: Canvas, l: Float, t: Float, r: Float, b: Float) {
         val w = width.toFloat(); val h = height.toFloat()
-        val extra = frostExtraTopPx()
-        val bmp = frostBlur
+        val bgG = bgGlassStrength.coerceIn(0f, 1f)
+        glassPaint.style = Paint.Style.FILL; glassPaint.shader = null; glassPaint.alpha = 255
+        if (glassType == 0 || bgG <= 0.02f) {
+            val shader = theme.backgroundShader(w, h)
+            if (shader == null) {
+                glassPaint.color = if (t >= 0f) withBgOpacity(theme.background) else theme.background
+                canvas.drawRect(l, t, r, b, glassPaint)
+            } else {
+                glassPaint.shader = shader
+                glassPaint.alpha = if (t >= 0f) (bgOpacity * 255f).toInt().coerceIn(0, 255) else 255
+                canvas.drawRect(l, t, r, b, glassPaint); glassPaint.alpha = 255; glassPaint.shader = null
+            }
+            return
+        }
+        val extra = frostExtraTopPx(); val bmp = frostBlur
         if (bmp != null) {
             val sl = l.coerceIn(0f, bmp.width.toFloat()); val sr = r.coerceIn(0f, bmp.width.toFloat())
             val st = (t + extra).coerceIn(0f, bmp.height.toFloat()); val sb = (b + extra).coerceIn(0f, bmp.height.toFloat())
-            if (t >= 0f) glassPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255); if (sr > sl && sb > st) canvas.drawBitmap(bmp, Rect(sl.toInt(), st.toInt(), sr.toInt(), sb.toInt()), RectF(sl, st - extra, sr, sb - extra), null)
+            if (t >= 0f) glassPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
+            if (sr > sl && sb > st) canvas.drawBitmap(bmp, Rect(sl.toInt(), st.toInt(), sr.toInt(), sb.toInt()), RectF(l, t, r, b), glassPaint)
         }
-        glassPaint.style = Paint.Style.FILL
-     glassPaint.alpha = 255
-        if (t >= 0f) drawMirrorPlateOverlay(canvas, w, h)
-           glassPaint.shader = null
-        glassPaint.color = if (t >= 0f) withBgOpacity(theme.frostTint) else theme.frostTint
+        glassPaint.alpha = 255; glassPaint.shader = null
+        val tintBase = if (t >= 0f) withBgOpacity(theme.frostTint) else theme.frostTint
+        val tintA = (((tintBase ushr 24) and 0xFF) * bgG).toInt().coerceIn(0, 255)
+        glassPaint.color = (tintA shl 24) or (tintBase and 0x00FFFFFF)
         canvas.drawRect(l, t, r, b, glassPaint)
-        // 위쪽에서 내려오는 은은한 빛 (탭 맨 위에서 시작해 판 안쪽까지 한 번에 이어진다)
-        glassPaint.shader = LinearGradient(0f, -extra, 0f, h * 0.45f, intArrayOf(0x5CFFFFFF, 0x1FFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+        if (glassType == 2) drawReedOverlay(canvas, l, t, r, b, bgG * (if (t >= 0f) bgOpacity else 1f))
+        val topA1 = (0x5C * bgG).toInt().coerceIn(0, 255); val topA2 = (0x1F * bgG).toInt().coerceIn(0, 255)
+        glassPaint.shader = LinearGradient(0f, -extra, 0f, h * 0.45f, intArrayOf((topA1 shl 24) or 0xFFFFFF, (topA2 shl 24) or 0xFFFFFF, 0x00FFFFFF), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
         canvas.drawRect(l, t, r, b, glassPaint)
-        // 비스듬히 가로지르는 빛띠들
-        glassPaint.shader = LinearGradient(0f, -extra, w * 0.62f, h * 1.9f, GLASS_BAND_COLORS, GLASS_BAND_STOPS, Shader.TileMode.CLAMP)
-        canvas.drawRect(l, t, r, b, glassPaint)
+        if (glassType == 3 || theme.frost) {
+            glassPaint.shader = LinearGradient(0f, -extra, w * 0.62f, h * 1.9f, GLASS_BAND_COLORS, GLASS_BAND_STOPS, Shader.TileMode.CLAMP)
+            glassPaint.alpha = (bgG * 255f).toInt().coerceIn(0, 255); canvas.drawRect(l, t, r, b, glassPaint); glassPaint.alpha = 255
+        }
         glassPaint.shader = null
     }
 
@@ -904,17 +895,7 @@ return (color and 0x00FFFFFF) or (a shl 24)
         canvas.drawRoundRect(r.left, r.top + density, r.right, r.bottom + 1.5f * density, radius, radius, glassPaint) }
         canvas.restore()
         // ② 색입힌 투명 면
-     if (tabShiftY >= 0f && mirrorEnabled) {
-            ensureMirrorBitmaps()
-            mirrorKeyBlur?.let { mb ->
-                val vf = (1f - (r.centerY() / height.toFloat().coerceAtLeast(1f)) * 0.85f).coerceIn(0.08f, 1f)
-                glassPaint.alpha = (mirrorStrength * vf * keyOpacity * 185f).toInt().coerceIn(0, 215)
-                canvas.save(); canvas.clipPath(keyPath)
-                canvas.drawBitmap(mb, 2.8f * density, 2.2f * density, glassPaint)
-                canvas.restore()
-                glassPaint.alpha = 255
-            }
-        }
+     
            if (theme.frostStyle == 7) { canvas.save(); canvas.clipPath(keyPath); if (tabShiftY >= 0f) frostKeyBlur?.let { kb -> val et = frostExtraTopPx(); val ox = 2.8f * density; val oy = 2.2f * density; val src = android.graphics.Rect((r.left + tabShiftX + ox).toInt().coerceIn(0, kb.width - 1), (r.top + et + tabShiftY + oy).toInt().coerceIn(0, kb.height - 1), (r.right + tabShiftX + ox).toInt().coerceIn(1, kb.width), (r.bottom + et + tabShiftY + oy).toInt().coerceIn(1, kb.height)); if (src.width() > 0 && src.height() > 0) { glassPaint.alpha = (keyOpacity * 170f).toInt().coerceIn(15, 190); canvas.drawBitmap(kb, src, r, glassPaint); glassPaint.alpha = 255 } }; val base = if (pressed) withKeyOpacity(theme.keyPressed) else tint; val baseA = (base ushr 24) and 0xFF; val cr = (base ushr 16) and 0xFF; val cg = (base ushr 8) and 0xFF; val cb = base and 0xFF; val rgb = base and 0x00FFFFFF; val lr = (cr * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255); val lg = (cg * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255); val lb = (cb * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255); val liftRgb = (lr shl 16) or (lg shl 8) or lb; val aTop = (baseA * 1.05f).toInt().coerceIn(0, 255); val aMid = (baseA * 0.74f).toInt().coerceIn(0, 255); val aBot = (baseA * 0.92f).toInt().coerceIn(0, 255); glassPaint.shader = LinearGradient(r.left, r.top, r.right, r.bottom, intArrayOf((aTop shl 24) or liftRgb, (aMid shl 24) or rgb, (aBot shl 24) or rgb), floatArrayOf(0f, 0.5f, 1f), android.graphics.Shader.TileMode.CLAMP); canvas.drawRect(r, glassPaint); glassPaint.shader = null; canvas.restore() } else { glassPaint.color = if (pressed) theme.keyPressed else tint
         canvas.drawRoundRect(r, radius, radius, glassPaint) }
         // ③④ 면 위의 유리 빛
@@ -941,7 +922,7 @@ return (color and 0x00FFFFFF) or (a shl 24)
     }
 
     private fun drawBackground(canvas: Canvas) {
-        if (theme.frost) { drawFrostPlate(canvas); return }
+        if (theme.frost || (glassType != 0 && bgGlassStrength > 0.02f)) { drawFrostPlate(canvas); return }
         val w = width.toFloat(); val h = height.toFloat(); val shader = theme.backgroundShader(w, h)
         if (shader == null) {
             canvas.drawColor(withBgOpacity(theme.background))
@@ -950,7 +931,6 @@ return (color and 0x00FFFFFF) or (a shl 24)
             bgPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255); canvas.drawRect(0f, 0f, w, h, bgPaint); bgPaint.alpha = 255
             bgPaint.shader = null
         }
-        drawMirrorPlateOverlay(canvas, w, h)
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -965,23 +945,25 @@ return (color and 0x00FFFFFF) or (a shl 24)
                 isPressed(cell) -> theme.keyPressed
                 key.type == KeyType.VOICE && voiceListening -> theme.accent
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
-                key.type == KeyType.ENTER -> theme.enterKey        // 엔터: 색은 유지하되 덜 진하게
+                key.type == KeyType.ENTER -> theme.enterKey
+                    key.type == KeyType.SPACE -> theme.effectiveSpaceKey        // 엔터: 색은 유지하되 덜 진하게
                 isSpecial || cell.duplicate -> theme.specialKey      // 복제 키는 기능키 색으로 살짝 구분
                 isDigitKey(key) -> theme.numberKey                    // 숫자 키는 조금 어둡게
                 else -> theme.key
             }
             paint.color = withKeyOpacity(paint.color)
             val r = cell.inner
-            if (theme.frost) {
-                drawFrostKey(canvas, r, frostKeyRadiusPx(), paint.color, isPressed(cell))
+            val useFrostKey = theme.frost || (glassType != 0 && keyGlassStrength > 0.02f)
+                if (useFrostKey) {
+                    drawFrostKey(canvas, r, frostKeyRadiusPx(), paint.color, isPressed(cell))
             } else if (theme.keyShadow) {
                 val keep = paint.color
                 paint.color = 0x26000000
                 canvas.drawRoundRect(r.left, r.top + 1.5f * density, r.right, r.bottom + 1.5f * density, radius, radius, paint)
                 paint.color = keep
             }
-            if (!theme.frost) canvas.drawRoundRect(r.left, r.top, r.right, r.bottom, radius, radius, paint)
-            if (theme.keyBorder != 0 && !theme.frost) {
+            if (!useFrostKey) canvas.drawRoundRect(r.left, r.top, r.right, r.bottom, radius, radius, paint)
+                if (theme.keyBorder != 0 && !useFrostKey) {
                 borderPaint.strokeWidth = density
                 borderPaint.color = theme.keyBorder
                 val h = density / 2f
