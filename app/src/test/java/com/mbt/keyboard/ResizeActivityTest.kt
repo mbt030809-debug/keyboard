@@ -90,18 +90,16 @@ class ResizeActivityTest {
         }
     }
 
-    @Test fun nextAndPreviousButtonsWalkThroughThePagesAndStopAtTheEnds() {
+    @Test fun chipsWalkThroughAllSixPages() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertEquals(false, a.findViewById<View>(R.id.prevButton).isEnabled)
-                a.findViewById<View>(R.id.nextButton).performClick()
+                goTo(a, 1)
                 assertTrue(title(a).startsWith("② "))
                 assertTrue(chips(a).getChildAt(1).let { (it as com.google.android.material.chip.Chip).isChecked })
-                a.findViewById<View>(R.id.prevButton).performClick()
-                assertTrue(title(a).startsWith("① "))
-                repeat(10) { a.findViewById<View>(R.id.nextButton).performClick() }
+                goTo(a, 5)
                 assertTrue(title(a).startsWith("⑥ "))
-                assertEquals(false, a.findViewById<View>(R.id.nextButton).isEnabled)
+                goTo(a, 0)
+                assertTrue(title(a).startsWith("① "))
             }
         }
     }
@@ -145,8 +143,7 @@ class ResizeActivityTest {
                 drag(ov, (hr.left + hr.right) / 2f, hr.top + hr.height * 0.25f, (hr.left + hr.right) / 2f + 30f, hr.top + hr.height * 0.25f)
                 assertTrue(Prefs.geometry(a, large = true).gapPct > KeyboardGeometry.GAP_DEFAULT)
                 assertEquals(KeyboardGeometry.GAP_DEFAULT, Prefs.geometry(a, large = false).gapPct)   // 접힘(폰) 설정은 그대로
-                a.findViewById<View>(R.id.resetButton).performClick()
-                assertEquals(KeyboardGeometry(), Prefs.geometry(a, large = true))
+
             }
         }
     }
@@ -175,9 +172,7 @@ class ResizeActivityTest {
             sc.onActivity { a ->
                 goTo(a, 5)
                 assertTrue(a.findViewById<View>(R.id.stepPlus) == null)
-                goTo(a, 1); step(a, 0, plus = true)
-                a.findViewById<View>(R.id.resetButton).performClick()
-                assertEquals(KeyboardGeometry(), Prefs.geometry(a, large = false))
+
             }
         }
     }

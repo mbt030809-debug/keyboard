@@ -178,15 +178,7 @@ class ResizePane(
             val id = ids.firstOrNull() ?: return@setOnCheckedStateChangeListener
             showPage(group.findViewById<View>(id).tag as Int)
         }
-        root.findViewById<View>(R.id.prevButton).setOnClickListener { selectPage(pageIndex - 1) }
-        root.findViewById<View>(R.id.nextButton).setOnClickListener { selectPage(pageIndex + 1) }
 
-        root.findViewById<MaterialButton>(R.id.resetButton).setOnClickListener {
-            geometry = KeyboardGeometry()
-            Prefs.setKeyOpacityPercent(context, Prefs.KEY_OPACITY_DEFAULT)
-            Prefs.setFontScalePercent(context, 100)
-            showPage(pageIndex)
-        }
 
         selectPage(0)
         refresh()
@@ -216,8 +208,7 @@ class ResizePane(
         steppers.clear()
         readouts.clear()
         page.build()
-        root.findViewById<View>(R.id.prevButton).isEnabled = index > 0
-        root.findViewById<View>(R.id.nextButton).isEnabled = index < pages.size - 1
+
         refresh()
     }
 
@@ -435,15 +426,7 @@ class ResizePane(
             tv.text = provider()
         }
 
-        root.findViewById<TextView>(R.id.profileInfo).text =
-            context.getString(
-                when {
-                    large && landscape -> R.string.resize_profile_large_land
-                    large -> R.string.resize_profile_large
-                    landscape -> R.string.resize_profile_normal_land
-                    else -> R.string.resize_profile_normal
-                },
-            )
+
     }
 
     fun destroy() {
