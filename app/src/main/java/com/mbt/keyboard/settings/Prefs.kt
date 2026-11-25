@@ -343,7 +343,15 @@ const val GLASS_3D = 3
 
 const val KEY_GLASS_TYPE = "glass_type"
 const val KEY_KEY_GLASS_STRENGTH = "key_glass_strength_pct"
+const val KEY_TEXT_COLOR = "text_color_override"
 const val KEY_BG_GLASS_STRENGTH = "bg_glass_strength_pct"
+
+fun textColor(context: Context): Int =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_TEXT_COLOR, 0)
+
+fun setTextColor(context: Context, color: Int) =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+        .putInt(KEY_TEXT_COLOR, color).apply()
     
 fun glassType(context: Context): Int =
     context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_GLASS_TYPE, GLASS_BLUR)

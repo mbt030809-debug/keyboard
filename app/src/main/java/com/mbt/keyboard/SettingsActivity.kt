@@ -87,6 +87,7 @@ class SettingsActivity : AppCompatActivity() {
         autoCaps.setOnCheckedChangeListener { _, on -> Prefs.setAutoCapitalize(this, on) }
 
         buildThemePicker(findViewById(R.id.themeList))
+        buildTextColorPicker(findViewById(R.id.textColorList))
 
 
 
@@ -315,6 +316,61 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     /** 테마 미리보기 카드를 2열로 늘어놓고, 누르면 바로 저장·적용 */
+    private fun buildTextColorPicker(row: LinearLayout) {
+        val d = resources.displayMetrics.density
+        val palette = listOf(
+            0xFFFFFFFF.toInt() to "순백",
+            0xFF1A1C1E.toInt() to "블랙",
+            0xFF3A3530.toInt() to "다크브라운",
+            0xFF5A5248.toInt() to "웜그레이",
+            0xFF1F2A44.toInt() to "네이비",
+            0xFF3B4D6B.toInt() to "슬레이트",
+            0xFF5E4B8B.toInt() to "라벤더",
+            0xFF2B6B5F.toInt() to "딥민트",
+            0xFFB84A39.toInt() to "코랄",
+            0xFFC98A2C.toInt() to "골드",
+            0xFF90CAF9.toInt() to "스카이",
+            0xFFF48FB1.toInt() to "핑크",
+        )
+        var chosen = Prefs.textColor(this)
+        val size = (40 * d).toInt()
+        val gap = (10 * d).toInt()
+        val views = ArrayList<Pair<Int, View>>()
+
+        fun updateSelection() {
+            views.forEach { (col, v) ->
+                val gd = v.background as android.graphics.drawable.GradientDrawable
+                val sel = (col == chosen)
+                gd.setStroke(
+                    ((if (sel) 3.2f else 1.2f) * d).toInt(),
+                    if (sel) 0xFF1A73E8.toInt() else 0x44888888,
+                )
+            }
+        }
+
+        palette.forEachIndexed { idx, (color, desc) ->
+            val circle = View(this).apply {
+                contentDescription = desc
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(color)
+                }
+                layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                    if (idx > 0) marginStart = gap
+                }
+                setOnClickListener {
+                    chosen = color
+                    Prefs.setTextColor(this@SettingsActivity, color)
+                    updateSelection()
+                    if (::resizePane.isInitialized) resizePane.refresh()
+                }
+            }
+            views += color to circle
+            row.addView(circle)
+        }
+        updateSelection()
+    }
+
     private fun buildThemePicker(list: android.widget.LinearLayout) {
         val d = resources.displayMetrics.density
         val items = listOf(

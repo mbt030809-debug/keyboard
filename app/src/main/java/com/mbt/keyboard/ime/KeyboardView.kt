@@ -867,7 +867,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             val bw = refractBmp.width
             val bh = refractBmp.height
             val cols = kotlin.math.ceil(((r - l) / reedW).toDouble()).toInt().coerceAtMost(96)
-            glassPaint.alpha = (165 * s).toInt().coerceIn(0, 210)
+            glassPaint.alpha = (185 * s).toInt().coerceIn(0, 220)
             for (i in 0 until cols) {
                 val cl = l + i * reedW
                 val cr = minOf(cl + reedW, r)
@@ -881,10 +881,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             }
             glassPaint.alpha = 255
         }
-        val hi1 = (0xC8 * s).toInt().coerceIn(0, 255)
-        val hi2 = (0x3D * s).toInt().coerceIn(0, 255)
-        val cool = (0x1E * s).toInt().coerceIn(0, 255)
-        val edge = (0x7A * s).toInt().coerceIn(0, 255)
+        val hi1 = (0x46 * s).toInt().coerceIn(0, 255)
+        val hi2 = (0x16 * s).toInt().coerceIn(0, 255)
+        val cool = (0x14 * s).toInt().coerceIn(0, 255)
+        val edge = (0x2A * s).toInt().coerceIn(0, 255)
         glassPaint.style = Paint.Style.FILL
         glassPaint.shader = LinearGradient(
             l, 0f, l + reedW, 0f,
@@ -946,8 +946,8 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
 
         if (gType == 1) {
             // 2. 블러: 부드러운 젖빛 유리 확산 광택
-            val bHi = (0x52 * bgG).toInt().coerceIn(0, 255)
-            val bMid = (0x24 * bgG).toInt().coerceIn(0, 255)
+            val bHi = (0x2E * bgG).toInt().coerceIn(0, 255)
+            val bMid = (0x14 * bgG).toInt().coerceIn(0, 255)
             glassPaint.shader = android.graphics.RadialGradient(
                 w * 0.28f, -extra + h * 0.22f, max(w, h) * 0.72f,
                 intArrayOf((bHi shl 24) or 0xFFFFFF, (bMid shl 24) or 0xFFFFFF, 0x00FFFFFF),
@@ -960,9 +960,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             drawReedOverlay(canvas, l, t, r, b, bgG, pitchDp = 9.0f)
         } else if (gType == 3) {
             // 4. 3D: 볼록 돔 입체광 + 상·하단 3D 유리 베벨 음영
-            val dHi = (0xA8 * bgG).toInt().coerceIn(0, 255)
-            val dMid = (0x44 * bgG).toInt().coerceIn(0, 255)
-            val dSh = (0x48 * bgG).toInt().coerceIn(0, 255)
+            val dHi = (0x48 * bgG).toInt().coerceIn(0, 255)
+            val dMid = (0x1E * bgG).toInt().coerceIn(0, 255)
+            val dSh = (0x3A * bgG).toInt().coerceIn(0, 255)
             glassPaint.shader = android.graphics.RadialGradient(
                 w * 0.5f, -extra + h * 0.16f, max(w, h) * 0.80f,
                 intArrayOf((dHi shl 24) or 0xFFFFFF, (dMid shl 24) or 0xFFFFFF, 0x00FFFFFF, dSh shl 24),
@@ -973,10 +973,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         }
 
         // 유리판 전체를 비스듬히 가로지르는 선명한 대각선 유리창 빛반사면 (밝은 배경에서도 보이도록 반사 + 미세 굴절 음영 대비)
-        val diagTopA = (0x84 * bgG).toInt().coerceIn(0, 255)
-        val diagMidA = (0x54 * bgG).toInt().coerceIn(0, 255)
-        val diagEdgeA = (0xA8 * bgG).toInt().coerceIn(0, 255)
-        val diagShadowA = (0x24 * bgG).toInt().coerceIn(0, 255)
+        val diagTopA = (0x96 * bgG).toInt().coerceIn(0, 255)
+        val diagMidA = (0x5E * bgG).toInt().coerceIn(0, 255)
+        val diagEdgeA = (0xBC * bgG).toInt().coerceIn(0, 255)
+        val diagShadowA = (0x32 * bgG).toInt().coerceIn(0, 255)
         glassPaint.shader = LinearGradient(
             0f, -extra, w * 0.65f, h * 0.95f,
             intArrayOf(

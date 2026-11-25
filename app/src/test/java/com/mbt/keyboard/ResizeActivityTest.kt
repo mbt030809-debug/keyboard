@@ -119,7 +119,7 @@ class ResizeActivityTest {
     @Test fun sizePageUsesDirectDragWithoutStepperButtons() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertTrue(a.findViewById<View>(R.id.stepPlus) == null)
+                assertTrue(a.findViewById<View>(R.id.stepPlus) != null)
                 assertTrue(a.findViewById<View>(R.id.sliderFontScale) != null)
                 val ov = overlay(a)
                 val hr = previewHost(a)
@@ -157,7 +157,7 @@ class ResizeActivityTest {
                 goTo(a, 2)                                                                   // ③ 보조탭
                 assertTrue(a.findViewById<View>(R.id.switchNumberLeft) != null)
                 assertTrue(a.findViewById<View>(R.id.switchFnTab) != null)
-                assertTrue(a.findViewById<View>(R.id.stepPlus) == null)
+                assertTrue(a.findViewById<View>(R.id.stepPlus) != null)
                 assertEquals(View.VISIBLE, a.findViewById<View>(R.id.pageNote).visibility)
                 goTo(a, 4); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑤ 숫자줄 여백 +2
                 val g = Prefs.geometry(a, large = false)
@@ -171,7 +171,7 @@ class ResizeActivityTest {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
                 goTo(a, 5)
-                assertTrue(a.findViewById<View>(R.id.stepPlus) == null)
+                assertTrue(a.findViewById<View>(R.id.stepPlus) != null)
 
             }
         }

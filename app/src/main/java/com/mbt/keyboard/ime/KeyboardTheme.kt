@@ -107,8 +107,11 @@ data class KeyboardTheme(
         )
 
         /** 설정에서 고른 테마. 고르지 않았으면(또는 모르는 값이면) 시스템 모드를 따른다 */
-        fun current(context: Context): KeyboardTheme =
-            KeyboardThemes.resolve(com.mbt.keyboard.settings.Prefs.themeId(context)) ?: system(context)
+        fun current(context: Context): KeyboardTheme {
+            val base = KeyboardThemes.resolve(com.mbt.keyboard.settings.Prefs.themeId(context)) ?: system(context)
+            val tc = com.mbt.keyboard.settings.Prefs.textColor(context)
+            return if (tc != 0) base.copy(text = tc) else base
+        }
 
         fun system(context: Context): KeyboardTheme {
             val night = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK

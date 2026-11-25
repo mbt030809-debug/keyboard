@@ -841,7 +841,42 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="2. 글래스 효과"
+                            android:layout_marginBottom="10dp"
+                            android:text="2. 키보드 글자색"
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textStyle="bold" />
+
+                        <HorizontalScrollView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:scrollbars="none">
+
+                            <LinearLayout
+                                android:id="@+id/textColorList"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal" />
+                        </HorizontalScrollView>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    style="?attr/materialCardViewFilledStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="3. 글래스 효과"
                             android:textAppearance="?attr/textAppearanceTitleMedium"
                             android:textStyle="bold" />
 
@@ -957,7 +992,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="3. 투명도"
+                            android:text="4. 투명도"
                             android:textAppearance="?attr/textAppearanceTitleMedium"
                             android:textStyle="bold" />
 
