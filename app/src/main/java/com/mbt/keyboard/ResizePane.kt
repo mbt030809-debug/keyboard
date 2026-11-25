@@ -29,7 +29,8 @@ import com.mbt.keyboard.settings.ScreenProfile
 
 /**
  * 키보드 크기·여백·보조탭·인식영역 조절 UI 컨트롤러.
- * [SettingsActivity]의 '화면' 분류와 [ResizeActivity]가 동일한 레이아웃과 로직을 공유한다.
+ * ① 전체 크기 · ④ 보조탭 · ⑤ 숫자·스페이스줄 · ⑦ 인식은 미리보기 위 직접 드래그로 조절하고,
+ * ② 여백 · ③ 간격 · ⑥ 숫자 여백은 － ＋ 버튼으로 조절한다.
  */
 class ResizePane(
     private val context: Context,
@@ -42,6 +43,7 @@ class ResizePane(
     private val host: FrameLayout
     private val keyboard: KeyboardView
     private val fnTab: FnTab
+    private val overlay: ResizeOverlayView
 
     private var splitActive = false
 
@@ -54,6 +56,7 @@ class ResizePane(
         val canPlus: () -> Boolean,
     )
     private val steppers = ArrayList<Stepper>()
+    private val readouts = ArrayList<Pair<TextView, () -> String>>()
 
     private inner class Page(
         val chip: Int,
@@ -88,9 +91,25 @@ class ResizePane(
             host, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT),
         )
         fnTab = FnTab(context, keyboard).also { it.visibility = View.GONE }
-        keyboard.onRelayoutRequested = { fnTab.requestLayout(); fnTab.invalidate() }
+        keyboard.onRelayoutRequested = { fnTab.requestLayout(); fnTab.invalidate(); overlay.invalidate() }
         previewContainer.addView(
             fnTab, FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, android.view.Gravity.TOP or android.view.Gravity.START),
+        )
+        overlay = ResizeOverlayView(
+            context = context,
+            host = host,
+            keyboard = keyboard,
+            fnTab = fnTab,
+            getGeometry = { geometry },
+            onGeometryChanged = { updated ->
+                geometry = updated
+                refresh()
+            },
+            isSplitActive = { splitActive },
+            getContainerWidth = { containerWidthPx },
+        )
+        previewContainer.addView(
+            overlay, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT),
         )
         previewContainer.addOnLayoutChangeListener { _, l, _, r, _, _, _, _, _ ->
             val w = r - l
@@ -102,13 +121,14 @@ class ResizePane(
 
         pages = listOf(
             Page(R.string.resize_page_size, R.string.resize_title_size, R.string.resize_badge_base, R.string.resize_desc_size, ResizeDiagram.Part.SIZE) {
-                addStepper(R.string.resize_width, { geometry = geometry.widerBy(it) }, { "${geometry.widthPct}%" },
-                    { geometry.widthPct > KeyboardGeometry.WIDTH_MIN }, { geometry.widthPct < KeyboardGeometry.WIDTH_MAX })
-                addStepper(R.string.resize_height, { geometry = geometry.tallerBy(it) }, { "${geometry.heightPct}%" },
-                    { geometry.heightPct > KeyboardGeometry.HEIGHT_MIN }, { geometry.heightPct < KeyboardGeometry.HEIGHT_MAX })
-                if (splitActive) addStepper(R.string.resize_gap, { geometry = geometry.gapWiderBy(it) },
-                    { if (!large && geometry.gapPct == 0) context.getString(R.string.resize_gap_off) else "${geometry.gapPct}%" },
-                    { geometry.gapPct > KeyboardGeometry.GAP_MIN }, { geometry.gapPct < KeyboardGeometry.GAP_MAX })
+                addDragHint("위·오른쪽 파란 점선 핸들을 끌어 가로·세로 크기를 조절하세요")
+                addReadout(R.string.resize_width) { "${geometry.widthPct}%" }
+                addReadout(R.string.resize_height) { "${geometry.heightPct}%" }
+                if (splitActive) {
+                    addReadout(R.string.resize_gap) {
+                        if (!large && geometry.gapPct == 0) context.getString(R.string.resize_gap_off) else "${geometry.gapPct}%"
+                    }
+                }
                 addFontScaleSlider()
             },
             Page(R.string.resize_page_pad, R.string.resize_title_pad, R.string.resize_badge_1, R.string.resize_desc_pad, ResizeDiagram.Part.PAD) {
@@ -132,30 +152,27 @@ class ResizePane(
                     { Prefs.numberKeysLeft(context) }, { on -> Prefs.setNumberKeysLeft(context, on) })
                 addSwitch(R.id.switchFnTab, R.string.fn_tab_switch, R.string.fn_tab_desc,
                     { Prefs.fnTabEnabled(context) }, { on -> Prefs.setFnTabEnabled(context, on) })
-                addStepper(R.string.resize_tab_height, { geometry = geometry.fnTabHeightBy(it) }, { "${geometry.fnTabHeightPct}%" },
-                    { geometry.fnTabHeightPct > KeyboardGeometry.FN_TAB_HEIGHT_MIN }, { geometry.fnTabHeightPct < KeyboardGeometry.FN_TAB_HEIGHT_MAX })
-                addStepper(R.string.resize_tab_pad, { geometry = geometry.fnTabPadBy(it) }, { "${geometry.fnTabPadDp}dp" },
-                    { geometry.fnTabPadDp > KeyboardGeometry.FN_TAB_PAD_MIN }, { geometry.fnTabPadDp < KeyboardGeometry.FN_TAB_PAD_MAX })
+                addDragHint("미리보기의 초록 보조탭 가운데를 끌면 위치 이동, 오른쪽 아래 모서리를 끌면 크기 조절됩니다")
+                addReadout(R.string.resize_tab_height) { "높이 ${geometry.fnTabHeightPct}% · 너비 ${geometry.fnTabWidthPct}%" }
+                addReadout("보조탭 위치") {
+                    if (keyboard.hasTopNumberRow) "상하 ${geometry.fnTabYdp}dp" else "좌우 ${geometry.fnTabXdp}dp · 상하 ${geometry.fnTabYdp}dp"
+                }
             },
             Page(R.string.resize_page_numrow, R.string.resize_title_numrow, R.string.resize_badge_123, R.string.resize_desc_numrow, ResizeDiagram.Part.NUMROW) {
-                addStepper(R.string.resize_num_height, { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
-                    { geometry.numHeightPct > KeyboardGeometry.NUM_HEIGHT_MIN }, { geometry.numHeightPct < KeyboardGeometry.NUM_HEIGHT_MAX })
-                addStepper(R.string.resize_space_row, { geometry = geometry.spaceRowBy(it) }, { "${geometry.spaceRowPct}%" },
-                    { geometry.spaceRowPct > KeyboardGeometry.SPACE_ROW_MIN }, { geometry.spaceRowPct < KeyboardGeometry.SPACE_ROW_MAX })
+                addDragHint("숫자 띠 경계선(좌우)과 스페이스바 위 점선(상하)의 파란 핸들을 직접 끌어 조절하세요")
+                addReadout(R.string.resize_num_height) { "${geometry.numHeightPct}%" }
+                addReadout(R.string.resize_space_row) { "${geometry.spaceRowPct}%" }
             },
             Page(R.string.resize_page_numgap, R.string.resize_title_numgap, R.string.resize_badge_1234, R.string.resize_desc_numgap, ResizeDiagram.Part.NUMGAP) {
                 addStepper(R.string.resize_num_row_gap, { geometry = geometry.numRowGapBy(it) }, { "${geometry.numRowGapDp}dp" },
                     { geometry.numRowGapDp > KeyboardGeometry.NUM_ROW_GAP_MIN }, { geometry.numRowGapDp < KeyboardGeometry.NUM_ROW_GAP_MAX })
             },
             Page(R.string.resize_page_hit, R.string.resize_title_hit, R.string.resize_badge_hit, R.string.resize_desc_hit, ResizeDiagram.Part.HIT) {
-                addStepper(R.string.resize_hit0, { geometry = geometry.hit0By(it) }, { signedDp(geometry.hit0Dp) },
-                    { geometry.hit0Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit0Dp < KeyboardGeometry.HIT_MAX })
-                addStepper(R.string.resize_hit1, { geometry = geometry.hit1By(it) }, { signedDp(geometry.hit1Dp) },
-                    { geometry.hit1Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit1Dp < KeyboardGeometry.HIT_MAX })
-                addStepper(R.string.resize_hit2, { geometry = geometry.hit2By(it) }, { signedDp(geometry.hit2Dp) },
-                    { geometry.hit2Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit2Dp < KeyboardGeometry.HIT_MAX })
-                addStepper(R.string.resize_hit3, { geometry = geometry.hit3By(it) }, { signedDp(geometry.hit3Dp) },
-                    { geometry.hit3Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit3Dp < KeyboardGeometry.HIT_MAX })
+                addDragHint("미리보기의 주황색 줄 경계 점선을 위아래로 끌어 터치 인식 영역을 조절하세요")
+                addReadout(R.string.resize_hit0) { signedDp(geometry.hit0Dp) }
+                addReadout(R.string.resize_hit1) { signedDp(geometry.hit1Dp) }
+                addReadout(R.string.resize_hit2) { signedDp(geometry.hit2Dp) }
+                addReadout(R.string.resize_hit3) { signedDp(geometry.hit3Dp) }
             },
         )
 
@@ -196,6 +213,7 @@ class ResizePane(
 
     private fun showPage(index: Int) {
         pageIndex = index
+        overlay.activePage = index
         val page = pages[index]
         root.findViewById<TextView>(R.id.pageTitle).setText(page.title)
         root.findViewById<TextView>(R.id.pageBadge).setText(page.badge)
@@ -206,10 +224,55 @@ class ResizePane(
         }
         root.findViewById<ViewGroup>(R.id.pageControls).removeAllViews()
         steppers.clear()
+        readouts.clear()
         page.build()
         root.findViewById<View>(R.id.prevButton).isEnabled = index > 0
         root.findViewById<View>(R.id.nextButton).isEnabled = index < pages.size - 1
         refresh()
+    }
+
+    private fun addDragHint(hint: String) {
+        val container = root.findViewById<ViewGroup>(R.id.pageControls)
+        val tv = TextView(context).apply {
+            text = hint
+            textSize = 12.5f
+            setTextColor(0xFF1A73E8.toInt())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).also { it.topMargin = (8 * density).toInt(); it.bottomMargin = (4 * density).toInt() }
+        }
+        container.addView(tv)
+    }
+
+    private fun addReadout(labelRes: Int, valueProvider: () -> String) {
+        addReadout(context.getString(labelRes), valueProvider)
+    }
+
+    private fun addReadout(labelText: String, valueProvider: () -> String) {
+        val container = root.findViewById<ViewGroup>(R.id.pageControls)
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).also { it.topMargin = (6 * density).toInt(); it.bottomMargin = (2 * density).toInt() }
+        }
+        val label = TextView(context).apply {
+            text = labelText
+            textSize = 13.5f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val valTv = TextView(context).apply {
+            text = valueProvider()
+            textSize = 13.5f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(0xFF1A73E8.toInt())
+        }
+        row.addView(label)
+        row.addView(valTv)
+        container.addView(row)
+        readouts += valTv to valueProvider
     }
 
     private fun addStepper(
@@ -365,14 +428,20 @@ class ResizePane(
         val tabOn = Prefs.fnTabEnabled(context) && (keyboard.hasSideStrip || keyboard.hasTopNumberRow)
         keyboard.fnTab = tabOn
         keyboard.fnTabHeightScale = geometry.fnTabHeightPct / 100f
+        keyboard.fnTabWidthScale = geometry.fnTabWidthPct / 100f
         keyboard.fnTabPadDp = geometry.fnTabPadDp
         fnTab.theme = keyboard.theme
         fnTab.alphaPercent = Prefs.fnTabAlphaPercent(context)
-        KeyboardHost.applyFnTab(host, fnTab, keyboard, tabOn)
+        KeyboardHost.applyFnTab(host, fnTab, keyboard, tabOn, true, geometry.fnTabXdp, geometry.fnTabYdp, containerWidthPx)
+        overlay.bringToFront()
+        overlay.invalidate()
         steppers.forEach {
             it.value.text = it.text()
             it.minus.isEnabled = it.canMinus()
             it.plus.isEnabled = it.canPlus()
+        }
+        readouts.forEach { (tv, provider) ->
+            tv.text = provider()
         }
 
         root.findViewById<TextView>(R.id.profileInfo).text =

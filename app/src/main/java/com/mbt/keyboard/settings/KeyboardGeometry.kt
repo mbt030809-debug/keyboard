@@ -51,6 +51,9 @@ data class KeyboardGeometry(
     val fnTabHeightPct: Int = FN_TAB_HEIGHT_DEFAULT,
     val fnTabPadDp: Int = FN_TAB_PAD_DEFAULT,
     val spaceRowPct: Int = SPACE_ROW_DEFAULT,
+    val fnTabXdp: Int = 0,
+    val fnTabYdp: Int = 0,
+    val fnTabWidthPct: Int = FN_TAB_WIDTH_DEFAULT,
 ) {
     /** 범위를 벗어난 값을 허용 범위 안으로 */
     fun clamped() = KeyboardGeometry(
@@ -74,6 +77,9 @@ data class KeyboardGeometry(
         fnTabHeightPct.coerceIn(FN_TAB_HEIGHT_MIN, FN_TAB_HEIGHT_MAX),
         fnTabPadDp.coerceIn(FN_TAB_PAD_MIN, FN_TAB_PAD_MAX),
         spaceRowPct.coerceIn(SPACE_ROW_MIN, SPACE_ROW_MAX),
+        fnTabXdp.coerceIn(FN_TAB_X_MIN, FN_TAB_X_MAX),
+        fnTabYdp.coerceIn(FN_TAB_Y_MIN, FN_TAB_Y_MAX),
+        fnTabWidthPct.coerceIn(FN_TAB_WIDTH_MIN, FN_TAB_WIDTH_MAX),
     )
 
     fun widerBy(steps: Int) = copy(widthPct = widthPct + steps * WIDTH_STEP).clamped()
@@ -222,6 +228,14 @@ data class KeyboardGeometry(
         const val FN_TAB_HEIGHT_MAX = 150
         const val FN_TAB_HEIGHT_STEP = 5
         const val FN_TAB_HEIGHT_DEFAULT = 100
+
+        const val FN_TAB_WIDTH_MIN = 50
+        const val FN_TAB_WIDTH_MAX = 180
+        const val FN_TAB_WIDTH_DEFAULT = 100
+        const val FN_TAB_X_MIN = -400
+        const val FN_TAB_X_MAX = 400
+        const val FN_TAB_Y_MIN = -120
+        const val FN_TAB_Y_MAX = 400
 
         const val FN_TAB_PAD_MIN = 0
         const val FN_TAB_PAD_MAX = 20

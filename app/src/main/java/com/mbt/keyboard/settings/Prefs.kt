@@ -132,6 +132,9 @@ object Prefs {
             int("ft", KeyboardGeometry.FN_TAB_HEIGHT_DEFAULT),
             int("fp", KeyboardGeometry.FN_TAB_PAD_DEFAULT),
             int("sr", KeyboardGeometry.SPACE_ROW_DEFAULT),
+            int("ftx", 0),
+            int("fty", 0),
+            int("ftw", KeyboardGeometry.FN_TAB_WIDTH_DEFAULT),
         ).clamped()
     }
 
@@ -159,6 +162,9 @@ object Prefs {
             .putInt(k("ft"), c.fnTabHeightPct)
             .putInt(k("fp"), c.fnTabPadDp)
             .putInt(k("sr"), c.spaceRowPct)
+            .putInt(k("ftx"), c.fnTabXdp)
+            .putInt(k("fty"), c.fnTabYdp)
+            .putInt(k("ftw"), c.fnTabWidthPct)
             .apply()
     }
 

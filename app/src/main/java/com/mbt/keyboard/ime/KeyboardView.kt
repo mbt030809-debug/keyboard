@@ -459,14 +459,23 @@ class KeyboardView(context: Context) : View(context) {
         onRelayoutRequested?.invoke()
     }
 
+    /** 탭 버튼 가로 배율 (기본 1 = 숫자 키와 같음) */
+    var fnTabWidthScale: Float = 1f
+        set(v) { if (field != v) { field = v; requestLayout(); invalidate() } }
+
     /** 반투명 탭 버튼 하나의 가로 길이: 좌측 숫자 띠면 숫자 키 한 칸, 상단 통합 탭이면 본판 전체 폭 ÷ 13 */
     fun fnKeyWidthPx(): Float {
         if (hasTopNumberRow) {
             val usableW = (layoutWidth() - padL - padR + 2 * halfKeyGapPx).coerceAtLeast(1f)
-            return usableW / fnTabKeys().size.coerceAtLeast(1)
+            return (usableW / fnTabKeys().size.coerceAtLeast(1)) * fnTabWidthScale.coerceAtMost(1f)
         }
-        return stripWidthFor(layoutWidth()) / 2f
+        return (stripWidthFor(layoutWidth()) / 2f) * fnTabWidthScale
     }
+
+    /** 미리보기 드래그 오버레이용: 좌측 숫자 띠 오른쪽 끝 X, 스페이스바 줄 윗변 Y, 줄 인식 경계 배열 */
+    fun stripRightPx(): Float = if (hasSideStrip) padL - halfKeyGapPx + stripPx else 0f
+    fun spaceRowTopPx(): Float = rowTops.lastOrNull() ?: 0f
+    fun hitZoneYs(): FloatArray = hitTops.copyOf()
 
     /**
      * 반투명 탭 버튼 높이 = 숫자 키 높이. 좌측 숫자 띠와 상단 통합 탭 모두 동일한 숫자 키 높이를 쓴다

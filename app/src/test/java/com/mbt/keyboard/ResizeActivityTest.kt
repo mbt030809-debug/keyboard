@@ -153,42 +153,31 @@ class ResizeActivityTest {
         }
     }
 
-    @Test fun gapNumberRowAndTabPagesAreSaved() {
+    @Test fun gapAndNumGapUseSteppersWhileTabUsesDirectDrag() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
                 goTo(a, 2)                                                                   // ③ 간격
                 step(a, 0, plus = true)                                                      // 가로 +1
                 step(a, 1, plus = false); step(a, 1, plus = false)                         // 세로 -2
-                goTo(a, 3)                                                                   // ④ 보조탭 (스위치 2개+설명 2개 + 높이 + 여백)
+                goTo(a, 3)                                                                   // ④ 보조탭
                 assertTrue(a.findViewById<View>(R.id.switchNumberLeft) != null)
                 assertTrue(a.findViewById<View>(R.id.switchFnTab) != null)
-                step(a, 4, plus = false)                                                     // 탭 높이 -5%
-                step(a, 5, plus = true); step(a, 5, plus = true)                             // 탭 여백 +2
-                assertEquals("95%", value(a, 4))
-                assertEquals("6dp", value(a, 5))
-                assertEquals(View.VISIBLE, a.findViewById<View>(R.id.pageNote).visibility)    // 보조탭 안내
-                goTo(a, 4); step(a, 0, plus = true)                                          // ⑤ 숫자줄 크기 +5%
-                assertEquals(2, controls(a).childCount)                                      // 숫자줄 크기 + 스페이스바 줄 높이
-                step(a, 1, plus = true); step(a, 1, plus = true); step(a, 1, plus = false)   // 스페이스바 줄 +5%
-                goTo(a, 4); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑥ 숫자줄 여백 +2
+                assertTrue(a.findViewById<View>(R.id.stepPlus) == null)
+                assertEquals(View.VISIBLE, a.findViewById<View>(R.id.pageNote).visibility)
+                goTo(a, 5); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑥ 숫자줄 여백 +2
                 val g = Prefs.geometry(a, large = false)
                 assertEquals(7, g.keyGapDp); assertEquals(4, g.rowGapDp)
-                assertEquals(85, g.numHeightPct); assertEquals(8, g.numRowGapDp)
-                assertEquals(105, g.spaceRowPct)
-                assertEquals(95, g.fnTabHeightPct)
-                assertEquals(6, g.fnTabPadDp)
+                assertEquals(8, g.numRowGapDp)
             }
         }
     }
 
-    @Test fun hitZonePageHasFourSteppersAndResetRestoresTheDefaults() {
+    @Test fun hitZonePageShowsReadoutsAndResetRestoresTheDefaults() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
                 goTo(a, 6)
-                assertEquals(4, controls(a).childCount)
-                step(a, 0, plus = true); step(a, 3, plus = true)
-                assertEquals(KeyboardGeometry.HIT_DEFAULT + 1, Prefs.geometry(a, large = false).hit0Dp)
-                goTo(a, 5); step(a, 0, plus = true)
+                assertTrue(a.findViewById<View>(R.id.stepPlus) == null)
+                goTo(a, 2); step(a, 0, plus = true)
                 a.findViewById<View>(R.id.resetButton).performClick()
                 assertEquals(KeyboardGeometry(), Prefs.geometry(a, large = false))
             }
@@ -202,11 +191,8 @@ class ResizeActivityTest {
             sc.onActivity { a ->
                 val lp = previewHost(a).layoutParams as android.widget.FrameLayout.LayoutParams
                 assertEquals(0, lp.bottomMargin)                             // 띄우기 없음
-                // 가운데 정렬: 남는 폭의 절반이 왼쪽 여백
                 val free = (a.resources.displayMetrics.widthPixels * 0.2f).toInt()
                 assertEquals(free / 2.0, lp.leftMargin.toDouble(), 2.0)
-                // 저장된 이동값도 0으로 정리된다
-                step(a, 0, plus = true)
                 assertEquals(0, Prefs.geometry(a, large = false).raiseDp)
                 assertEquals(0, Prefs.geometry(a, large = false).xDp)
             }

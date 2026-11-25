@@ -225,11 +225,15 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
      */
     private fun refreshFnTab() {
         if (!::fnTab.isInitialized || !::host.isInitialized) return
+        val large = ScreenProfile.isLarge(this)
+        val g = Prefs.geometry(this, large, resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
         val on = Prefs.fnTabEnabled(this) && (view.hasSideStrip || view.hasTopNumberRow)
         view.fnTab = on
+        view.fnTabWidthScale = g.fnTabWidthPct / 100f
         fnTab.theme = view.theme
         fnTab.alphaPercent = Prefs.fnTabAlphaPercent(this)
-        KeyboardHost.applyFnTab(host, fnTab, view, on, view.visibility == View.VISIBLE)
+        val cw = if (rootWidthPx > 0) rootWidthPx else resources.displayMetrics.widthPixels
+        KeyboardHost.applyFnTab(host, fnTab, view, on, view.visibility == View.VISIBLE, g.fnTabXdp, g.fnTabYdp, cw)
     }
 
     override fun onComputeInsets(outInsets: InputMethodService.Insets) {
