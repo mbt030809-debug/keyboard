@@ -747,7 +747,7 @@ val a = (((color ushr 24) and 0xFF) * keyOpacity + 0.5f).toInt().coerceIn(0, 255
 return (color and 0x00FFFFFF) or (a shl 24)
 }
     
-    var glassType: Int = 1
+    var glassType: Int = 0
         set(v) { if (field != v) { field = v; invalidate() } }
     var keyGlassStrength: Float = 0.85f
         set(v) { if (field != v) { field = v; invalidate() } }
