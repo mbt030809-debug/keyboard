@@ -92,6 +92,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             src.drawFrostTabSurface(canvas, w, h, (alphaPercent * 255 / 100).coerceIn(0, 255))
             canvas.restore()
             paint.style = Paint.Style.STROKE
+            paint.color = 0xFFFFFFFF.toInt()
             paint.strokeWidth = 1.6f * d
             paint.shader = src.frostRimShader(w, h)
             canvas.drawPath(plate, paint)

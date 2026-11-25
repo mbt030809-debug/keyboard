@@ -366,6 +366,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/swipe_double_desc"
+                    android:visibility="gone"
                     android:textSize="12sp"
                     android:alpha="0.7" />
             </LinearLayout>
@@ -468,6 +469,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/timing_pause_desc"
+                    android:visibility="gone"
                     android:textSize="12sp"
                     android:alpha="0.7" />
 
@@ -504,6 +506,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/timing_long_desc"
+                    android:visibility="gone"
                     android:textSize="12sp"
                     android:alpha="0.7" />
 
@@ -540,6 +543,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/timing_repeat_desc"
+                    android:visibility="gone"
                     android:textSize="12sp"
                     android:alpha="0.7" />
             </LinearLayout>
@@ -663,6 +667,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="@string/clip_desc"
+                    android:visibility="gone"
                     android:alpha="0.7" />
 
                 <com.google.android.material.materialswitch.MaterialSwitch
@@ -706,6 +711,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="@string/phrase_desc"
+                    android:visibility="gone"
                     android:alpha="0.7" />
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -760,6 +766,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="@string/split_desc"
+                    android:visibility="gone"
                     android:alpha="0.7" />
 
                 <com.google.android.material.materialswitch.MaterialSwitch
@@ -780,6 +787,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/split_dup_desc"
+                    android:visibility="gone"
                     android:alpha="0.7" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
