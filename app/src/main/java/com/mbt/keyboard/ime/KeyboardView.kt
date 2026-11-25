@@ -961,7 +961,25 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             canvas.drawRect(l, t, r, b, glassPaint)
         }
 
-        // 좌상단 테두리와 우하단 테두리를 따라 흐르는 가장자리 유리 광택 (중앙 가로지르는 사선 빛띠 제거)
+        // 유리판 전체를 비스듬히 가로지르는 대각선 유리창 반사면 (좌상단 밝은 반사광 → 사선 경계 컷)
+        val diagTopA = (0x34 * bgG).toInt().coerceIn(0, 255)
+        val diagMidA = (0x20 * bgG).toInt().coerceIn(0, 255)
+        val diagEdgeA = (0x46 * bgG).toInt().coerceIn(0, 255)
+        glassPaint.shader = LinearGradient(
+            0f, -extra, w * 0.62f, h * 0.92f,
+            intArrayOf(
+                (diagTopA shl 24) or 0xFFFFFF,
+                (diagMidA shl 24) or 0xFFFFFF,
+                (diagEdgeA shl 24) or 0xFFFFFF,
+                0x00FFFFFF,
+                0x00FFFFFF,
+            ),
+            floatArrayOf(0f, 0.44f, 0.495f, 0.505f, 1f),
+            Shader.TileMode.CLAMP,
+        )
+        canvas.drawRect(l, t, r, b, glassPaint)
+
+        // 좌상단 테두리와 우하단 테두리를 따라 흐르는 가장자리 유리 광택
         val topA1 = ((if (gType == 3) 0x7A else 0x62) * bgG).toInt().coerceIn(0, 255)
         val topA2 = ((if (gType == 3) 0x26 else 0x1E) * bgG).toInt().coerceIn(0, 255)
         glassPaint.shader = LinearGradient(
