@@ -196,6 +196,39 @@ object Prefs {
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
             .putInt(KEY_KEY_OPACITY, pct.coerceIn(KEY_OPACITY_MIN, KEY_OPACITY_MAX)).apply()
     
+    const val KEY_BG_OPACITY = "bg_opacity_pct"
+    const val BG_OPACITY_MIN = 0
+    const val BG_OPACITY_MAX = 100
+    const val BG_OPACITY_DEFAULT = 100
+
+    fun bgOpacityPercent(context: Context): Int =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_BG_OPACITY, BG_OPACITY_DEFAULT)
+            .coerceIn(BG_OPACITY_MIN, BG_OPACITY_MAX)
+
+    fun setBgOpacityPercent(context: Context, pct: Int) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_BG_OPACITY, pct.coerceIn(BG_OPACITY_MIN, BG_OPACITY_MAX)).apply()
+
+    const val KEY_MIRROR_ON = "mirror_reflection_enabled"
+    const val KEY_MIRROR_STRENGTH = "mirror_strength_pct"
+    const val MIRROR_STRENGTH_MIN = 10
+    const val MIRROR_STRENGTH_MAX = 100
+    const val MIRROR_STRENGTH_DEFAULT = 65
+
+    fun mirrorEnabled(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_MIRROR_ON, true)
+
+    fun setMirrorEnabled(context: Context, on: Boolean) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY_MIRROR_ON, on).apply()
+
+    fun mirrorStrengthPercent(context: Context): Int =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_MIRROR_STRENGTH, MIRROR_STRENGTH_DEFAULT)
+            .coerceIn(MIRROR_STRENGTH_MIN, MIRROR_STRENGTH_MAX)
+
+    fun setMirrorStrengthPercent(context: Context, pct: Int) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_MIRROR_STRENGTH, pct.coerceIn(MIRROR_STRENGTH_MIN, MIRROR_STRENGTH_MAX)).apply()
+            
     const val KEY_FONT_SCALE = "font_scale_pct"
     const val FONT_SCALE_MIN = 70
     const val FONT_SCALE_MAX = 150
