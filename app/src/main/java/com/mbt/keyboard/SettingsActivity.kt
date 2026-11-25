@@ -151,6 +151,37 @@ class SettingsActivity : AppCompatActivity() {
             valueKeyOpacity.text = "${value.toInt()}%"
             if (fromUser) Prefs.setKeyOpacityPercent(this, value.toInt())
         }
+
+        // 모든 테마 키보드 배경 불투명도 (0 ~ 100%)
+        val sliderBgOpacity = findViewById<Slider>(R.id.sliderBgOpacity)
+        val valueBgOpacity = findViewById<TextView>(R.id.valueBgOpacity)
+        sliderBgOpacity.value = Prefs.bgOpacityPercent(this).toFloat()
+        valueBgOpacity.text = "${Prefs.bgOpacityPercent(this)}%"
+        sliderBgOpacity.addOnChangeListener { _, value, fromUser ->
+            valueBgOpacity.text = "${value.toInt()}%"
+            if (fromUser) Prefs.setBgOpacityPercent(this, value.toInt())
+        }
+
+        // 상단 화면 거울 반사 ON/OFF, 접근성 권한 버튼, 반사 선명도 슬라이더
+        val swMirror = findViewById<MaterialSwitch>(R.id.switchMirror)
+        val btnMirrorPerm = findViewById<MaterialButton>(R.id.btnMirrorPermission)
+        val sliderMirror = findViewById<Slider>(R.id.sliderMirrorStrength)
+        val valueMirror = findViewById<TextView>(R.id.valueMirrorStrength)
+        swMirror.isChecked = Prefs.mirrorEnabled(this)
+        sliderMirror.isEnabled = swMirror.isChecked
+        sliderMirror.value = Prefs.mirrorStrengthPercent(this).toFloat()
+        valueMirror.text = "${Prefs.mirrorStrengthPercent(this)}%"
+        swMirror.setOnCheckedChangeListener { _, on ->
+            Prefs.setMirrorEnabled(this, on)
+            sliderMirror.isEnabled = on
+        }
+        sliderMirror.addOnChangeListener { _, value, fromUser ->
+            valueMirror.text = "${value.toInt()}%"
+            if (fromUser) Prefs.setMirrorStrengthPercent(this, value.toInt())
+        }
+        btnMirrorPerm.setOnClickListener {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
         
         // 키 글자 크기 배율
         val sliderFont = findViewById<Slider>(R.id.sliderFontScale)
@@ -360,6 +391,9 @@ class SettingsActivity : AppCompatActivity() {
             setStatus(status2, selected, getString(R.string.status_todo))
             btnSelect.isEnabled = true      // 이미 선택돼 있어도 다시 고를 수 있게 둔다
         }
+        findViewById<MaterialButton>(R.id.btnMirrorPermission)?.text =
+            if (com.mbt.keyboard.ime.MirrorAccessibilityService.isServiceEnabled(this)) "✓ 상단 화면 반사 접근성 권한 켜짐"
+            else "상단 화면 반사용 접근성 권한 켜기"
     }
 
     private fun setStatus(v: TextView, done: Boolean, todo: String) {
