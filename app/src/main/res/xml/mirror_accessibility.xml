@@ -5,4 +5,4 @@
     android:accessibilityFlags="flagDefault"
     android:canTakeScreenshot="true"
     android:description="@string/about_desc"
-    android:notificationTimeout="120" />
+    android:notificationTimeout="33" />
