@@ -770,8 +770,14 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         return (color and 0x00FFFFFF) or (a shl 24)
     }
 
+    /** 사용자 설정 키 모서리 둥글기(dp). 음수면 기본값(일반 7dp, 글래스 7*1.15dp)을 쓴다 */
+    var keyRadiusDp: Float = -1f
+        set(v) { if (field != v) { field = v; invalidate() } }
+
+    fun effectiveKeyRadiusPx(): Float = if (keyRadiusDp >= 0f) keyRadiusDp * density else 7 * density
+
     /** 글래스 테마의 키 모서리 반지름 (판 모서리와 동심원을 이루도록 한곳에서 정한다) */
-    fun frostKeyRadiusPx(): Float = 7 * density * FROST_KEY_RADIUS_SCALE
+    fun frostKeyRadiusPx(): Float = if (keyRadiusDp >= 0f) keyRadiusDp * density else 7 * density * FROST_KEY_RADIUS_SCALE
 
     /**
      * 유리판 위쪽 두 모서리 반지름(왼쪽·오른쪽) = 키 모서리 + 키가 판 가장자리에서 떨어진 거리.
@@ -975,14 +981,31 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             // 3. 리드글래스: 9.0dp 간격 세로 모루 광학 굴절
             drawReedOverlay(canvas, l, t, r, b, bgG, pitchDp = 9.0f)
         } else if (gType == 3) {
-            // 4. 3D: 볼록 돔 입체광 + 외곽 깊이 음영
-            val dHi = (0x54 * bgG).toInt().coerceIn(0, 255)
-            val dMid = (0x24 * bgG).toInt().coerceIn(0, 255)
-            val dSh = (0x3E * bgG).toInt().coerceIn(0, 255)
+            // 4. 3D: 아래쪽 어두운 음영 없이 상단 볼록 돔 하이라이트 + 하단 곡면 반사광으로 맑은 입체감 표현
+            val dHi = (0x68 * bgG).toInt().coerceIn(0, 255)
+            val dMid = (0x2C * bgG).toInt().coerceIn(0, 255)
             glassPaint.shader = android.graphics.RadialGradient(
-                w * 0.5f, -extra + h * 0.18f, max(w, h) * 0.78f,
-                intArrayOf((dHi shl 24) or 0xFFFFFF, (dMid shl 24) or 0xFFFFFF, 0x00FFFFFF, dSh shl 24),
-                floatArrayOf(0f, 0.40f, 0.68f, 1f),
+                w * 0.5f, -extra + h * 0.18f, max(w, h) * 0.72f,
+                intArrayOf((dHi shl 24) or 0xFFFFFF, (dMid shl 24) or 0xFFFFFF, 0x00FFFFFF),
+                floatArrayOf(0f, 0.45f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRect(l, t, r, b, glassPaint)
+
+            val bvTop = (0x6E * bgG).toInt().coerceIn(0, 255)
+            val bvMid = (0x20 * bgG).toInt().coerceIn(0, 255)
+            val bvBotMid = (0x1E * bgG).toInt().coerceIn(0, 255)
+            val bvBotCaus = (0x5C * bgG).toInt().coerceIn(0, 255)
+            glassPaint.shader = LinearGradient(
+                0f, -extra, 0f, h,
+                intArrayOf(
+                    (bvTop shl 24) or 0xFFFFFF,
+                    (bvMid shl 24) or 0xFFFFFF,
+                    0x00FFFFFF,
+                    (bvBotMid shl 24) or 0xFFFFFF,
+                    (bvBotCaus shl 24) or 0xFFFFFF,
+                ),
+                floatArrayOf(0f, 0.18f, 0.55f, 0.84f, 1f),
                 Shader.TileMode.CLAMP,
             )
             canvas.drawRect(l, t, r, b, glassPaint)
@@ -1246,65 +1269,75 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             // 리드글래스: 키캡 내부 7.0dp 간격의 은은한 세로 모루 광학 굴절
             drawReedOverlay(canvas, r.left, r.top, r.right, r.bottom, keyG, pitchDp = 7.0f, tabShiftX = tabShiftX, tabShiftY = tabShiftY)
         } else if (gType == 3) {
-            // 3D: 볼록 렌즈 돔 입체 유리 — ① 구면 볼록 하이라이트 + 외곽 베벨 음영 ② 상·하단 라운드 곡면 반사 띠
-            val domeHi = (0xC4 * keyG).toInt().coerceIn(0, 255)
-            val domeMid = (0x5C * keyG).toInt().coerceIn(0, 255)
-            val domeShade = (0x4A * keyG).toInt().coerceIn(0, 255)
-            val domeRad = max(w, h) * 0.78f
+            // 3D 볼록 렌즈 돔 입체 유리 (아래쪽 어두운 음영 완전 제거 + 라운드 모서리 전체를 감싸는 입체 반사광):
+            // ① 상단 반달형 볼록 렌즈 돔 캡 하이라이트 (검은 음영 없이 투명하게 페이드)
+            val capInsX = 2.1f * density
+            val capInsTop = 1.8f * density
+            val capRect = RectF(r.left + capInsX, r.top + capInsTop, r.right - capInsX, r.top + h * 0.52f)
+            val capR = (radius - capInsX).coerceAtLeast(0f)
+            glassPaint.color = 0xFFFFFFFF.toInt()
+            glassPaint.shader = LinearGradient(
+                0f, capRect.top, 0f, capRect.bottom,
+                intArrayOf(
+                    scaleAlpha(0xEEFFFFFF.toInt(), keyG),
+                    scaleAlpha(0x88FFFFFF.toInt(), keyG),
+                    scaleAlpha(0x22FFFFFF, keyG),
+                    0x00FFFFFF,
+                ),
+                floatArrayOf(0f, 0.38f, 0.76f, 1f),
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRoundRect(capRect, capR, capR, glassPaint)
+
+            // ② 구면 중심 볼록 광택 (바깥쪽 검은 음영 없이 0x00FFFFFF로 맑게 끝남)
+            val domeRad = max(w, h) * 0.68f
             glassPaint.shader = android.graphics.RadialGradient(
                 r.centerX(), r.top + h * 0.24f, domeRad,
                 intArrayOf(
-                    (domeHi shl 24) or 0xFFFFFF,
-                    (domeMid shl 24) or 0xFFFFFF,
+                    scaleAlpha(0xCCFFFFFF.toInt(), keyG),
+                    scaleAlpha(0x4EFFFFFF, keyG),
                     0x00FFFFFF,
-                    domeShade shl 24,
                 ),
-                floatArrayOf(0f, 0.36f, 0.64f, 1f),
+                floatArrayOf(0f, 0.48f, 1f),
                 Shader.TileMode.CLAMP,
             )
             canvas.drawRoundRect(r, radius, radius, glassPaint)
 
-            val arcIns = 2.0f * density
-            val arcRect = RectF(r.left + arcIns, r.top + arcIns, r.right - arcIns, r.bottom - arcIns)
-            val arcR = (radius - arcIns).coerceAtLeast(0f)
-            glassPaint.style = Paint.Style.STROKE
-            glassPaint.color = 0xFFFFFFFF.toInt()
-            glassPaint.strokeWidth = 2.4f * density
+            // ③ 하단 안쪽 반달 Caustic 굴절 광택 (아래쪽도 어두운 그림자 대신 맑은 굴절 하이라이트)
+            val botRect = RectF(r.left + capInsX, r.bottom - h * 0.38f, r.right - capInsX, r.bottom - capInsTop)
             glassPaint.shader = LinearGradient(
-                0f, arcRect.top, 0f, arcRect.top + h * 0.44f,
-                intArrayOf(
-                    scaleAlpha(0xE8FFFFFF.toInt(), keyG),
-                    scaleAlpha(0x78FFFFFF, keyG),
-                    0x00FFFFFF,
-                ),
-                floatArrayOf(0f, 0.42f, 1f),
-                Shader.TileMode.CLAMP,
-            )
-            canvas.drawRoundRect(arcRect, arcR, arcR, glassPaint)
-
-            glassPaint.strokeWidth = 1.8f * density
-            glassPaint.shader = LinearGradient(
-                0f, arcRect.bottom - h * 0.36f, 0f, arcRect.bottom,
+                0f, botRect.top, 0f, botRect.bottom,
                 intArrayOf(
                     0x00FFFFFF,
-                    scaleAlpha(0x58FFFFFF, keyG),
+                    scaleAlpha(0x38FFFFFF, keyG),
                     scaleAlpha(0xB8FFFFFF.toInt(), keyG),
                 ),
                 floatArrayOf(0f, 0.55f, 1f),
                 Shader.TileMode.CLAMP,
             )
-            canvas.drawRoundRect(arcRect, arcR, arcR, glassPaint)
-            glassPaint.style = Paint.Style.FILL
+            canvas.drawRoundRect(botRect, capR, capR, glassPaint)
 
-            val caus1 = (0x32 * keyG).toInt().coerceIn(0, 255)
-            val caus2 = (0x84 * keyG).toInt().coerceIn(0, 255)
+            // ④ 라운드된 모서리 안쪽 둘레를 한 바퀴 감싸며 빛나는 3D 볼록 쿠션 림 (상·하·좌·우 모서리 곡면 디테일 반사)
+            val arcIns = 2.2f * density
+            val arcRect = RectF(r.left + arcIns, r.top + arcIns, r.right - arcIns, r.bottom - arcIns)
+            val arcR = (radius - arcIns).coerceAtLeast(0f)
+            glassPaint.style = Paint.Style.STROKE
+            glassPaint.color = 0xFFFFFFFF.toInt()
+            glassPaint.strokeWidth = 2.3f * density
             glassPaint.shader = LinearGradient(
-                r.left + w * 0.12f, r.bottom - h * 0.36f, r.right, r.bottom,
-                intArrayOf(0x00FFFFFF, (caus1 shl 24) or 0xFFFFFF, (caus2 shl 24) or 0xFFFFFF),
-                floatArrayOf(0f, 0.52f, 1f),
+                0f, arcRect.top, 0f, arcRect.bottom,
+                intArrayOf(
+                    scaleAlpha(0xFFFFFFFF.toInt(), keyG),
+                    scaleAlpha(0x9EFFFFFF.toInt(), keyG),
+                    scaleAlpha(0x42FFFFFF, keyG),
+                    scaleAlpha(0x88FFFFFF.toInt(), keyG),
+                    scaleAlpha(0xF0FFFFFF.toInt(), keyG),
+                ),
+                floatArrayOf(0f, 0.24f, 0.52f, 0.78f, 1f),
                 Shader.TileMode.CLAMP,
             )
-            canvas.drawRect(r, glassPaint)
+            canvas.drawRoundRect(arcRect, arcR, arcR, glassPaint)
+            glassPaint.style = Paint.Style.FILL
         }
         glassPaint.shader = null
         canvas.restore()
@@ -1368,7 +1401,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         drawBackground(canvas)
         val gap = 3 * density
         if (showHitZones) drawHitZones(canvas)
-        val radius = 7 * density
+        val radius = effectiveKeyRadiusPx()
         for (cell in cells) {
             val key = cell.key
             val isSpecial = key.type !in NORMAL_STYLE_TYPES || key.type == KeyType.VOICE      // 음성인식 키도 쉬프트·이모티콘 키와 같은 배경색

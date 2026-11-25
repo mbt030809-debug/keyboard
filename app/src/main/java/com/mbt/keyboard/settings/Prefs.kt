@@ -344,6 +344,18 @@ const val GLASS_3D = 3
 const val KEY_GLASS_TYPE = "glass_type"
 const val KEY_KEY_GLASS_STRENGTH = "key_glass_strength_pct"
 const val KEY_TEXT_COLOR = "text_color_override"
+const val KEY_KEY_RADIUS_DP = "key_radius_dp"
+const val KEY_RADIUS_MIN = 0
+const val KEY_RADIUS_MAX = 22
+const val KEY_RADIUS_DEFAULT = 8
+
+fun keyRadiusDp(context: Context): Int =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_KEY_RADIUS_DP, KEY_RADIUS_DEFAULT)
+        .coerceIn(KEY_RADIUS_MIN, KEY_RADIUS_MAX)
+
+fun setKeyRadiusDp(context: Context, dp: Int) =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+        .putInt(KEY_KEY_RADIUS_DP, dp.coerceIn(KEY_RADIUS_MIN, KEY_RADIUS_MAX)).apply()
 const val KEY_BG_GLASS_STRENGTH = "bg_glass_strength_pct"
 
 fun textColor(context: Context): Int =
