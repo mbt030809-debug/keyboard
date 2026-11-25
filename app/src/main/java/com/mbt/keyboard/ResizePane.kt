@@ -423,6 +423,7 @@ class ResizePane(
         fnTab.theme = keyboard.theme
         fnTab.alphaPercent = Prefs.fnTabAlphaPercent(context)
         KeyboardHost.applyFnTab(host, fnTab, keyboard, tabOn, true, geometry.fnTabXdp, geometry.fnTabYdp, containerWidthPx)
+        overlay.requestLayout()
         overlay.bringToFront()
         overlay.invalidate()
         steppers.forEach {

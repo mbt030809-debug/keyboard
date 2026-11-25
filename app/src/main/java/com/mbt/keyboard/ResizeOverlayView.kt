@@ -78,6 +78,14 @@ class ResizeOverlayView(
     private var downY = 0f
     private var startGeo = KeyboardGeometry()
 
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val w = MeasureSpec.getSize(widthMeasureSpec)
+        val lp = host.layoutParams as? FrameLayout.LayoutParams
+        val hostH = host.measuredHeight + (lp?.topMargin ?: 0) + (lp?.bottomMargin ?: 0)
+        val tabH = if (fnTab.visibility == VISIBLE) fnTab.measuredHeight + ((fnTab.layoutParams as? FrameLayout.LayoutParams)?.topMargin ?: 0) else 0
+        setMeasuredDimension(w, maxOf(hostH, tabH, 1))
+    }
+
     private fun hostRect(): RectF = RectF(host.left.toFloat(), host.top.toFloat(), host.right.toFloat(), host.bottom.toFloat())
     private fun keysRect(hr: RectF, g: KeyboardGeometry): RectF = RectF(
         (hr.left + g.padLeftDp * d).coerceAtMost(hr.centerX()),
@@ -103,7 +111,7 @@ class ResizeOverlayView(
                 // 바깥 파란 점선: 바깥 배경 상하 크기 조절 (위쪽 핸들만 사용)
                 dashPaint.color = accent
                 canvas.drawRect(hr.left + d, hr.top + d, hr.right - d, hr.bottom - d, dashPaint)
-                val outTopX = hr.left + hr.width() * 0.25f
+                val outTopX = hr.left + hr.width() * 0.18f
                 drawHandle(canvas, outTopX, hr.top + 2 * d, accent)
                 if (isSplitActive()) {
                     val gx = hr.centerX()
@@ -181,7 +189,7 @@ class ResizeOverlayView(
                 when (activePage) {
                     0 -> {
                         val kr = keysRect(hr, g)
-                        val outTopX = hr.left + hr.width() * 0.25f
+                        val outTopX = hr.left + hr.width() * 0.18f
                         dragTarget = when {
                             isSplitActive() && near(e.x, e.y, hr.centerX(), hr.top + hr.height() * 0.25f, 24f) -> DragTarget.KB_GAP
                             near(e.x, e.y, outTopX, hr.top, 26f) -> DragTarget.KB_HEIGHT
@@ -207,8 +215,8 @@ class ResizeOverlayView(
                     3 -> {
                         val sx = hr.left + keyboard.stripRightPx()
                         val sy = hr.top + keyboard.spaceRowTopPx()
-                        val numHit = keyboard.hasSideStrip && abs(e.x - sx) <= 26 * d && e.y in hr.top..hr.bottom
-                        val spaceHit = sy > hr.top && abs(e.y - sy) <= 26 * d && e.x in hr.left..hr.right
+                        val numHit = keyboard.hasSideStrip && near(e.x, e.y, sx, hr.centerY(), 24f)
+                        val spaceHit = sy > hr.top && near(e.x, e.y, hr.centerX(), sy, 24f)
                         dragTarget = when {
                             numHit -> DragTarget.NUM_WIDTH
                             spaceHit -> DragTarget.SPACE_HEIGHT
@@ -218,9 +226,11 @@ class ResizeOverlayView(
                     5 -> {
                         val ys = keyboard.hitZoneYs()
                         var bestIdx = -1
-                        var bestDist = 28f * d
+                        var bestDist = 26f * d
                         for (r in 1 until ys.size) {
-                            val dist = abs(e.y - (hr.top + ys[r]))
+                            val hx = hr.left + hr.width() * (0.3f + 0.2f * ((r - 1) % 3))
+                            val hy = hr.top + ys[r]
+                            val dist = kotlin.math.hypot((e.x - hx).toDouble(), (e.y - hy).toDouble()).toFloat()
                             if (dist < bestDist) {
                                 bestDist = dist
                                 bestIdx = r

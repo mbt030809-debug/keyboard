@@ -32,14 +32,7 @@
             android:text="@string/resize_reset" />
     </LinearLayout>
 
-    <!-- 실제 키보드와 같은 모양의 미리보기: 위에 고정 -->
-    <FrameLayout
-        android:id="@+id/previewContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp" />
-
-    <!-- 항목 탭 ①~⑦ -->
+    <!-- 항목 탭 ①~⑥ -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -57,7 +50,7 @@
             app:singleSelection="true" />
     </HorizontalScrollView>
 
-    <!-- 선택한 항목의 설명 · 그림 · 조절 버튼 -->
+    <!-- 선택한 항목의 설명 · 그림 · 수치 표시 -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -113,7 +106,7 @@
                 <com.mbt.keyboard.settings.ResizeDiagram
                     android:id="@+id/diagram"
                     android:layout_width="match_parent"
-                    android:layout_height="150dp"
+                    android:layout_height="120dp"
                     android:layout_marginTop="8dp" />
 
                 <LinearLayout
@@ -138,7 +131,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/prevButton"
@@ -157,4 +153,11 @@
             android:layout_weight="1"
             android:text="@string/resize_next" />
     </LinearLayout>
+
+    <!-- 실제 키보드와 같은 하단 위치의 미리보기 -->
+    <FrameLayout
+        android:id="@+id/previewContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp" />
 </LinearLayout>

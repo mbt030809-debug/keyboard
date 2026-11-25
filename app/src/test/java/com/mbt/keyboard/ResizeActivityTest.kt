@@ -127,7 +127,7 @@ class ResizeActivityTest {
                 val hr = previewHost(a)
                 hr.layout(0, 50, 1000, 450)
                 ov.layout(0, 0, 1000, 500)
-                drag(ov, hr.left + hr.width * 0.25f, hr.top.toFloat(), hr.left + hr.width * 0.25f, hr.top - 60f)
+                drag(ov, hr.left + hr.width * 0.18f, hr.top.toFloat(), hr.left + hr.width * 0.18f, hr.top - 60f)
                 assertTrue(Prefs.geometry(a, large = false).heightPct > 100)
             }
         }
