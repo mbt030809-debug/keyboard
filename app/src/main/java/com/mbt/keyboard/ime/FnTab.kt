@@ -86,8 +86,9 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val tabL = src.frostTabLeftPx
         val tabR = tabL + w
         val docked = src.fnTabDocked
-        val rlb = if (docked && tabL >= plateRad - 1f * d && tabL < plateW - plateRad) 0f else tabRadius
-        val rrb = if (docked && tabR <= plateW - plateRad + 1f * d && tabR > plateRad) 0f else tabRadius
+        val cornerEdge = plateRad * 0.45f
+        val rlb = if (docked && tabL >= cornerEdge - 1f * d && tabL < plateW - cornerEdge) 0f else tabRadius
+        val rrb = if (docked && tabR <= plateW - cornerEdge + 1f * d && tabR > cornerEdge) 0f else tabRadius
         plate.rewind()
         plate.addRoundRect(RectF(plateLeft, 0f, w, h), floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)
         if (attached || (src.bgGlassOn && src.glassType >= 0)) {

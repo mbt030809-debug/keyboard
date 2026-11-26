@@ -899,6 +899,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
 
     /** 이어 붙은 탭의 왼쪽 x (키보드 기준, 키보드 밖이면 음수). [KeyboardHost]가 정한다 */
     var frostTabLeftPx: Float = 0f
+        set(v) { if (field != v) { field = v; if (fnTabDocked) invalidate() } }
+    var frostTabOffsetYpx: Float = 0f
+        set(v) { if (field != v) { field = v; if (fnTabDocked) invalidate() } }
         set(v) { if (field != v) { field = v; invalidate() } }
 
     /** 탭 전체 폭 (탭 뷰의 onMeasure와 같은 식) */
@@ -908,7 +911,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     }
 
     /** 판 위쪽에 놓인 탭(과 그 아래 틈)이 차지하는 높이(px). 같은 표면을 쓰지 않으면 0 */
-    private fun frostExtraTopPx(): Float = if (frostTabAttached && fnTab && bgGlassOn) fnTabHeightPx() + fnTabGapPx() else 0f
+    private fun frostExtraTopPx(): Float = if (fnTab && bgGlassOn) fnTabHeightPx() + fnTabGapPx() else 0f
 
     /**
      * 리드글래스(모루 유리) 세로 줄무늬: [pitchDp](키 4.5dp, 배경 5.5dp) 간격의 촘촘한 세로 굴절 마루 + 음영 골.
@@ -1043,7 +1046,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             val bmp = frostBlur
             if (bmp != null) {
                 val sl = l.coerceIn(0f, bmp.width.toFloat()); val sr = r.coerceIn(0f, bmp.width.toFloat())
-                val st = (t + extra).coerceIn(0f, bmp.height.toFloat()); val sb = (b + extra).coerceIn(0f, bmp.height.toFloat())
+                val st = (t + extra).coerceIn(0f, (bmp.height - 2).coerceAtLeast(0).toFloat()); val sb = (b + extra).coerceIn((st + 1f).coerceAtMost(bmp.height.toFloat()), bmp.height.toFloat())
                 glassPaint.color = 0xFFFFFFFF.toInt()
                 if (t >= 0f) glassPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
                 if (sr > sl && sb > st) canvas.drawBitmap(bmp, Rect(sl.toInt(), st.toInt(), sr.toInt(), sb.toInt()), RectF(l, t, r, b), glassPaint)
@@ -1157,7 +1160,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
      */
     fun drawFrostTabSurface(canvas: Canvas, tabW: Float, tabH: Float, rlb: Float = tabRadiusFor(tabW, tabH), rrb: Float = tabRadiusFor(tabW, tabH)) {
         ensureFrostBitmaps()
-        val shift = tabH + fnTabGapPx()                     // 탭 아래 틈만큼 위쪽: 탭 좌표 → 판 좌표
+        val shift = if (frostTabOffsetYpx > 0f) frostTabOffsetYpx else tabH + fnTabGapPx()
         canvas.save()
         canvas.translate(-frostTabLeftPx, shift)
         drawFrostSurface(canvas, frostTabLeftPx, -shift, frostTabLeftPx + tabW, -shift + tabH)
@@ -1720,15 +1723,15 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         val shader = theme.backgroundShader(kbW, kbH)
         if (shader == null) {
             bgPaint.shader = null
-            bgPaint.color = withBgOpacity(if (theme.frost) theme.backgroundMid else theme.background)
+            bgPaint.color = if (theme.frost) theme.backgroundMid else theme.background
             canvas.drawPath(platePath, bgPaint)
         } else {
-            val shift = tabH + fnTabGapPx()
+            val shift = if (frostTabOffsetYpx > 0f) frostTabOffsetYpx else tabH + fnTabGapPx()
             val m = android.graphics.Matrix().apply { setTranslate(-frostTabLeftPx, shift) }
             shader.setLocalMatrix(m)
             bgPaint.color = 0xFFFFFFFF.toInt()
             bgPaint.shader = shader
-            bgPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
+            bgPaint.alpha = 255
             canvas.drawPath(platePath, bgPaint)
             bgPaint.alpha = 255
             bgPaint.shader = null
@@ -1749,7 +1752,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         } else {
             bgPaint.color = 0xFFFFFFFF.toInt()
             bgPaint.shader = shader
-            bgPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
+            bgPaint.alpha = 255
             canvas.drawPath(glassPath, bgPaint)
             bgPaint.alpha = 255
             bgPaint.shader = null
