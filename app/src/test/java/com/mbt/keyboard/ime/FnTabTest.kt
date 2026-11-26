@@ -93,12 +93,13 @@ class FnTabTest {
         val tab = FnTab(ctx, v)
         tab.alphaPercent = 50; v.keyOpacity = 0.5f
         measure(tab, 1000)
-        val rects = ArrayList<FloatArray>(); val colors = ArrayList<Int>()
+        val rects = ArrayList<FloatArray>(); var layerAlpha = -1
         val canvas = object : android.graphics.Canvas() {
-            override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { rects += floatArrayOf(l, t, r, b); colors += p.color }
+            override fun saveLayerAlpha(l: Float, t: Float, r: Float, b: Float, a: Int): Int { layerAlpha = a; return save() }
+            override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { rects += floatArrayOf(l, t, r, b) }
             override fun drawPath(path: android.graphics.Path, p: android.graphics.Paint) {
                 val rf = android.graphics.RectF(); path.computeBounds(rf, true)
-                rects += floatArrayOf(rf.left, rf.top, rf.right, rf.bottom); colors += p.color
+                rects += floatArrayOf(rf.left, rf.top, rf.right, rf.bottom)
             }
         }
         tab.draw(canvas)
@@ -110,7 +111,7 @@ class FnTabTest {
         assertEquals(v.fnTabPadBottomPx(), plate[3] - buttons.maxOf { it[3] }, 1f)       // 아래
         assertEquals(v.fnTabRightPx() + v.fnTabInsetPx(), plate[2] - buttons.maxOf { it[2] }, 1f)    // 오른쪽
         assertEquals(v.fnTabLeftPx() + v.fnTabInsetPx(), buttons.minOf { it[0] } - plate[0], 1f)     // 왼쪽
-        colors.forEach { assertEquals(127f, (it ushr 24).toFloat(), 1f) }                // 바탕·버튼 같은 반투명
+        assertEquals(127, layerAlpha)                                                     // 탭 전체가 50% 반투명 레이어로 그려짐
     }
 
     @Test fun plateIsDrawnAsOnePathWithLeftAndRightCornerRadii() {
@@ -234,15 +235,16 @@ class FnTabTest {
         val tab = FnTab(ctx, v)
         tab.alphaPercent = 50
         measure(tab, 1000)
-        val fills = ArrayList<Int>(); val textColors = ArrayList<Int>()
+        val fills = ArrayList<Int>(); val textColors = ArrayList<Int>(); var layerAlpha = -1
         val canvas = object : android.graphics.Canvas() {
+            override fun saveLayerAlpha(l: Float, t: Float, r: Float, b: Float, a: Int): Int { layerAlpha = a; return save() }
             override fun drawRoundRect(l: Float, t: Float, r: Float, b: Float, rx: Float, ry: Float, p: android.graphics.Paint) { fills += p.color }
             override fun drawPath(path: android.graphics.Path, p: android.graphics.Paint) { fills += p.color }
             override fun drawText(text: String, x: Float, y: Float, p: android.graphics.Paint) { textColors += p.color }
         }
         tab.draw(canvas)
         assertEquals(4, fills.size)                                                  // 바탕 1 + 버튼 3
-        assertEquals(127f, (fills[0] ushr 24).toFloat(), 1f)
+        assertEquals(127, layerAlpha)
         fills.drop(1).forEach { assertEquals((v.keyOpacity * 255f), (it ushr 24).toFloat(), 1f) }
         assertEquals(3, textColors.size)
         textColors.forEach { assertEquals(v.theme.text, it) }
