@@ -108,7 +108,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             paint.style = Paint.Style.FILL
             canvas.restore()
         } else {
-            canvas.drawPath(plate, paint)
+            src.drawPlainTabSurface(canvas, w, h, plate)
         }
         list.forEachIndexed { i, k ->
             val cl = keyLeft(i)

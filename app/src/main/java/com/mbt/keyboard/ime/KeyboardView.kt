@@ -844,7 +844,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     /** 보조탭용 배경 둥글기: 키보드 본판과 비슷한 체감 곡률이 되도록 보조탭 높이(약 44dp)에 맞춰 0~22dp를 0~50%로 매핑 */
     fun tabRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || bgGlassOn || keyGlassOn): Float {
         val baseDp = if (bgRadiusDp >= 0f) bgRadiusDp else if (keyRadiusDp >= 0f) keyRadiusDp else if (frost) 7f * FROST_KEY_RADIUS_SCALE else 7f
-        val ratio = (baseDp / 22f * 0.5f).coerceIn(0f, 0.5f)
+        val ratio = (baseDp / 14f * 0.5f).coerceIn(0f, 0.5f)
         return min(w, h) * ratio
     }
 
@@ -1711,6 +1711,30 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         }
         glassPaint.shader = null
         glassPaint.style = Paint.Style.FILL
+    }
+
+    /** 비글래스/글래스0% 테마에서도 보조탭 배경이 키보드 본판의 그라데이션·색상과 자연스럽게 이어지도록 그린다 */
+    fun drawPlainTabSurface(canvas: Canvas, tabW: Float, tabH: Float, platePath: Path) {
+        val kbW = width.toFloat().coerceAtLeast(tabW)
+        val kbH = height.toFloat().coerceAtLeast(tabH)
+        val shader = theme.backgroundShader(kbW, kbH)
+        if (shader == null) {
+            bgPaint.shader = null
+            bgPaint.color = withBgOpacity(if (theme.frost) theme.backgroundMid else theme.background)
+            canvas.drawPath(platePath, bgPaint)
+        } else {
+            val shift = tabH + fnTabGapPx()
+            canvas.save()
+            canvas.clipPath(platePath)
+            canvas.translate(-frostTabLeftPx, shift)
+            bgPaint.color = 0xFFFFFFFF.toInt()
+            bgPaint.shader = shader
+            bgPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
+            canvas.drawRect(frostTabLeftPx, -shift, frostTabLeftPx + tabW, -shift + tabH, bgPaint)
+            bgPaint.alpha = 255
+            bgPaint.shader = null
+            canvas.restore()
+        }
     }
 
     private fun drawBackground(canvas: Canvas) {
