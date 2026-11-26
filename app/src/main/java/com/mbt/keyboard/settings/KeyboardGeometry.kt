@@ -221,12 +221,12 @@ data class KeyboardGeometry(
 
         const val SPACE_ROW_MIN = 50
         const val SPACE_ROW_MAX = 150
-        const val SPACE_ROW_STEP = 5
+        const val SPACE_ROW_STEP = 1
         const val SPACE_ROW_DEFAULT = 100
 
         const val FN_TAB_HEIGHT_MIN = 50
         const val FN_TAB_HEIGHT_MAX = 150
-        const val FN_TAB_HEIGHT_STEP = 5
+        const val FN_TAB_HEIGHT_STEP = 1
         const val FN_TAB_HEIGHT_DEFAULT = 100
 
         const val FN_TAB_WIDTH_MIN = 50

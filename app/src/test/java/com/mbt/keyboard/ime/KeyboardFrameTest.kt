@@ -602,7 +602,7 @@ class SpaceRowScaleTest {
     @Test fun geometrySettingIsClampedSteppedAndSavedPerProfile() {
         val g = com.mbt.keyboard.settings.KeyboardGeometry()
         assertEquals(100, g.spaceRowPct)
-        assertEquals(105, g.spaceRowBy(1).spaceRowPct)
+        assertEquals(101, g.spaceRowBy(1).spaceRowPct)
         assertEquals(50, g.copy(spaceRowPct = 1).clamped().spaceRowPct)
         assertEquals(150, g.copy(spaceRowPct = 999).clamped().spaceRowPct)
         com.mbt.keyboard.settings.Prefs.setGeometry(ctx, large = true, g.copy(spaceRowPct = 130), landscape = false)
