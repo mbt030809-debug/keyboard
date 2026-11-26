@@ -902,7 +902,6 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         set(v) { if (field != v) { field = v; if (fnTabDocked) invalidate() } }
     var frostTabOffsetYpx: Float = 0f
         set(v) { if (field != v) { field = v; if (fnTabDocked) invalidate() } }
-        set(v) { if (field != v) { field = v; invalidate() } }
 
     /** 탭 전체 폭 (탭 뷰의 onMeasure와 같은 식) */
     fun fnTabWidthPx(): Float {
