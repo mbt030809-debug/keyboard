@@ -78,7 +78,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val plateLeft = 0f
         paint.color = if (theme.frost) theme.backgroundMid else theme.background
         val gx = src.fnTabInsetPx()
-        val tabRadius = src.plateRadiusFor(w, h, isGlassRadius)
+        val tabRadius = src.tabRadiusFor(w, h, isGlassRadius)
         val rl = tabRadius; val rr = tabRadius
         val plateW = src.width.toFloat().coerceAtLeast(w)
         val plateH = src.height.toFloat().coerceAtLeast(h)

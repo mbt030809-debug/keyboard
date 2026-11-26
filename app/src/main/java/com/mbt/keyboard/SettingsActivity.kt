@@ -171,15 +171,6 @@ class SettingsActivity : AppCompatActivity() {
             if (fromUser) Prefs.setBgGlassStrengthPercent(this, value.toInt())
         }
 
-        val sliderKeyRadius = findViewById<Slider>(R.id.sliderKeyRadius)
-        val valueKeyRadius = findViewById<TextView>(R.id.valueKeyRadius)
-        sliderKeyRadius.value = Prefs.keyRadiusDp(this).toFloat()
-        valueKeyRadius.text = "${Prefs.keyRadiusDp(this)}dp"
-        sliderKeyRadius.addOnChangeListener { _, value, fromUser ->
-            valueKeyRadius.text = "${value.toInt()}dp"
-            if (fromUser) Prefs.setKeyRadiusDp(this, value.toInt())
-        }
-
         val glassChips = findViewById<com.google.android.material.chip.ChipGroup>(R.id.glassTypeChips)
         val glassChipIds = listOf(R.id.chipGlassNormal, R.id.chipGlassBlur, R.id.chipGlassReed, R.id.chipGlass3d, R.id.chipGlassMatte)
         glassChips.check(glassChipIds[Prefs.glassType(this).coerceIn(0, 4)])

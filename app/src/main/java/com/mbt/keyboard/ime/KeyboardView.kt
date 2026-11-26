@@ -804,11 +804,11 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
 
     /** 사용자 설정 키 모서리 둥글기(dp). 음수면 기본값(일반 7dp, 글래스 7*1.15dp)을 쓴다 */
     var keyRadiusDp: Float = -1f
-        set(v) { if (field != v) { field = v; invalidate() } }
+        set(v) { if (field != v) { field = v; invalidate(); onRelayoutRequested?.invoke() } }
 
     /** 사용자 설정 배경·보조탭 모서리 둥글기(dp). 음수면 키 둥글기/기본값을 따른다 */
     var bgRadiusDp: Float = -1f
-        set(v) { if (field != v) { field = v; invalidate() } }
+        set(v) { if (field != v) { field = v; invalidate(); onRelayoutRequested?.invoke() } }
 
     fun effectiveKeyRadiusPx(): Float = if (keyRadiusDp >= 0f) keyRadiusDp * density else 7 * density
 
@@ -838,6 +838,13 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     fun plateRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || bgGlassOn || keyGlassOn): Float {
         val baseDp = if (bgRadiusDp >= 0f) bgRadiusDp else if (keyRadiusDp >= 0f) keyRadiusDp else if (frost) 7f * FROST_KEY_RADIUS_SCALE else 7f
         val ratio = (baseDp / 40f).coerceIn(0f, 0.5f)
+        return min(w, h) * ratio
+    }
+
+    /** 보조탭용 배경 둥글기: 키보드 본판과 비슷한 체감 곡률이 되도록 보조탭 높이(약 44dp)에 맞춰 0~22dp를 0~50%로 매핑 */
+    fun tabRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || bgGlassOn || keyGlassOn): Float {
+        val baseDp = if (bgRadiusDp >= 0f) bgRadiusDp else if (keyRadiusDp >= 0f) keyRadiusDp else if (frost) 7f * FROST_KEY_RADIUS_SCALE else 7f
+        val ratio = (baseDp / 22f * 0.5f).coerceIn(0f, 0.5f)
         return min(w, h) * ratio
     }
 
@@ -1148,7 +1155,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
      * 이어 붙은 전복붙 탭의 유리 바탕. 판과 같은 표면을 [alpha](0~255)만큼 투명하게 그리고,
      * 테두리를 따라 흐르는 안쪽 림 반사는 유리 강도 그대로 선명하게 유지한다.
      */
-    fun drawFrostTabSurface(canvas: Canvas, tabW: Float, tabH: Float, rlb: Float = plateRadiusFor(tabW, tabH), rrb: Float = plateRadiusFor(tabW, tabH)) {
+    fun drawFrostTabSurface(canvas: Canvas, tabW: Float, tabH: Float, rlb: Float = tabRadiusFor(tabW, tabH), rrb: Float = tabRadiusFor(tabW, tabH)) {
         ensureFrostBitmaps()
         val shift = tabH + fnTabGapPx()                     // 탭 아래 틈만큼 위쪽: 탭 좌표 → 판 좌표
         canvas.save()
@@ -1157,9 +1164,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         canvas.restore()
         if (glassType >= 0 && bgGlassStrength > 0.01f) {
             val bgG = bgGlassStrength.coerceIn(0f, 1f)
-            val r = plateRadiusFor(tabW, tabH)
+            val r = tabRadiusFor(tabW, tabH)
             if (effGlass == 3) {
-                draw3dDomeOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, bgG, isPlate = true)
+                draw3dDomeOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, bgG, isPlate = true, skipBottom = fnTabDocked)
             } else if (effGlass == 4) {
                 drawMattePillowOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, bgG, isPlate = true)
             }
@@ -1225,6 +1232,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         radBL: Float = radTL,
         strength: Float,
         isPlate: Boolean = false,
+        skipBottom: Boolean = false,
     ) {
         val s = strength.coerceIn(0f, 1f)
         if (s <= 0.01f || r.width() <= 4f || r.height() <= 4f) return
@@ -1302,6 +1310,11 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         )
         canvas.drawPath(topPath, glassPaint)
 
+        if (skipBottom) {
+            canvas.restore()
+            glassPaint.shader = null
+            return
+        }
         // 3. 하단 볼록 역반사 (동일하게 곡률이 깎이지 않고 키·배경 윤곽을 따라 동그랗게 유지)
         val botY0 = r.bottom - insetY
         val botCurv = if (isPlate) (minOf(radTL, radTR) * 0.90f - insetX * 0.35f + 3f * density).coerceAtLeast(2f) else (minOf(radBL, radBR) - insetX * 0.35f + 3f * density).coerceAtLeast(2f)
@@ -1365,6 +1378,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         radBL: Float = radTL,
         strength: Float,
         isPlate: Boolean = false,
+        skipBottom: Boolean = false,
     ) {
         val s = strength.coerceIn(0f, 1f)
         if (s <= 0.01f || r.width() <= 4f || r.height() <= 4f) return
@@ -1450,9 +1464,11 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         canvas.clipPath(glassPath)
         drawFrostSurface(canvas, 0f, 0f, w, h)
         canvas.restore()
-        // 맨 위 띠는 반투명(뒤 앱이 비침) → 아래로 부드럽게 불투명해져 판과 이어진다
-        fadeMaskPaint.shader = LinearGradient(0f, 0f, 0f, frostFadePx(), ((frostFadeAlpha * 255f).toInt().coerceIn(0, 255) shl 24) or 0x00FFFFFF, 0xFFFFFFFF.toInt(), Shader.TileMode.CLAMP)
-        canvas.drawRect(0f, 0f, w, h, fadeMaskPaint)
+        // 맨 위 띠는 반투명(뒤 앱이 비침) → 아래로 부드럽게 불투명해져 판과 이어진다 (단, 보조탭이 이어진 구간은 이어진 유리로 유지)
+        if (!(fnTabDocked && fnTab)) {
+            fadeMaskPaint.shader = LinearGradient(0f, 0f, 0f, frostFadePx(), ((frostFadeAlpha * 255f).toInt().coerceIn(0, 255) shl 24) or 0x00FFFFFF, 0xFFFFFFFF.toInt(), Shader.TileMode.CLAMP)
+            canvas.drawRect(0f, 0f, w, h, fadeMaskPaint)
+        }
         canvas.restoreToCount(layer)
         // 테두리를 따라 빛나는 이중 림 (셰이더 설정 전 반드시 color=0xFFFFFFFF로 alpha=255 복원)
         canvas.save()
