@@ -1185,14 +1185,18 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             val ir = (r - ins).coerceAtLeast(0f)
             val irbL = if (rlb <= 0.5f) 0f else (rlb - ins).coerceAtLeast(0f)
             val irbR = if (rrb <= 0.5f) 0f else (rrb - ins).coerceAtLeast(0f)
-            val innerPath = Path().apply {
-                addRoundRect(
-                    RectF(ins, ins, tabW - ins, tabH - ins),
-                    floatArrayOf(ir, ir, ir, ir, irbR, irbR, irbL, irbL),
-                    Path.Direction.CW,
-                )
+            if (kotlin.math.abs(irbL - ir) < 0.5f && kotlin.math.abs(irbR - ir) < 0.5f) {
+                canvas.drawRoundRect(ins, ins, tabW - ins, tabH - ins, ir, ir, glassPaint)
+            } else {
+                val innerPath = Path().apply {
+                    addRoundRect(
+                        RectF(ins, ins, tabW - ins, tabH - ins),
+                        floatArrayOf(ir, ir, ir, ir, irbR, irbR, irbL, irbL),
+                        Path.Direction.CW,
+                    )
+                }
+                canvas.drawPath(innerPath, glassPaint)
             }
-            canvas.drawPath(innerPath, glassPaint)
             glassPaint.shader = null
             glassPaint.style = Paint.Style.FILL
         }
