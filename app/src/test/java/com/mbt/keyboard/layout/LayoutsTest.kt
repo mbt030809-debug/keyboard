@@ -139,8 +139,8 @@ class LayoutsTest {
 
     @Test fun hyphenIsUnderTheUnderscoreKey() {
         Layouts.all.forEach { l ->
-            val underscore = keyWithHint(l, "_")
-            assertEquals(listOf("_", "-", "—"), underscore.hints)
+            val underscore = keyWithHint(l, "-")
+            assertEquals(listOf("-", "_", "—"), underscore.hints)
             assertEquals(1, l.rows.flatten().count { "-" in it.hints })
         }
     }
@@ -173,7 +173,7 @@ class LayoutsTest {
         val m = Layouts.koreanSingle.rows.flatten().filter { it.type == KeyType.CHAR }.associate { it.label to it.hints }
         assertEquals(listOf("→", "←", "↑", "↓", "↗", "↖", "↘", "↙"), m["ㅔ"])      // ? 와 → 가 자리를 바꿈
         assertEquals(listOf("@", "@naver.com", "@gmail.com"), m["ㅊ"])   // 골뱅이 + 이메일 뒷부분
-        assertEquals(listOf("_", "-", "—"), m["ㅍ"])           // 한 칸 당겨짐
+        assertEquals(listOf("-", "_", "—"), m["ㅍ"])           // 한 칸 당겨짐
         assertEquals(listOf("!"), m["ㅜ"])
         assertEquals(listOf("?"), m["ㅡ"])                     // ? 와 ! 는 맞바꿈: ? 가 지우기 바로 옆
         assertEquals(listOf("~", "♪", "♩", "♫", "♬", "🎵", "🎶"), m["ㅐ"])   // 음표는 ~ 의 하위 후보
@@ -415,7 +415,7 @@ class LayoutsTest {
 
     @Test fun everyMainSymbolSitsOnTheSameRowAcrossLayouts() {
         // 예: ? 는 어느 자판에서든 맨 아래 글자 줄, ( ) 는 맨 윗 글자 줄
-        listOf("()", "?", "!", "@", "/", "_", "❤\uFE0F", "→").forEach { sym ->
+        listOf("()", "?", "!", "@", "/", "-", "❤\uFE0F", "→").forEach { sym ->
             val rows = Layouts.all.map { l ->
                 (Layouts.LETTER_ROW_START until Layouts.LETTER_ROW_START + 3).first { r ->
                     letterRowChars(l, r).any { sym in it.hints }

@@ -1812,10 +1812,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             if (key.type == KeyType.CHAR && key.hints.isNotEmpty() && key.hints[0].length <= 2) {
                 paint.color = theme.text
                 paint.alpha = 110
-                paint.textSize = labelRefPx(cell) * 0.22f * fontScale
+                paint.textSize = labelRefPx(cell) * 0.265f * fontScale
                 paint.textAlign = Paint.Align.RIGHT
                 val effRad = radius.coerceAtMost(min(r.width(), r.height()) / 2f)
-                val diagInset = ((effRad - 6f * density).coerceAtLeast(0f) * 0.38f).coerceAtMost(min(r.width(), r.height()) * 0.22f)
+                val diagInset = ((effRad - 7f * density).coerceAtLeast(0f) * 0.22f).coerceAtMost(min(r.width(), r.height()) * 0.11f)
                 canvas.drawText(
                     key.hints[0],
                     r.right - 4f * density - diagInset,
