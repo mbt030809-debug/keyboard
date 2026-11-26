@@ -60,7 +60,8 @@ object KeyboardHost {
         }
         // 글래스 활성화 시: 탭을 판 위에 이어 붙여 한 장의 유리로 그린다 (탭 왼쪽 위치를 키보드에 알려 줌)
         keyboard.frostTabLeftPx = (tabLeft - hostLp.leftMargin).toFloat()
-        keyboard.frostTabAttached = on && keyboardVisible && keyboard.bgGlassOn && fnTabYdp == 0
+        keyboard.frostTabAttached = on && keyboardVisible && keyboard.tabGlassOn && fnTabYdp == 0
+        keyboard.fnTabDocked = on && keyboardVisible && (keyboard.fnTabGapPx() - shiftY <= 2f * density)
         tab.visibility = when {
             !on -> View.GONE
             keyboardVisible -> View.VISIBLE

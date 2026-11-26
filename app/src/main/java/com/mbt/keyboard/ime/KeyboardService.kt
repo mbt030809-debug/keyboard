@@ -87,7 +87,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** SharedPreferences는 리스너를 약하게만 잡으므로 필드로 들고 있어야 한다 */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (::host.isInitialized && (key == Prefs.KEY_THEME || key == Prefs.KEY_TEXT_COLOR)) applyTheme()
-        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE || key == Prefs.KEY_NUMBER_LEFT || key == Prefs.KEY_FONT_SCALE || key == Prefs.KEY_FN_TAB || key == Prefs.KEY_FN_TAB_ALPHA || key == Prefs.KEY_KEY_OPACITY || key == Prefs.KEY_BG_OPACITY || key == Prefs.KEY_GLASS_TYPE || key == Prefs.KEY_KEY_GLASS_STRENGTH || key == Prefs.KEY_BG_GLASS_STRENGTH || key == Prefs.KEY_KEY_RADIUS_DP || key == Prefs.KEY_BG_RADIUS_DP)) loadTimings()
+        if (::view.isInitialized && (key == "double_tap_ms" || key == Prefs.KEY_REPEAT_CPS || key == Prefs.KEY_SWIPE_DOUBLE || key == Prefs.KEY_NUMBER_LEFT || key == Prefs.KEY_FONT_SCALE || key == Prefs.KEY_FN_TAB || key == Prefs.KEY_FN_TAB_ALPHA || key == Prefs.KEY_KEY_OPACITY || key == Prefs.KEY_BG_OPACITY || key == Prefs.KEY_GLASS_TYPE || key == Prefs.KEY_KEY_GLASS_STRENGTH || key == Prefs.KEY_BG_GLASS_STRENGTH || key == Prefs.KEY_TAB_GLASS_STRENGTH || key == Prefs.KEY_KEY_RADIUS_DP || key == Prefs.KEY_BG_RADIUS_DP || key == Prefs.KEY_TAB_RADIUS_DP)) loadTimings()
         if (::view.isInitialized && key != null && (key.startsWith("geo_") || key == "split_on_large_screen" || key == Prefs.KEY_SPLIT_DUP)) {
             updateSplit(resources.configuration)
             applyGeometry(resources.configuration)
@@ -221,8 +221,10 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.glassType = Prefs.glassType(this)
         view.keyGlassStrength = Prefs.keyGlassStrengthPercent(this) / 100f
         view.bgGlassStrength = Prefs.bgGlassStrengthPercent(this) / 100f
+        view.tabGlassStrength = Prefs.tabGlassStrengthPercent(this) / 100f
         view.keyRadiusDp = Prefs.keyRadiusDp(this).toFloat()
         view.bgRadiusDp = Prefs.bgRadiusDp(this).toFloat()
+        view.tabRadiusDp = Prefs.tabRadiusDp(this).toFloat()
         refreshFnTab()
         applyWindowBlur()
     }

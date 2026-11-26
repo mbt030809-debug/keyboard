@@ -211,6 +211,11 @@ class ResizePane(
                 addLinkedStepper("배경 둥글기", ResizeOverlayView.Target.NONE,
                     { Prefs.setBgRadiusDp(context, Prefs.bgRadiusDp(context) + it) }, { "${Prefs.bgRadiusDp(context)}dp" },
                     { Prefs.bgRadiusDp(context) > Prefs.KEY_RADIUS_MIN }, { Prefs.bgRadiusDp(context) < Prefs.KEY_RADIUS_MAX })
+                if (Prefs.fnTabEnabled(context)) {
+                    addLinkedStepper("보조탭 둥글기", ResizeOverlayView.Target.NONE,
+                        { Prefs.setTabRadiusDp(context, Prefs.tabRadiusDp(context) + it) }, { "${Prefs.tabRadiusDp(context)}dp" },
+                        { Prefs.tabRadiusDp(context) > Prefs.KEY_RADIUS_MIN }, { Prefs.tabRadiusDp(context) < Prefs.KEY_RADIUS_MAX })
+                }
             },
         )
 
@@ -441,6 +446,8 @@ class ResizePane(
         keyboard.bgGlassStrength = Prefs.bgGlassStrengthPercent(context) / 100f
         keyboard.keyRadiusDp = Prefs.keyRadiusDp(context).toFloat()
         keyboard.bgRadiusDp = Prefs.bgRadiusDp(context).toFloat()
+        keyboard.tabRadiusDp = Prefs.tabRadiusDp(context).toFloat()
+        keyboard.tabGlassStrength = Prefs.tabGlassStrengthPercent(context) / 100f
         keyboard.split = splitActive && (large || geometry.gapPct > 0)
         keyboard.frame = KeyboardFrame(
             geometry.padLeftDp, geometry.padTopDp, geometry.padRightDp, geometry.padBottomDp, geometry.keyGapDp,

@@ -809,6 +809,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     var bgRadiusDp: Float = -1f
         set(v) { if (field != v) { field = v; invalidate() } }
 
+    /** 사용자 설정 보조탭 모서리 둥글기(dp). 음수면 배경/키 둥글기를 따른다 */
+    var tabRadiusDp: Float = -1f
+        set(v) { if (field != v) { field = v; invalidate() } }
+
     fun effectiveKeyRadiusPx(): Float = if (keyRadiusDp >= 0f) keyRadiusDp * density else 7 * density
 
     /** 글래스 테마의 키 모서리 반지름 (판 모서리와 동심원을 이루도록 한곳에서 정한다) */
@@ -836,6 +840,13 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     /** 키보드 배경판 및 보조탭용 크기 비례(%) 둥글기 반지름 */
     fun plateRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || bgGlassOn || keyGlassOn): Float {
         val baseDp = if (bgRadiusDp >= 0f) bgRadiusDp else if (keyRadiusDp >= 0f) keyRadiusDp else if (frost) 7f * FROST_KEY_RADIUS_SCALE else 7f
+        val ratio = (baseDp / 40f).coerceIn(0f, 0.5f)
+        return min(w, h) * ratio
+    }
+
+    /** 보조탭 배경판용 크기 비례(%) 둥글기 반지름 */
+    fun tabRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || tabGlassOn || keyGlassOn): Float {
+        val baseDp = if (tabRadiusDp >= 0f) tabRadiusDp else if (bgRadiusDp >= 0f) bgRadiusDp else if (keyRadiusDp >= 0f) keyRadiusDp else if (frost) 7f * FROST_KEY_RADIUS_SCALE else 7f
         val ratio = (baseDp / 40f).coerceIn(0f, 0.5f)
         return min(w, h) * ratio
     }
@@ -873,10 +884,13 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         set(v) { if (field != v) { field = v; invalidate() } }
     var bgGlassStrength: Float = 0.85f
         set(v) { if (field != v) { field = v; invalidate() } }
+    var tabGlassStrength: Float = 0.65f
+        set(v) { if (field != v) { field = v; invalidate() } }
 
     val effectiveGlassType: Int get() = effGlass
     private val effGlass: Int get() = if (glassType >= 0) glassType else if (theme.frost) 1 else 0
     val bgGlassOn: Boolean get() = if (glassType >= 0) bgGlassStrength > 0.01f else theme.frost
+    val tabGlassOn: Boolean get() = if (glassType >= 0) tabGlassStrength > 0.01f else theme.frost
     val keyGlassOn: Boolean get() = if (glassType >= 0) keyGlassStrength > 0.01f else theme.frost
 
     private val fadeMaskPaint = Paint().apply { xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN) }
@@ -886,6 +900,8 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
      * 탭은 판과 떨어진 둥근 알약 그대로이고, 번짐 배경·빛·림 반사가 판과 같은 재질로 이어진다.
      */
     var frostTabAttached: Boolean = false
+        set(v) { if (field != v) { field = v; invalidate() } }
+    var fnTabDocked: Boolean = false
         set(v) { if (field != v) { field = v; invalidate() } }
 
     /** 이어 붙은 탭의 왼쪽 x (키보드 기준, 키보드 밖이면 음수). [KeyboardHost]가 정한다 */
@@ -1146,28 +1162,37 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
      * 이어 붙은 전복붙 탭의 유리 바탕. 판과 같은 표면을 [alpha](0~255)만큼 투명하게 그리고,
      * 테두리를 따라 흐르는 안쪽 림 반사는 유리 강도 그대로 선명하게 유지한다.
      */
-    fun drawFrostTabSurface(canvas: Canvas, tabW: Float, tabH: Float, alpha: Int) {
+    fun drawFrostTabSurface(canvas: Canvas, tabW: Float, tabH: Float, alpha: Int, rlb: Float = tabRadiusFor(tabW, tabH), rrb: Float = tabRadiusFor(tabW, tabH)) {
         ensureFrostBitmaps()
         val layer = canvas.saveLayerAlpha(0f, 0f, tabW, tabH, alpha)
         val shift = tabH + fnTabGapPx()                     // 탭 아래 틈만큼 위쪽: 탭 좌표 → 판 좌표
         canvas.translate(-frostTabLeftPx, shift)
         drawFrostSurface(canvas, frostTabLeftPx, -shift, frostTabLeftPx + tabW, -shift + tabH)
         canvas.restoreToCount(layer)
-        if (glassType >= 0 && bgGlassStrength > 0.01f) {
-            val bgG = bgGlassStrength.coerceIn(0f, 1f)
-            val r = plateRadiusFor(tabW, tabH)
+        if (tabGlassOn) {
+            val tabG = (if (glassType >= 0) tabGlassStrength else 1f).coerceIn(0f, 1f)
+            val r = tabRadiusFor(tabW, tabH)
             if (effGlass == 3) {
-                draw3dDomeOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, r, r, bgG, isPlate = true)
+                draw3dDomeOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, tabG, isPlate = true)
             } else if (effGlass == 4) {
-                drawMattePillowOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, r, r, bgG, isPlate = true)
+                drawMattePillowOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, tabG, isPlate = true)
             }
             val ins = 1.6f * density
             glassPaint.style = Paint.Style.STROKE
             glassPaint.color = 0xFFFFFFFF.toInt()
             glassPaint.strokeWidth = 1.5f * density
-            glassPaint.shader = frostInnerRimShader(tabW, tabH, bgG)
+            glassPaint.shader = frostInnerRimShader(tabW, tabH, tabG)
             val ir = (r - ins).coerceAtLeast(0f)
-            canvas.drawRoundRect(ins, ins, tabW - ins, tabH - ins, ir, ir, glassPaint)
+            val irbL = if (rlb <= 0.5f) 0f else (rlb - ins).coerceAtLeast(0f)
+            val irbR = if (rrb <= 0.5f) 0f else (rrb - ins).coerceAtLeast(0f)
+            val innerPath = Path().apply {
+                addRoundRect(
+                    RectF(ins, ins, tabW - ins, tabH - ins),
+                    floatArrayOf(ir, ir, ir, ir, irbR, irbR, irbL, irbL),
+                    Path.Direction.CW,
+                )
+            }
+            canvas.drawPath(innerPath, glassPaint)
             glassPaint.shader = null
             glassPaint.style = Paint.Style.FILL
         }
@@ -1244,9 +1269,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         canvas.drawPath(domeClipPath, glassPaint)
         glassPaint.shader = null
 
-        // 2. 테두리보다 안쪽으로 한 단계 작아진 내부 돔 반사 (테두리 사이 간격에 키 본체 색이 비치고, 안쪽 돔만 +3dp 곡률로 솟아오름)
-        val insetX = (if (isPlate) 6.4f else 5.3f) * density
-        val insetY = (if (isPlate) 3.2f else 2.65f) * density
+        // 2. 테두리보다 안쪽으로 한 단계 작아진 내부 돔 반사 (키·배경 모두 addRoundRect 축소로 곡률이 깎이지 않고 동그랗게 유지)
+        val insetX = (if (isPlate) 4.8f else 4.0f) * density
+        val insetY = (if (isPlate) 3.8f else 3.2f) * density
         val innerL = r.left + insetX
         val innerR = r.right - insetX
         val innerW = (innerR - innerL).coerceAtLeast(2f)
@@ -1255,14 +1280,15 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         glassPaint.style = Paint.Style.FILL
         glassPaint.color = 0xFFFFFFFF.toInt()
         val topY0 = r.top + insetY
-        val topReach = innerH * (if (isPlate) 0.28f else 0.34f)
+        val topCurv = (minOf(radTL, radTR) - insetX * 0.35f + 3f * density).coerceAtLeast(2f)
+        val domeArchRx = minOf(topCurv, innerW * 0.50f)
+        val topReach = maxOf(innerH * (if (isPlate) 0.28f else 0.36f), domeArchRx + 2f * density).coerceAtMost(innerH * 0.55f)
+        val topFadeRy = minOf(topReach * 0.45f, (topReach - domeArchRx).coerceAtLeast(0f))
         val topRect = RectF(innerL, topY0, innerR, topY0 + topReach)
-        val topCurv = (minOf(radTL, radTR) - insetX * 0.4f + 3f * density).coerceAtLeast(2f)
-        val domeArchRx = if (isPlate) minOf(topCurv, minOf(innerW * 0.20f, topReach * 0.80f)) else minOf(topCurv, minOf(innerW * 0.48f, topReach * 0.92f))
         val topPath = Path().apply {
             addRoundRect(
                 topRect,
-                floatArrayOf(domeArchRx, domeArchRx, domeArchRx, domeArchRx, domeArchRx * 1.05f, topReach * 0.52f, domeArchRx * 1.05f, topReach * 0.52f),
+                floatArrayOf(domeArchRx, domeArchRx, domeArchRx, domeArchRx, domeArchRx * 0.85f, topFadeRy, domeArchRx * 0.85f, topFadeRy),
                 Path.Direction.CW,
             )
         }
@@ -1281,16 +1307,17 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         )
         canvas.drawPath(topPath, glassPaint)
 
-        // 3. 하단 볼록 역반사 (동일하게 안쪽으로 작아져 테두리 여백에 본체 색이 비침)
+        // 3. 하단 볼록 역반사 (동일하게 곡률이 깎이지 않고 키·배경 윤곽을 따라 동그랗게 유지)
         val botY0 = r.bottom - insetY
-        val botReach = innerH * (if (isPlate) 0.20f else 0.26f)
+        val botCurv = if (isPlate) (minOf(radTL, radTR) * 0.90f - insetX * 0.35f + 3f * density).coerceAtLeast(2f) else (minOf(radBL, radBR) - insetX * 0.35f + 3f * density).coerceAtLeast(2f)
+        val botArchRx = minOf(botCurv, innerW * 0.50f)
+        val botReach = maxOf(innerH * (if (isPlate) 0.20f else 0.28f), botArchRx + 2f * density).coerceAtMost(innerH * 0.45f)
+        val botFadeRy = minOf(botReach * 0.45f, (botReach - botArchRx).coerceAtLeast(0f))
         val botRect = RectF(innerL, botY0 - botReach, innerR, botY0)
-        val botCurv = if (isPlate) (minOf(radTL, radTR) * 0.85f + 3f * density) else (minOf(radBL, radBR) - insetX * 0.4f + 3f * density).coerceAtLeast(2f)
-        val botArchRx = if (isPlate) minOf(botCurv, minOf(innerW * 0.18f, botReach * 0.80f)) else minOf(botCurv, minOf(innerW * 0.46f, botReach * 0.92f))
         val botPath = Path().apply {
             addRoundRect(
                 botRect,
-                floatArrayOf(botArchRx * 1.05f, botReach * 0.52f, botArchRx * 1.05f, botReach * 0.52f, botArchRx, botArchRx, botArchRx, botArchRx),
+                floatArrayOf(botArchRx * 0.85f, botFadeRy, botArchRx * 0.85f, botFadeRy, botArchRx, botArchRx, botArchRx, botArchRx),
                 Path.Direction.CW,
             )
         }

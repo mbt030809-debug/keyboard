@@ -68,9 +68,9 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val pad = src.fnTabPadPx()
         val top = pad
         val kh = height - src.fnTabPadBottomPx()          // 버튼 아래 끝
-        val attached = src.bgGlassOn && src.frostTabAttached
+        val useTabGlass = src.tabGlassOn
         val useGlassKey = src.glassType >= 0 && src.keyGlassOn
-        val isGlassRadius = theme.frost || attached || useGlassKey
+        val isGlassRadius = theme.frost || useTabGlass || useGlassKey
         val radius = src.keyRadiusFor(kw - 2 * src.fnTabInsetPx(), kh - top, isGlassRadius)
         // 키보드 바탕: 버튼 상하좌우로 같은 폭만큼, 버튼과 똑같이 반투명
         val plateLeft = 0f
@@ -79,21 +79,29 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         // 모서리는 버튼 모서리와 같은 중심(동심원): 여백이 0이면 버튼 모서리와 똑같이 맞물려 빈틈이 남지 않는다
         val gx = src.fnTabInsetPx()
         val w = width.toFloat(); val h = height.toFloat()
-        val tabRadius = src.plateRadiusFor(w, h, isGlassRadius)
+        val tabRadius = src.tabRadiusFor(w, h, isGlassRadius)
         val rl = tabRadius; val rr = tabRadius
-        val rlb = tabRadius; val rrb = tabRadius
+        val plateW = src.width.toFloat().coerceAtLeast(w)
+        val plateH = src.height.toFloat().coerceAtLeast(h)
+        val plateRad = src.plateRadiusFor(plateW, plateH, isGlassRadius)
+        val tabL = src.frostTabLeftPx
+        val tabR = tabL + w
+        val docked = src.fnTabDocked
+        val rlb = if (docked && tabL >= plateRad - 1f * d && tabL < plateW - plateRad) 0f else tabRadius
+        val rrb = if (docked && tabR <= plateW - plateRad + 1f * d && tabR > plateRad) 0f else tabRadius
         plate.rewind()
-        plate.addRoundRect(RectF(plateLeft, 0f, w, h), floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)   // 네 모서리 모두 둥글게
-        if (attached) {
-            // 글래스 표면: 판과 같은 유리 표면(일반·블러·리드·3D)을 탭 불투명도만큼 비치게 그리고, 테두리 림 반사는 유리 강도 100% 유지
+        plate.addRoundRect(RectF(plateLeft, 0f, w, h), floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)
+        if (useTabGlass) {
+            // 글래스 표면: 보조탭 유리 강도(tabGlassStrength)와 보조탭 둥글기(tabRadiusDp)로 유리 표면·3D/무광 광학·테두리 림 반사 적용
+            val tabG = if (src.glassType >= 0) src.tabGlassStrength else 1f
             canvas.save()
             canvas.clipPath(plate)
-            src.drawFrostTabSurface(canvas, w, h, (alphaPercent * 255 / 100).coerceIn(0, 255))
+            src.drawFrostTabSurface(canvas, w, h, (alphaPercent * 255 / 100).coerceIn(0, 255), rlb, rrb)
             canvas.restore()
             paint.style = Paint.Style.STROKE
             paint.color = 0xFFFFFFFF.toInt()
             paint.strokeWidth = 1.6f * d
-            paint.shader = src.frostRimShader(w, h)
+            paint.shader = src.frostRimShader(w, h, tabG)
             canvas.drawPath(plate, paint)
             paint.shader = null
             paint.style = Paint.Style.FILL
