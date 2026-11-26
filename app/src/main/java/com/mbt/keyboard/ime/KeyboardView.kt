@@ -978,6 +978,15 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             canvas.drawRect(l, t, r, b, glassPaint)
         }
 
+        // 글래스 효과 적용 시 바탕을 한 톤 어둡게 눌러 순수 흰빛 유리 반사 대비를 극대화
+        if (bgG > 0.01f) {
+            val effOp = if (t >= 0f) (0.35f + 0.65f * bgOpacity.coerceIn(0f, 1f)) else 1f
+            val darkA = (0x1C * bgG * effOp).toInt().coerceIn(0, 255)
+            glassPaint.shader = null
+            glassPaint.color = (darkA shl 24) or 0x000000
+            canvas.drawRect(l, t, r, b, glassPaint)
+        }
+
         // 모든 셰이더 렌더링 전 alpha=255 복원 (이전 color 설정의 낮은 알파가 셰이더에 곱해지지 않도록)
         glassPaint.color = 0xFFFFFFFF.toInt()
 
@@ -1005,7 +1014,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             drawReedOverlay(canvas, l, t, r, b, bgG, pitchDp = 5.5f, backdropAlpha = if (t >= 0f) bgOpacity else 1f)
         } else if (gType == 4) {
             // 5. 무광(프로스티드 젖빛 3D): 밀키 젖빛 확산 + 미세 실리카 입자 (날카로운 사선 거울광 제외)
-            val milkA = (0x28 * bgG).toInt().coerceIn(0, 255)
+            val milkA = (0x32 * bgG).toInt().coerceIn(0, 255)
             glassPaint.shader = null
             glassPaint.color = (milkA shl 24) or 0xFFFFFF
             canvas.drawRect(l, t, r, b, glassPaint)
@@ -1192,11 +1201,11 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         glassPaint.shader = LinearGradient(
             0f, topY0, 0f, topY0 + topReach,
             intArrayOf(
-                scaleAlpha((if (isPlate) 0x9C else 0xA2 shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x68 else 0x6A shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x28 else 0x34 shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x0C else 0x12 shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x03 else 0x04 shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x9C else 0xA2) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x68 else 0x6A) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x28 else 0x34) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x0C else 0x12) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x03 else 0x04) shl 24) or 0xFFFFFF, s),
                 0x00FFFFFF,
             ),
             floatArrayOf(0f, 0.25f, 0.52f, 0.78f, 0.94f, 1f),
@@ -1221,10 +1230,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             0f, botY0 - botReach, 0f, botY0,
             intArrayOf(
                 0x00FFFFFF,
-                scaleAlpha((if (isPlate) 0x03 else 0x04 shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x12 else 0x18 shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x28 else 0x34 shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x48 else 0x5E shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x03 else 0x04) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x12 else 0x18) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x28 else 0x34) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x48 else 0x5E) shl 24) or 0xFFFFFF, s),
             ),
             floatArrayOf(0f, 0.10f, 0.35f, 0.68f, 1f),
             Shader.TileMode.CLAMP,
@@ -1246,7 +1255,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             seed = seed * 1664525 + 1013904223
             val v = (seed ushr 24) and 0xFF
             // 순수 빛 표현 원칙: 검정 입자 없이 흰색 실리카 미세 입자만 0~20 알파로 분포
-            val a = (v * 20) / 255
+            val a = (v * 34) / 255
             px[i] = (a shl 24) or 0xFFFFFF
         }
         bmp.setPixels(px, 0, sz, 0, 0, sz, sz)
@@ -1290,16 +1299,16 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         glassPaint.shader = null
 
         // 2. 부드러운 3D 필로우 베벨 (좌상단 광원 방향이 은은하게 솟아오른 젖빛 입체 테두리)
-        val pillowW = (if (isPlate) 14.0f else 8.5f) * density
+        val pillowW = (if (isPlate) 20.0f else 8.5f) * density
         glassPaint.style = Paint.Style.STROKE
         glassPaint.strokeWidth = pillowW
         glassPaint.shader = LinearGradient(
             r.left, r.top, r.right, r.bottom,
             intArrayOf(
-                scaleAlpha(((if (isPlate) 0x44 else 0x4E) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x5A else 0x4E) shl 24) or 0xFFFFFF, s),
                 scaleAlpha(((if (isPlate) 0x1A else 0x20) shl 24) or 0xFFFFFF, s),
                 scaleAlpha(((if (isPlate) 0x10 else 0x14) shl 24) or 0xFFFFFF, s),
-                scaleAlpha(((if (isPlate) 0x2A else 0x30) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x32 else 0x30) shl 24) or 0xFFFFFF, s),
             ),
             floatArrayOf(0f, 0.35f, 0.72f, 1f),
             Shader.TileMode.CLAMP,
@@ -1307,13 +1316,13 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         canvas.drawPath(domeClipPath, glassPaint)
 
         // 3. 안쪽 2차 새틴 베벨 (가장자리에서 부드럽게 감기는 입체감)
-        glassPaint.strokeWidth = (if (isPlate) 5.5f else 3.6f) * density
+        glassPaint.strokeWidth = (if (isPlate) 7.5f else 3.6f) * density
         glassPaint.shader = LinearGradient(
             r.left, r.top, r.right, r.bottom,
             intArrayOf(
-                scaleAlpha(((if (isPlate) 0x52 else 0x5C) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x68 else 0x5C) shl 24) or 0xFFFFFF, s),
                 scaleAlpha(((if (isPlate) 0x22 else 0x28) shl 24) or 0xFFFFFF, s),
-                scaleAlpha(((if (isPlate) 0x36 else 0x3E) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x40 else 0x3E) shl 24) or 0xFFFFFF, s),
             ),
             floatArrayOf(0f, 0.55f, 1f),
             Shader.TileMode.CLAMP,
@@ -1469,6 +1478,16 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         } else {
             glassPaint.color = if (pressed) withKeyOpacity(theme.keyPressed) else tint
             canvas.drawRoundRect(r, radius, radius, glassPaint)
+        }
+
+        // 글래스 효과 적용 시 키 본체를 한 톤 어둡게 눌러 유리 림·돔 반사 대비 강화 (keyOpacity=0%면 투명 유지)
+        if (keyG > 0.01f && keyOpacity > 0.01f) {
+            val darkKeyA = (0x18 * keyG * keyOpacity.coerceIn(0f, 1f)).toInt().coerceIn(0, 255)
+            if (darkKeyA > 0) {
+                glassPaint.shader = null
+                glassPaint.color = (darkKeyA shl 24) or 0x000000
+                canvas.drawRoundRect(r, radius, radius, glassPaint)
+            }
         }
 
         // ③④ 면 위의 유리 질감 (셰이더 호출 전 반드시 color=0xFFFFFFFF로 alpha=255 복원!)
