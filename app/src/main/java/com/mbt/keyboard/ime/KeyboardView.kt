@@ -1724,16 +1724,14 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             canvas.drawPath(platePath, bgPaint)
         } else {
             val shift = tabH + fnTabGapPx()
-            canvas.save()
-            canvas.clipPath(platePath)
-            canvas.translate(-frostTabLeftPx, shift)
+            val m = android.graphics.Matrix().apply { setTranslate(-frostTabLeftPx, shift) }
+            shader.setLocalMatrix(m)
             bgPaint.color = 0xFFFFFFFF.toInt()
             bgPaint.shader = shader
             bgPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
-            canvas.drawRect(frostTabLeftPx, -shift, frostTabLeftPx + tabW, -shift + tabH, bgPaint)
+            canvas.drawPath(platePath, bgPaint)
             bgPaint.alpha = 255
             bgPaint.shader = null
-            canvas.restore()
         }
     }
 

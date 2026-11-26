@@ -271,7 +271,7 @@ class FnTabTest {
         assertTrue(Prefs.fnTabEnabled(ctx))
         assertEquals(50, Prefs.fnTabAlphaPercent(ctx))
         Prefs.setFnTabAlphaPercent(ctx, 5); assertEquals(Prefs.FN_TAB_ALPHA_MIN, Prefs.fnTabAlphaPercent(ctx))
-        Prefs.setFnTabAlphaPercent(ctx, 99); assertEquals(Prefs.FN_TAB_ALPHA_MAX, Prefs.fnTabAlphaPercent(ctx))
+        Prefs.setFnTabAlphaPercent(ctx, 150); assertEquals(Prefs.FN_TAB_ALPHA_MAX, Prefs.fnTabAlphaPercent(ctx))
         Prefs.setFnTabEnabled(ctx, false); assertFalse(Prefs.fnTabEnabled(ctx))
     }
 
