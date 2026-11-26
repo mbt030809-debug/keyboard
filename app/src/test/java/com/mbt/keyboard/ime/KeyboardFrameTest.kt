@@ -211,7 +211,7 @@ class KeyboardFrameTest {
             val back = rects.first { it.first.type == com.mbt.keyboard.layout.KeyType.BACKSPACE }.second
             val key = rects.first { it.first.label == letter }.second
             // 키 폭 비율 = 가로 비중 비율 (예: 1.25 / 글자 키 비중)
-            val expected = (if (layout == Layouts.koreanSingle) 1.25f else 1.5f) / rects.first { it.first.label == letter }.first.weight
+            val expected = (if (layout == Layouts.koreanSingle) 1.3f else 1.5f) / rects.first { it.first.label == letter }.first.weight
             assertEquals(layout.id, expected, back.width() / key.width(), 0.01f)
             // 지우기는 줄의 오른쪽 끝
             assertEquals(layout.id, (widthPx - 4 * density), backInner.right, 0.5f)

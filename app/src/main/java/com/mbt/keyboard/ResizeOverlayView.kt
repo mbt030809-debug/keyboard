@@ -125,7 +125,7 @@ class ResizeOverlayView(
         when (activePage) {
             0 -> {
                 dashPaint.color = accent
-                canvas.drawRect(hr.left + d, hr.top + d, hr.right - d, hr.bottom - d, if (selectedTarget == Target.KB_HEIGHT) hiDashPaint else dashPaint)
+                canvas.drawLine(hr.left + d, hr.top + d, hr.right - d, hr.top + d, if (selectedTarget == Target.KB_HEIGHT) hiDashPaint else dashPaint)
                 val outTopX = hr.left + hr.width() * 0.18f
                 drawHandle(canvas, outTopX, hr.top + 2 * d, accent, selectedTarget == Target.KB_HEIGHT)
                 if (isSplitActive()) {

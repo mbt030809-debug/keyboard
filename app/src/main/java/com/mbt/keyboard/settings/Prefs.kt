@@ -357,6 +357,16 @@ fun keyRadiusDp(context: Context): Int =
 fun setKeyRadiusDp(context: Context, dp: Int) =
     context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
         .putInt(KEY_KEY_RADIUS_DP, dp.coerceIn(KEY_RADIUS_MIN, KEY_RADIUS_MAX)).apply()
+
+const val KEY_BG_RADIUS_DP = "bg_radius_dp"
+
+fun bgRadiusDp(context: Context): Int =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_BG_RADIUS_DP, KEY_RADIUS_DEFAULT)
+        .coerceIn(KEY_RADIUS_MIN, KEY_RADIUS_MAX)
+
+fun setBgRadiusDp(context: Context, dp: Int) =
+    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+        .putInt(KEY_BG_RADIUS_DP, dp.coerceIn(KEY_RADIUS_MIN, KEY_RADIUS_MAX)).apply()
 const val KEY_BG_GLASS_STRENGTH = "bg_glass_strength_pct"
 
 fun textColor(context: Context): Int =

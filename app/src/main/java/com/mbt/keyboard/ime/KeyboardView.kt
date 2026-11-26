@@ -805,6 +805,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     var keyRadiusDp: Float = -1f
         set(v) { if (field != v) { field = v; invalidate() } }
 
+    /** 사용자 설정 배경·보조탭 모서리 둥글기(dp). 음수면 키 둥글기/기본값을 따른다 */
+    var bgRadiusDp: Float = -1f
+        set(v) { if (field != v) { field = v; invalidate() } }
+
     fun effectiveKeyRadiusPx(): Float = if (keyRadiusDp >= 0f) keyRadiusDp * density else 7 * density
 
     /** 글래스 테마의 키 모서리 반지름 (판 모서리와 동심원을 이루도록 한곳에서 정한다) */
@@ -830,8 +834,11 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     }
 
     /** 키보드 배경판 및 보조탭용 크기 비례(%) 둥글기 반지름 */
-    fun plateRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || bgGlassOn || keyGlassOn): Float =
-        keyRadiusFor(w, h, frost)
+    fun plateRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || bgGlassOn || keyGlassOn): Float {
+        val baseDp = if (bgRadiusDp >= 0f) bgRadiusDp else if (keyRadiusDp >= 0f) keyRadiusDp else if (frost) 7f * FROST_KEY_RADIUS_SCALE else 7f
+        val ratio = (baseDp / 40f).coerceIn(0f, 0.5f)
+        return min(w, h) * ratio
+    }
 
     /** 판 맨 위에서 뒤 앱 화면이 비치는 띠의 높이 (아래로 갈수록 불투명해져 판과 이어진다) */
     fun frostFadePx(): Float = FROST_FADE_DP * density

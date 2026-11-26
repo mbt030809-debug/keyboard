@@ -153,9 +153,6 @@ class ResizePane(
                     { geometry.keyGapDp > KeyboardGeometry.KEY_GAP_MIN }, { geometry.keyGapDp < KeyboardGeometry.KEY_GAP_MAX })
                 addStepper(R.string.resize_row_gap, { geometry = geometry.rowGapBy(it) }, { "${geometry.rowGapDp}dp" },
                     { geometry.rowGapDp > KeyboardGeometry.ROW_GAP_MIN }, { geometry.rowGapDp < KeyboardGeometry.ROW_GAP_MAX })
-                addLinkedStepper("키 둥글기", ResizeOverlayView.Target.NONE,
-                    { Prefs.setKeyRadiusDp(context, Prefs.keyRadiusDp(context) + it) }, { "${Prefs.keyRadiusDp(context)}dp" },
-                    { Prefs.keyRadiusDp(context) > Prefs.KEY_RADIUS_MIN }, { Prefs.keyRadiusDp(context) < Prefs.KEY_RADIUS_MAX })
             },
             Page(R.string.resize_page_tab, R.string.resize_title_tab, R.string.resize_badge_tab, R.string.resize_desc_tab, ResizeDiagram.Part.TAB, note = R.string.resize_note_tab) {
                 addCompactSwitchRow()
@@ -204,6 +201,14 @@ class ResizePane(
                 addLinkedStepper(context.getString(R.string.resize_hit3), ResizeOverlayView.Target.HIT_LINE,
                     { geometry = geometry.hit3By(it) }, { signedDp(geometry.hit3Dp) },
                     { geometry.hit3Dp > KeyboardGeometry.HIT_MIN }, { geometry.hit3Dp < KeyboardGeometry.HIT_MAX }, hitLine = 3)
+            },
+            Page(R.string.resize_page_radius, R.string.resize_title_radius, R.string.resize_badge_radius, R.string.resize_desc_radius, ResizeDiagram.Part.GAP) {
+                addLinkedStepper("키 둥글기", ResizeOverlayView.Target.NONE,
+                    { Prefs.setKeyRadiusDp(context, Prefs.keyRadiusDp(context) + it) }, { "${Prefs.keyRadiusDp(context)}dp" },
+                    { Prefs.keyRadiusDp(context) > Prefs.KEY_RADIUS_MIN }, { Prefs.keyRadiusDp(context) < Prefs.KEY_RADIUS_MAX })
+                addLinkedStepper("배경 둥글기", ResizeOverlayView.Target.NONE,
+                    { Prefs.setBgRadiusDp(context, Prefs.bgRadiusDp(context) + it) }, { "${Prefs.bgRadiusDp(context)}dp" },
+                    { Prefs.bgRadiusDp(context) > Prefs.KEY_RADIUS_MIN }, { Prefs.bgRadiusDp(context) < Prefs.KEY_RADIUS_MAX })
             },
         )
 
@@ -434,6 +439,7 @@ class ResizePane(
         keyboard.keyGlassStrength = Prefs.keyGlassStrengthPercent(context) / 100f
         keyboard.bgGlassStrength = Prefs.bgGlassStrengthPercent(context) / 100f
         keyboard.keyRadiusDp = Prefs.keyRadiusDp(context).toFloat()
+        keyboard.bgRadiusDp = Prefs.bgRadiusDp(context).toFloat()
         keyboard.split = splitActive && (large || geometry.gapPct > 0)
         keyboard.frame = KeyboardFrame(
             geometry.padLeftDp, geometry.padTopDp, geometry.padRightDp, geometry.padBottomDp, geometry.keyGapDp,

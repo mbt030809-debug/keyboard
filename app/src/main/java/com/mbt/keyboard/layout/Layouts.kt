@@ -119,7 +119,7 @@ object Layouts {
      * 쉬프트: 쌍자음·ㅑㅕㅛㅠ·ㅒㅖ
      */
     private const val SHIFT_NARROW = 0.75f
-    private const val BACKSPACE_WEIGHT = 1.25f
+    private const val BACKSPACE_WEIGHT = 1.3f
     private const val SINGLE_ROW_TOTAL = 8f
     private val shiftNarrow = Key("⇧", KeyType.SHIFT, weight = SHIFT_NARROW)
     private val backspaceMid = Key("⌫", KeyType.BACKSPACE, weight = BACKSPACE_WEIGHT)

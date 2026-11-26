@@ -83,6 +83,10 @@
     <string name="resize_desc_numgap">숫자 줄(띠)과 글자 키 사이의 빈칸이에요 (주황색 부분). 왼쪽 띠면 가로, 위 줄이면 세로 간격이에요</string>
     <string name="resize_desc_tab">숫자 키 위치(좌측/상단)와 키보드 위 반투명 보조탭 표시 여부, 탭 버튼 높이와 여백을 설정해요</string>
     <string name="resize_desc_hit">화면에는 안 보이지만 손가락이 닿았을 때 어느 줄로 볼지 정하는 경계예요. + 면 아래로 넓히고 − 면 위로 좁혀요</string>
+    <string name="resize_page_radius">둥글기</string>
+    <string name="resize_title_radius">모서리 둥글기</string>
+    <string name="resize_badge_radius">0~22dp</string>
+    <string name="resize_desc_radius">키캡과 키보드 배경판·보조탭의 모서리 둥글기를 크기 비례(%)로 각각 조절합니다</string>
     <string name="resize_note_tab">숫자가 좌측일 때는 전체·복사·붙임만, 상단일 때는 전체·복사·붙임·숫자(1~0)가 상단 탭에 함께 표시돼요</string>
     <string name="resize_prev">◀ 이전</string>
     <string name="resize_next">다음 ▶</string>

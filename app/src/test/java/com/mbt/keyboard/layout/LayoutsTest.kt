@@ -261,7 +261,7 @@ class LayoutsTest {
         assertEquals(KeyType.BACKSPACE, shiftRow.last().type)
         assertEquals(8.0, shiftRow.sumOf { it.weight.toDouble() }, 0.001)  // 줄 전체 8칸: 위 줄들과 오른쪽 끝이 맞는다
         // 지우기는 1.25칸(예전 1.5칸과 일반 키 1칸의 중간), 쉬프트는 1칸보다 작게
-        assertEquals(1.25f, shiftRow.last().weight, 0.0001f)
+        assertEquals(1.3f, shiftRow.last().weight, 0.0001f)
         assertTrue(shiftRow.last().weight > 1f && shiftRow.last().weight < 1.5f)
         assertTrue(shiftRow.first().weight < 1f && shiftRow.first().weight > 0.5f)
         // 글자 키 6개는 거의 1칸(위 줄 키와 폭 차이 5% 이내)
@@ -304,7 +304,7 @@ class LayoutsTest {
         Layouts.all.forEach { l ->
             val backspaces = l.rows.flatten().filter { it.type == KeyType.BACKSPACE }
             assertEquals(1, backspaces.size)
-       val expectedBs = if (l.id == Layouts.KOS) 1.25f else 1.5f
+       val expectedBs = if (l.id == Layouts.KOS) 1.3f else 1.5f
             assertEquals("${l.id}", expectedBs, backspaces[0].weight, 0.0001f)
             // 그 줄의 전체 폭은 다른 글자 줄과 같다
             val row = l.rows.first { r -> r.any { it.type == KeyType.BACKSPACE } }
