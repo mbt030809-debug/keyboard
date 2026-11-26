@@ -728,11 +728,11 @@ class KeyboardView(context: Context) : View(context) {
         val ks = Bitmap.createScaledBitmap(sharp, max(sharp.width / 14, 1), max(sharp.height / 14, 1), true)
         val ksBlur = boxBlur(ks, 3); if (ksBlur !== ks) ks.recycle()
         val keyBlur = Bitmap.createScaledBitmap(ksBlur, sharp.width, sharp.height, true); if (ksBlur !== keyBlur) ksBlur.recycle()
-        sharp.recycle()
         // 리드글래스(모루) 전용 세로 방향 비등방성 번짐: 가로는 선명하게 유지하고 세로로 길게 번져 모루를 따라 흐르게 함
         val rs = Bitmap.createScaledBitmap(sharp, max(sharp.width / 4, 1), max(sharp.height / 8, 1), true)
         val rsBlur = boxBlur(rs, 2); if (rsBlur !== rs) rs.recycle()
         val reedBlur = Bitmap.createScaledBitmap(rsBlur, sharp.width, sharp.height, true); if (rsBlur !== reedBlur) rsBlur.recycle()
+        sharp.recycle()
         frostBlur = blur; frostKeyBlur = keyBlur; frostReedBlur = reedBlur; frostKey = key
     }
     
@@ -935,7 +935,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 if (cw <= 0.5f) break
                 val stepShift = (if (i % 2 == 0) 1f else -1f) * 7.5f * density * s + kotlin.math.sin(i * 0.9f) * 5.5f * density * s
                 val yShift = kotlin.math.sin(i * 1.35f) * 3.0f * density * s
-                val sy = (t + extra + tabShiftY + yShift).toInt().coerceIn(0, bh - 2)
+                val sy = (t + extra + tabShiftY + yShift).toInt().coerceIn(0, max(0, bh - 2))
                 val ey = (b + extra + tabShiftY + yShift).toInt().coerceIn(sy + 1, bh)
                 val centerSrcX = (cl + cw * 0.5f) + tabShiftX + stepShift
                 val span = cw * (1.15f - 0.35f * s)
