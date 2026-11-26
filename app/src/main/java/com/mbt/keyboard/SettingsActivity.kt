@@ -306,7 +306,7 @@ class SettingsActivity : AppCompatActivity() {
         }
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
-                groupTabGlass.visibility = if (Prefs.fnTabEnabled(this@SettingsActivity)) View.VISIBLE else View.GONE
+                findViewById<View>(R.id.groupTabGlass)?.visibility = if (Prefs.fnTabEnabled(this@SettingsActivity)) View.VISIBLE else View.GONE
                 show(tab.position)
             }
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
