@@ -53,7 +53,7 @@ class ResizeActivityTest {
                 tabs.getTabAt(2)!!.select()
                 assertEquals(View.VISIBLE, a.findViewById<View>(R.id.sectionScreen).visibility)
                 assertTrue(a.findViewById<View>(R.id.previewContainer) != null)
-                assertEquals(7, a.findViewById<ChipGroup>(R.id.pageChips).childCount)
+                assertEquals(5, a.findViewById<ChipGroup>(R.id.pageChips).childCount)
             }
         }
     }
