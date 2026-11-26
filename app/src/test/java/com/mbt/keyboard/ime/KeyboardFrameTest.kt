@@ -191,16 +191,15 @@ class KeyboardFrameTest {
         val expectedLang = space.height() * 0.34f * view.theme.textScale - 1 * density
         assertEquals(expectedLang, texts.first { it.text == "한" }.size, 0.01f)
         assertEquals(expectedLang, texts.first { it.text == "EN" }.size, 0.01f)
-        // 🎤: 키 높이의 34%에서 1dp 줄임
+        // 🎤 및 전복붙: 기존 크기 대비 70%로 축소
         val voice = view.keyRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.VOICE }.second
-        val expectedVoice = minOf(voice.height(), view.theme.keyHeightDp * density) * 0.34f * view.theme.textScale
+        val expectedVoice = (minOf(voice.height(), view.theme.keyHeightDp * density) * 0.34f * view.theme.textScale + density) * 0.70f
         assertEquals(expectedVoice, texts.first { it.text == "🎤" }.size, 0.01f)
-        // 다른 툴바 글자(전체·복사·붙임)는 그대로 (줄이지 않음)
         view.numberLeft = true; relayout()
         val edit = view.keyRects().first { it.first.label == "전체" }.second
         val textsLeft = drawnTexts()
         val editRef = minOf(edit.height(), view.theme.keyHeightDp * density, edit.width() * 1.35f)
-        assertEquals(editRef * 0.34f * view.theme.textScale + density, textsLeft.first { it.text == "전체" }.size, 0.01f)
+        assertEquals((editRef * 0.34f * view.theme.textScale + density) * 0.70f, textsLeft.first { it.text == "전체" }.size, 0.01f)
     }
 
     @Test fun backspaceIsDrawnOnePointTwoFiveTimesALetterKeyOnEveryLayout() {
