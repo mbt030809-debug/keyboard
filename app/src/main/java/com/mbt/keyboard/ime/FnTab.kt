@@ -70,7 +70,8 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val kh = height - src.fnTabPadBottomPx()          // 버튼 아래 끝
         val attached = src.bgGlassOn && src.frostTabAttached
         val useGlassKey = src.glassType >= 0 && src.keyGlassOn
-        val radius = if (theme.frost || attached || useGlassKey) src.frostKeyRadiusPx() else src.effectiveKeyRadiusPx()
+        val isGlassRadius = theme.frost || attached || useGlassKey
+        val radius = src.keyRadiusFor(kw - 2 * src.fnTabInsetPx(), kh - top, isGlassRadius)
         // 키보드 바탕: 버튼 상하좌우로 같은 폭만큼, 버튼과 똑같이 반투명
         val plateLeft = 0f
         // 탭 뒤에는 앱 화면이 있으므로 글래스 테마도 불투명도 슬라이더만큼 비치게 한다 (색은 판의 번짐색)
@@ -124,7 +125,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
                 }
             }
             paint.color = theme.text
-            var textSize = src.fnLabelSizePx(kw, kh - top)
+            var textSize = src.fnLabelSizePx(kw, kh - top) * (if (isDigit) 1f else 0.70f)
             paint.textSize = textSize
             val maxW = (r - l - 2 * d).coerceAtLeast(4f)
             if (k.label.length >= 2) {

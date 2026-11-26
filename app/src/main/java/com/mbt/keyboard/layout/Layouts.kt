@@ -103,9 +103,9 @@ object Layouts {
     /** 녹음(음성인식)은 맨 왼쪽(이모지 왼쪽)이라 스페이스 주변을 거치적거리지 않는다. 🎤·마침표·쉼표는 같은 폭(1칸). 폭 합계 10 */
     private fun bottom() = listOf(
         Key("🎤", KeyType.VOICE, weight = 1.0f),
-        Key("😊", KeyType.EMOJI, weight = 1.3f),
+        Key("😊", KeyType.EMOJI, weight = 1.0f),
         Key(",", hints = listOf("'", "\"")),
-        Key("", KeyType.SPACE, output = " ", weight = 10f - 1.0f - 1.3f - 1.0f - 1.0f - ENTER_WEIGHT),
+        Key("", KeyType.SPACE, output = " ", weight = 10f - 1.0f - 1.0f - 1.0f - 1.0f - ENTER_WEIGHT),
         Key(".", hints = listOf("…", ".com", "·")),   // · 는 . 의 하위 후보
         Key("⏎", KeyType.ENTER, weight = ENTER_WEIGHT),
     )
