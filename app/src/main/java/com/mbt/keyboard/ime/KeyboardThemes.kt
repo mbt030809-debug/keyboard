@@ -58,12 +58,13 @@ object KeyboardThemes {
     /** 글래스(프로스트) 테마 한 벌: 판 한 장의 유리 + 색입힌 투명 유리 키. 색은 모두 ARGB, 테마 고유의 번짐 배경은 [style] */
     private fun frost(
         style: Int, start: Long, mid: Long, end: Long, key: Long, special: Long, number: Long, enter: Long, pressed: Long,
-        text: Long, accent: Long, onAccent: Long, tint: Long = 0x1AFFFFFF,
+        text: Long, accent: Long, onAccent: Long, tint: Long = 0x1AFFFFFF, space: Long = 0,
     ) = KeyboardTheme(
         background = (0xFF000000 or start).toInt(), backgroundMid = (0xFF000000 or mid).toInt(), backgroundEnd = (0xFF000000 or end).toInt(),
         key = key.toInt(), specialKey = special.toInt(), keyPressed = pressed.toInt(),
         text = (0xFF000000 or text).toInt(), accent = (0xFF000000 or accent).toInt(), onAccent = (0xFF000000 or onAccent).toInt(),
         frost = true, frostStyle = style, frostTint = tint.toInt(), numberKeyGlass = number.toInt(), enterKeyGlass = enter.toInt(),
+        spaceKey = space.toInt(),
     )
 
     /** 총 28가지: 감성(그라데이션) 8 + 밝은 12 + 어두운 8 (모두 같은 색의 명도만 달리한 톤온톤, 네온 나이트만 예외) */
@@ -115,6 +116,16 @@ object KeyboardThemes {
         NamedTheme("pinkcloud", "핑크 클라우드", frost(4, 0xFFE3EE, 0xFFD0E6, 0xE1D3FF, 0x99FFFFFF, 0x8CF0BEE1, 0x9EFFCDE4, 0x80F08CBB, 0xCCF5C9E0, 0x5E2547, 0xC22A6B, 0xFFFFFF)),
         NamedTheme("aurora", "오로라", frost(5, 0x0B1030, 0x14305A, 0x3B2A7A, 0x33FFFFFF, 0x386EF3D6, 0x4D5046AA, 0x7A2FA898, 0xFF4A5A9A, 0xEAF6FF, 0x6EF3D6, 0x04201A, tint = 0x14FFFFFF)),
         NamedTheme("mintsoda", "민트 소다", frost(6, 0xC9F7E6, 0xA6ECDC, 0xBFE9FF, 0x94FFFFFF, 0x8CAAD7F5, 0x9EA0E6D7, 0x8C8FE6D6, 0xFFBFE6E0, 0x1F5B63, 0x137A6E, 0xFFFFFF)),
+        NamedTheme("glass_violet_coral", "바이올렛 코랄 3D", frost(8, 0x2B0E6E, 0x3F148C, 0x521899, 0xFF342B4F, 0xFF251E3B, 0xFF251E3B, 0xFF9E4226, 0xFF473B68, 0xFFF8F5, 0xFF8A4C, 0x260800, tint = 0x16FFFFFF, space = 0xFF251E3B)),
+        NamedTheme("glass_midnight_neon", "미드나이트 네온", frost(9, 0x060A18, 0x0B132B, 0x121A3A, 0xFF222B44, 0xFF171E32, 0xFF171E32, 0xFF983868, 0xFF334062, 0xF4F8FF, 0xFF6EC7, 0x260418, tint = 0x14FFFFFF, space = 0xFF171E32)),
+        NamedTheme("glass_royal_prism", "로열 프리즘", frost(10, 0x0D1466, 0x182899, 0x281B7A, 0xFF2A3254, 0xFF1E2440, 0xFF1E2440, 0xFF9E4820, 0xFF3E4976, 0xF5F7FF, 0xFFB85C, 0x241400, tint = 0x14FFFFFF, space = 0xFF1E2440)),
+        NamedTheme("glass_pastel_orb", "파스텔 오브 화이트", frost(11, 0xE8ECF4, 0xF2F4FA, 0xE4E9F5, 0xFFF5F6FA, 0xFFE4E8F2, 0xFFE4E8F2, 0xFFECBDD4, 0xFFFFFFFF, 0x1E2436, 0xE86FA8, 0x2B0418, tint = 0x18FFFFFF, space = 0xFFE4E8F2)),
+        NamedTheme("glass_aurora_grain", "오로라 실리카", frost(12, 0x181038, 0x2D1A5E, 0x1B2654, 0xFF32294A, 0xFF231C36, 0xFF231C36, 0xFF9C462A, 0xFF453B64, 0xFBF6FF, 0xFFC06E, 0x261400, tint = 0x14FFFFFF, space = 0xFF231C36)),
+        NamedTheme("glass_coral_bloom", "코랄 블룸", frost(13, 0x2D7A84, 0x7A7E78, 0xB86E56, 0xFF314448, 0xFF233236, 0xFF233236, 0xFF9A4428, 0xFF455D63, 0xFFF9F4, 0xFF9F68, 0x260E00, tint = 0x16FFFFFF, space = 0xFF233236)),
+        NamedTheme("glass_emerald_orb", "에메랄드 오브", frost(14, 0x071C18, 0x0C302A, 0x124238, 0xFF203A35, 0xFF162A27, 0xFF162A27, 0xFF28603A, 0xFF31544E, 0xF0FFF9, 0x6EF3D0, 0x04221A, tint = 0x14FFFFFF, space = 0xFF162A27)),
+        NamedTheme("glass_cyber_orb", "사이버 핑크 오브", frost(15, 0x0A0B1E, 0x161438, 0x24164A, 0xFF2B2744, 0xFF1E1B32, 0xFF1E1B32, 0xFF225B78, 0xFF403A62, 0xF6F4FF, 0x5CE1FF, 0x041C26, tint = 0x14FFFFFF, space = 0xFF1E1B32)),
+        NamedTheme("glass_sunset_orb", "선셋 피치 오브", frost(16, 0x2E0E24, 0x4E1634, 0x6B2038, 0xFF442A36, 0xFF321E28, 0xFF321E28, 0xFFA0482A, 0xFF5C3A4A, 0xFFF6F2, 0xFFB068, 0x261200, tint = 0x14FFFFFF, space = 0xFF321E28)),
+        NamedTheme("glass_ice_orb", "아이스 민트 오브", frost(17, 0xE4F2F6, 0xEDF6FA, 0xE2ECF8, 0xFFF2F7F8, 0xFFE2ECEF, 0xFFE2ECEF, 0xFFB0DCD4, 0xFFFFFFFF, 0x182632, 0x38B2AC, 0x04221E, tint = 0x18FFFFFF, space = 0xFFE2ECEF)),
         NamedTheme("buttercream", "버터 크림", glass(0xFFF4C9, 0xFFD8B5, 0xCCFFFFFF, 0xFFFFFFFF, 0x80FFFFFF, 0xFFF0D080, 0x6A4A1F, 0x8A5A00, 0xFFFFFF, mid = 0xFFE9A3)),
         NamedTheme("film", "필름 베이지", glass(0xEFE6D8, 0xE6DAC8, 0x00000000, 0x00000000, 0x1A5B4636, 0x33A0714B, 0x5B4636, 0x7A4A26, 0xFFFFFF, shadow = false)),
         NamedTheme("midnightglass", "미드나이트 글래스", glass(0x07070F, 0x241A4A, 0x14FFFFFF, 0x2EFFFFFF, 0x0DFFFFFF, 0x38FFFFFF, 0xF1EEFF, 0xB69CFF, 0x120A2E, mid = 0x14122B, shadow = false)),

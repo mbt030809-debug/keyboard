@@ -78,13 +78,11 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         paint.color = withAlpha(if (theme.frost) theme.backgroundMid else theme.background, alphaPercent)
         // 모서리는 버튼 모서리와 같은 중심(동심원): 여백이 0이면 버튼 모서리와 똑같이 맞물려 빈틈이 남지 않는다
         val gx = src.fnTabInsetPx()
-        val rl = radius + minOf(pad, src.fnTabLeftPx() + gx, 10 * d)
-        val rr = radius + minOf(pad, src.fnTabRightPx() + gx, 10 * d)
-        plate.rewind()
-        val bp = src.fnTabPadBottomPx()
-        val rlb = radius + minOf(bp, src.fnTabLeftPx() + gx, 10 * d)
-        val rrb = radius + minOf(bp, src.fnTabRightPx() + gx, 10 * d)
         val w = width.toFloat(); val h = height.toFloat()
+        val tabRadius = src.plateRadiusFor(w, h, isGlassRadius)
+        val rl = tabRadius; val rr = tabRadius
+        val rlb = tabRadius; val rrb = tabRadius
+        plate.rewind()
         plate.addRoundRect(RectF(plateLeft, 0f, w, h), floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)   // 네 모서리 모두 둥글게
         if (attached) {
             // 글래스 표면: 판과 같은 유리 표면(일반·블러·리드·3D)을 탭 불투명도만큼 비치게 그리고, 테두리 림 반사는 유리 강도 100% 유지

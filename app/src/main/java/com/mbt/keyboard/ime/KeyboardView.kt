@@ -673,26 +673,52 @@ class KeyboardView(context: Context) : View(context) {
         val blobs = if (!theme.frost) listOf(Blob(0.15f, 0.14f, 0.55f, 0x9EFFFFFF.toInt()), Blob(0.84f, 0.80f, 0.60f, (theme.accent and 0x00FFFFFF) or 0x90000000.toInt()), Blob(0.52f, 0.28f, 0.46f, 0x58FFFFFF), Blob(0.25f, 0.85f, 0.45f, (theme.accent and 0x00FFFFFF) or 0x4C000000)) else when (theme.frostStyle) {
             1 -> TAUPE_BLOBS; 2 -> NAVY_BLOBS; 3 -> SUNSET_BLOBS; 4 -> PINK_BLOBS; 5 -> AURORA_BLOBS; 6 -> MINT_BLOBS
             7 -> TAUPE_OPTICAL_BLOBS
+            8 -> listOf(Blob(0.18f, 0.28f, 0.24f, 0xFFFF5A26.toInt()), Blob(0.80f, 0.74f, 0.22f, 0xFFFF8A36.toInt()), Blob(0.68f, 0.20f, 0.12f, 0xFFFF4D38.toInt()))
+            9 -> listOf(Blob(0.20f, 0.26f, 0.28f, 0xFF3E8EFF.toInt()), Blob(0.78f, 0.76f, 0.28f, 0xFFFF4DA6.toInt()), Blob(0.45f, 0.55f, 0.14f, 0xFF70D8FF.toInt()))
+            10 -> listOf(Blob(0.24f, 0.30f, 0.30f, 0xFF5A38FF.toInt()), Blob(0.76f, 0.72f, 0.26f, 0xFFFF884D.toInt()), Blob(0.84f, 0.24f, 0.10f, 0xFFFFC866.toInt()), Blob(0.16f, 0.80f, 0.10f, 0xFFFFB45C.toInt()))
+            11 -> listOf(Blob(0.18f, 0.52f, 0.18f, 0xFFFF8AB8.toInt()), Blob(0.66f, 0.26f, 0.22f, 0xFF66C8FF.toInt()), Blob(0.82f, 0.74f, 0.18f, 0xFFB878FF.toInt()), Blob(0.32f, 0.84f, 0.08f, 0xFFFF98C8.toInt()))
+            12 -> listOf(Blob(0.22f, 0.42f, 0.32f, 0xFFFF6EC7.toInt()), Blob(0.56f, 0.48f, 0.28f, 0xFFFFC870.toInt()), Blob(0.84f, 0.64f, 0.26f, 0xFF5E54FF.toInt()))
+            13 -> listOf(Blob(0.48f, 0.48f, 0.32f, 0xFFFF9A4A.toInt()), Blob(0.26f, 0.32f, 0.22f, 0xFFFFC878.toInt()), Blob(0.74f, 0.64f, 0.22f, 0xFFFF7A66.toInt()))
+            14 -> listOf(Blob(0.20f, 0.28f, 0.24f, 0xFF28F0B4.toInt()), Blob(0.78f, 0.72f, 0.24f, 0xFFFFD24A.toInt()), Blob(0.64f, 0.24f, 0.12f, 0xFF5CE1FF.toInt()))
+            15 -> listOf(Blob(0.20f, 0.28f, 0.25f, 0xFF38E2FF.toInt()), Blob(0.80f, 0.74f, 0.25f, 0xFFFF46B8.toInt()), Blob(0.52f, 0.50f, 0.14f, 0xFF9B5CFF.toInt()))
+            16 -> listOf(Blob(0.22f, 0.30f, 0.26f, 0xFFFF784D.toInt()), Blob(0.78f, 0.70f, 0.24f, 0xFFFFC85E.toInt()), Blob(0.66f, 0.24f, 0.12f, 0xFFFF4D8A.toInt()))
+            17 -> listOf(Blob(0.20f, 0.32f, 0.20f, 0xFF5EE8D8.toInt()), Blob(0.76f, 0.30f, 0.22f, 0xFF98B8FF.toInt()), Blob(0.72f, 0.76f, 0.18f, 0xFFC8A4FF.toInt()))
             else -> HOLO_BLOBS
         }
-        for ((fx, fy, rr, c) in blobs) {
-            val r = max(w, h) * rr
-            bgPaint.shader = android.graphics.RadialGradient(w * fx, h * fy, r, c, c and 0x00FFFFFF, Shader.TileMode.CLAMP)
-            canvas.drawRect(0f, 0f, w, h, bgPaint)
+        if (theme.frost && theme.frostStyle in 8..17) {
+            // 참고 이미지(19195~19190)처럼 선명한 3D 발광 구체·오브를 배치해 유리가 투과·굴절할 때 또렷하게 비치게 함
+            for ((fx, fy, rr, c) in blobs) {
+                val r = max(w, h) * rr
+                val cx = w * fx; val cy = h * fy
+                bgPaint.shader = android.graphics.RadialGradient(
+                    cx - r * 0.22f, cy - r * 0.22f, r,
+                    intArrayOf(0xFFFFFFFF.toInt(), c, c, (c and 0x00FFFFFF) or 0xCC000000.toInt(), c and 0x00FFFFFF),
+                    floatArrayOf(0f, 0.28f, 0.68f, 0.84f, 1f),
+                    Shader.TileMode.CLAMP,
+                )
+                canvas.drawCircle(cx, cy, r, bgPaint)
+            }
+        } else {
+            for ((fx, fy, rr, c) in blobs) {
+                val r = max(w, h) * rr
+                bgPaint.shader = android.graphics.RadialGradient(w * fx, h * fy, r, c, c and 0x00FFFFFF, Shader.TileMode.CLAMP)
+                canvas.drawRect(0f, 0f, w, h, bgPaint)
+            }
         }
         bgPaint.shader = null
     }
 
     private var frostBlur: Bitmap? = null
     private var frostKeyBlur: Bitmap? = null
+    private var frostReedBlur: Bitmap? = null
     private var frostKey: Triple<Int, Int, KeyboardTheme>? = null
 
     /** 유리판에 비치는 "흐린 뒷배경". 크기·테마가 바뀔 때만 다시 만든다 (작게 줄였다 늘리면 부드럽게 흐려진다) */
     private fun ensureFrostBitmaps() {
         val total = height + frostExtraTopPx().toInt()
         val key = Triple(width, total, theme)
-        if (frostKey == key && frostBlur != null && frostKeyBlur != null) return
-        frostBlur?.recycle(); frostKeyBlur?.recycle(); frostBlur = null; frostKeyBlur = null
+        if (frostKey == key && frostBlur != null && frostKeyBlur != null && frostReedBlur != null) return
+        frostBlur?.recycle(); frostKeyBlur?.recycle(); frostReedBlur?.recycle(); frostBlur = null; frostKeyBlur = null; frostReedBlur = null
         val sharp = Bitmap.createBitmap(max(width, 1), max(total, 1), Bitmap.Config.ARGB_8888)
         drawFrostBackdrop(Canvas(sharp), sharp.width.toFloat(), sharp.height.toFloat())
         val div = if (theme.frostStyle == 7) 5 else FROST_BLUR_DIV
@@ -703,7 +729,11 @@ class KeyboardView(context: Context) : View(context) {
         val ksBlur = boxBlur(ks, 3); if (ksBlur !== ks) ks.recycle()
         val keyBlur = Bitmap.createScaledBitmap(ksBlur, sharp.width, sharp.height, true); if (ksBlur !== keyBlur) ksBlur.recycle()
         sharp.recycle()
-        frostBlur = blur; frostKeyBlur = keyBlur; frostKey = key
+        // 리드글래스(모루) 전용 세로 방향 비등방성 번짐: 가로는 선명하게 유지하고 세로로 길게 번져 모루를 따라 흐르게 함
+        val rs = Bitmap.createScaledBitmap(sharp, max(sharp.width / 4, 1), max(sharp.height / 8, 1), true)
+        val rsBlur = boxBlur(rs, 2); if (rsBlur !== rs) rs.recycle()
+        val reedBlur = Bitmap.createScaledBitmap(rsBlur, sharp.width, sharp.height, true); if (rsBlur !== reedBlur) rsBlur.recycle()
+        frostBlur = blur; frostKeyBlur = keyBlur; frostReedBlur = reedBlur; frostKey = key
     }
     
 
@@ -799,6 +829,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         return (k + minOf(padL, padT, cap)) to (k + minOf(padR, padT, cap))
     }
 
+    /** 키보드 배경판 및 보조탭용 크기 비례(%) 둥글기 반지름 */
+    fun plateRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || bgGlassOn || keyGlassOn): Float =
+        keyRadiusFor(w, h, frost)
+
     /** 판 맨 위에서 뒤 앱 화면이 비치는 띠의 높이 (아래로 갈수록 불투명해져 판과 이어진다) */
     fun frostFadePx(): Float = FROST_FADE_DP * density
 
@@ -877,9 +911,12 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         backdropAlpha: Float = 1f,
     ) {
         val s = strength.coerceIn(0f, 1f)
-        if (s <= 0.01f) return
+        if (s <= 0.01f || r <= l || b <= t) return
+        val rw = r - l
+        val rh = b - t
+        val reedLayer = canvas.saveLayer(l, t, r, b, null)
         val reedW = (pitchDp * density).coerceAtLeast(4f)
-        val refractBmp = frostBlur ?: frostKeyBlur
+        val refractBmp = frostReedBlur ?: frostBlur ?: frostKeyBlur
         if (refractBmp != null && r > l && b > t) {
             val extra = frostExtraTopPx()
             val bw = refractBmp.width
@@ -887,18 +924,19 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             val cols = kotlin.math.ceil(((r - l) / reedW).toDouble()).toInt().coerceAtMost(140)
             glassPaint.shader = null
             glassPaint.color = 0xFFFFFFFF.toInt()
-            glassPaint.alpha = (220 * s * backdropAlpha.coerceIn(0f, 1f)).toInt().coerceIn(0, 250)
-            // 비선형 원통 렌즈 샘플링: 각 플룻을 4분할하여 중앙은 넓게 확대하고 양옆 가장자리는 급격히 압축·굴곡
+            glassPaint.alpha = (232 * s * backdropAlpha.coerceIn(0f, 1f)).toInt().coerceIn(0, 255)
+            // 비선형 원통 렌즈 샘플링 + 모루를 따라 위아래로 흐르는 세로 굴절 오프셋
             val dstStops = floatArrayOf(0f, 0.18f, 0.50f, 0.82f, 1f)
             val srcStops = floatArrayOf(-0.46f, -0.13f, 0f, 0.13f, 0.46f)
-            val sy = (t + extra + tabShiftY).toInt().coerceIn(0, bh - 1)
-            val ey = (b + extra + tabShiftY).toInt().coerceIn(sy + 1, bh)
             for (i in 0 until cols) {
                 val cl = l + i * reedW
                 val cr = minOf(cl + reedW, r)
                 val cw = cr - cl
                 if (cw <= 0.5f) break
-                val stepShift = (if (i % 2 == 0) 1f else -1f) * 8.0f * density * s + kotlin.math.sin(i * 0.9f) * 6.0f * density * s
+                val stepShift = (if (i % 2 == 0) 1f else -1f) * 7.5f * density * s + kotlin.math.sin(i * 0.9f) * 5.5f * density * s
+                val yShift = kotlin.math.sin(i * 1.35f) * 3.0f * density * s
+                val sy = (t + extra + tabShiftY + yShift).toInt().coerceIn(0, bh - 2)
+                val ey = (b + extra + tabShiftY + yShift).toInt().coerceIn(sy + 1, bh)
                 val centerSrcX = (cl + cw * 0.5f) + tabShiftX + stepShift
                 val span = cw * (1.15f - 0.35f * s)
                 for (k in 0..3) {
@@ -932,6 +970,29 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         )
         canvas.drawRect(l, t, r, b, glassPaint)
         glassPaint.shader = null
+
+        // 상·하·좌·우 테두리 쪽으로 갈수록 모루가 테두리 빛 반사 속으로 자연스럽게 사라지도록 4면 페이드 마스킹
+        val isPlateReed = pitchDp >= 7.8f
+        val edgeFadeX = minOf(rw * 0.24f, (if (isPlateReed) 16f else 8f) * density)
+        val edgeFadeY = minOf(rh * 0.28f, (if (isPlateReed) 16f else 8f) * density)
+        val fx = (edgeFadeX / rw).coerceIn(0.02f, 0.45f)
+        val fy = (edgeFadeY / rh).coerceIn(0.02f, 0.45f)
+        fadeMaskPaint.shader = LinearGradient(
+            l, 0f, r, 0f,
+            intArrayOf(0x00FFFFFF, 0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt(), 0x00FFFFFF),
+            floatArrayOf(0f, fx, 1f - fx, 1f),
+            Shader.TileMode.CLAMP,
+        )
+        canvas.drawRect(l, t, r, b, fadeMaskPaint)
+        fadeMaskPaint.shader = LinearGradient(
+            0f, t, 0f, b,
+            intArrayOf(0x00FFFFFF, 0xFFFFFFFF.toInt(), 0xFFFFFFFF.toInt(), 0x00FFFFFF),
+            floatArrayOf(0f, fy, 1f - fy, 1f),
+            Shader.TileMode.CLAMP,
+        )
+        canvas.drawRect(l, t, r, b, fadeMaskPaint)
+        fadeMaskPaint.shader = null
+        canvas.restoreToCount(reedLayer)
     }
 
     /**
@@ -1011,7 +1072,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             canvas.drawRect(l, t, r, b, glassPaint)
         } else if (gType == 2) {
             // 3. 리드글래스: 9.0dp 간격 세로 모루 광학 굴절
-            drawReedOverlay(canvas, l, t, r, b, bgG, pitchDp = 5.5f, backdropAlpha = if (t >= 0f) bgOpacity else 1f)
+            drawReedOverlay(canvas, l, t, r, b, bgG, pitchDp = 8.25f, backdropAlpha = if (t >= 0f) bgOpacity else 1f)
         } else if (gType == 4) {
             // 5. 무광(프로스티드 젖빛 3D): 밀키 젖빛 확산 + 미세 실리카 입자 (날카로운 사선 거울광 제외)
             val milkA = (0x32 * bgG).toInt().coerceIn(0, 255)
@@ -1087,7 +1148,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         canvas.restoreToCount(layer)
         if (glassType >= 0 && bgGlassStrength > 0.01f) {
             val bgG = bgGlassStrength.coerceIn(0f, 1f)
-            val r = frostKeyRadiusPx() + minOf(fnTabPadPx(), fnTabLeftPx() + fnTabInsetPx(), 10 * density)
+            val r = plateRadiusFor(tabW, tabH)
             if (effGlass == 3) {
                 draw3dDomeOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, r, r, bgG, isPlate = true)
             } else if (effGlass == 4) {
@@ -1353,7 +1414,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         val w = width.toFloat(); val h = height.toFloat()
         val bgG = if (glassType >= 0) bgGlassStrength.coerceIn(0f, 1f) else 1f
         val layer = canvas.saveLayer(0f, 0f, w, h, null)
-        val (rl, rr) = frostPlateRadiiPx()
+        val rPlate = plateRadiusFor(w, h); val rl = rPlate; val rr = rPlate
         glassPath.rewind()
         glassPath.addRoundRect(RectF(0f, 0f, w, h), floatArrayOf(rl, rl, rr, rr, 0f, 0f, 0f, 0f), Path.Direction.CW)
         canvas.save()
@@ -1454,7 +1515,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             val lg = (cg * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255)
             val lb = (cb * 0.78f + 255 * 0.22f).toInt().coerceIn(0, 255)
             val liftRgb = (lr shl 16) or (lg shl 8) or lb
-            val glassTrans = if (glassType >= 0) (1f - 0.24f * keyG) else 1f
+            val glassTrans = if (glassType >= 0 && keyOpacity < 0.99f) (1f - 0.24f * keyG) else 1f
             if (gType == 3 || gType == 4) {
                 val uniA = (baseA * glassTrans).toInt().coerceIn(0, 255)
                 glassPaint.shader = null
@@ -1543,7 +1604,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             canvas.drawRoundRect(r, radius, radius, glassPaint)
         } else if (gType == 2) {
             // 리드글래스: 키캡 내부 7.0dp 간격의 은은한 세로 모루 광학 굴절
-            drawReedOverlay(canvas, r.left, r.top, r.right, r.bottom, keyG, pitchDp = 4.8f, tabShiftX = tabShiftX, tabShiftY = tabShiftY, backdropAlpha = keyOpacity)
+            drawReedOverlay(canvas, r.left, r.top, r.right, r.bottom, keyG, pitchDp = 7.2f, tabShiftX = tabShiftX, tabShiftY = tabShiftY, backdropAlpha = keyOpacity)
         } else if (gType == 3) {
             // 3D: 좌상단 사선 곡면 경계 반사면 + 상·하단 테두리 응축 후 소멸 효과
             draw3dDomeOptics(canvas, r, radius, radius, radius, radius, keyG, isPlate = false)
@@ -1606,12 +1667,21 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
 
     private fun drawBackground(canvas: Canvas) {
         if (bgGlassOn) { drawFrostPlate(canvas); return }
-        val w = width.toFloat(); val h = height.toFloat(); val shader = theme.backgroundShader(w, h)
+        val w = width.toFloat(); val h = height.toFloat()
+        val rPlate = plateRadiusFor(w, h, theme.frost || keyGlassOn)
+        glassPath.rewind()
+        glassPath.addRoundRect(RectF(0f, 0f, w, h), floatArrayOf(rPlate, rPlate, rPlate, rPlate, 0f, 0f, 0f, 0f), Path.Direction.CW)
+        val shader = theme.backgroundShader(w, h)
         if (shader == null) {
-            canvas.drawColor(withBgOpacity(theme.background))
+            bgPaint.shader = null
+            bgPaint.color = withBgOpacity(theme.background)
+            canvas.drawPath(glassPath, bgPaint)
         } else {
+            bgPaint.color = 0xFFFFFFFF.toInt()
             bgPaint.shader = shader
-            bgPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255); canvas.drawRect(0f, 0f, w, h, bgPaint); bgPaint.alpha = 255
+            bgPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
+            canvas.drawPath(glassPath, bgPaint)
+            bgPaint.alpha = 255
             bgPaint.shader = null
         }
     }
@@ -1629,9 +1699,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 key.type == KeyType.VOICE && voiceListening -> theme.accent
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
                 key.type == KeyType.ENTER -> theme.enterKey
-                key.type == KeyType.SPACE -> theme.effectiveSpaceKey        // 엔터: 색은 유지하되 덜 진하게
-                isSpecial || cell.duplicate -> theme.specialKey      // 복제 키는 기능키 색으로 살짝 구분
-                isDigitKey(key) -> theme.numberKey                    // 숫자 키는 조금 어둡게
+                key.type == KeyType.SPACE || key.type == KeyType.BACKSPACE || key.type == KeyType.SHIFT || key.type == KeyType.EMOJI || key.type == KeyType.VOICE || isDigitKey(key) ->
+                    if (theme.spaceKey != 0) theme.spaceKey else theme.specialKey
+                isSpecial || cell.duplicate -> theme.specialKey
                 else -> theme.key
             }
             paint.color = withKeyOpacity(paint.color)
