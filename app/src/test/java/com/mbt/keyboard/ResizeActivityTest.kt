@@ -80,9 +80,9 @@ class ResizeActivityTest {
     @Test fun sevenTabsInPriorityOrderAndTheFirstIsSelected() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertEquals(6, chips(a).childCount)
+                assertEquals(7, chips(a).childCount)
                 assertTrue(title(a).startsWith("① 전체 크기"))
-                listOf("② 키 사이 간격", "③ 보조탭", "④ 숫자줄·스페이스바 줄 크기", "⑤ 숫자줄 여백", "⑥ 터치 인식 영역").forEachIndexed { i, t ->
+                listOf("② 키 사이 간격", "③ 보조탭", "④ 숫자줄·스페이스바 줄 크기", "⑤ 숫자줄 여백", "⑥ 터치 인식 영역", "모서리 둥글기").forEachIndexed { i, t ->
                     goTo(a, i + 1)
                     assertTrue("${title(a)} vs $t", title(a).startsWith(t))
                 }
