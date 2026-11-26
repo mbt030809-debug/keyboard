@@ -145,8 +145,21 @@ class ResizeOverlayView(
                 drawHandle(canvas, kr.right, kr.centerY(), padAccent, selectedTarget == Target.PAD_RIGHT, 7.5f)
                 drawHandle(canvas, kr.centerX(), kr.top, padAccent, selectedTarget == Target.PAD_TOP, 7.5f)
                 drawHandle(canvas, kr.centerX(), kr.bottom, padAccent, selectedTarget == Target.PAD_BOTTOM, 7.5f)
+
+                val sy = hr.top + keyboard.spaceRowTopPx()
+                if (sy > hr.top && sy < hr.bottom) {
+                    dashPaint.color = accent
+                    canvas.drawLine(hr.left + 4 * d, sy, hr.right - 4 * d, sy, if (selectedTarget == Target.SPACE_HEIGHT) hiDashPaint else dashPaint)
+                    drawHandle(canvas, hr.centerX(), sy, accent, selectedTarget == Target.SPACE_HEIGHT)
+                }
             }
             2 -> {
+                if (keyboard.hasSideStrip) {
+                    dashPaint.color = accent
+                    val sx = hr.left + keyboard.stripRightPx()
+                    canvas.drawLine(sx, hr.top + 4 * d, sx, hr.bottom - 4 * d, if (selectedTarget == Target.NUM_WIDTH) hiDashPaint else dashPaint)
+                    drawHandle(canvas, sx, hr.centerY(), accent, selectedTarget == Target.NUM_WIDTH)
+                }
                 if (fnTab.visibility != VISIBLE) return
                 val tr = tabRect()
                 if (tr.width() <= 0f || tr.height() <= 0f) return
@@ -159,19 +172,6 @@ class ResizeOverlayView(
                 drawHandle(canvas, tr.centerX(), tr.top + 1 * d, tabAccent, selectedTarget == Target.TAB_HEIGHT, 7.5f)
             }
             3 -> {
-                dashPaint.color = accent
-                if (keyboard.hasSideStrip) {
-                    val sx = hr.left + keyboard.stripRightPx()
-                    canvas.drawLine(sx, hr.top + 4 * d, sx, hr.bottom - 4 * d, if (selectedTarget == Target.NUM_WIDTH) hiDashPaint else dashPaint)
-                    drawHandle(canvas, sx, hr.centerY(), accent, selectedTarget == Target.NUM_WIDTH)
-                }
-                val sy = hr.top + keyboard.spaceRowTopPx()
-                if (sy > hr.top && sy < hr.bottom) {
-                    canvas.drawLine(hr.left + 4 * d, sy, hr.right - 4 * d, sy, if (selectedTarget == Target.SPACE_HEIGHT) hiDashPaint else dashPaint)
-                    drawHandle(canvas, hr.centerX(), sy, accent, selectedTarget == Target.SPACE_HEIGHT)
-                }
-            }
-            5 -> {
                 val ys = keyboard.hitZoneYs()
                 dashPaint.color = hitAccent
                 for (r in 1 until ys.size) {
@@ -191,7 +191,7 @@ class ResizeOverlayView(
     }
 
     override fun onTouchEvent(e: MotionEvent): Boolean {
-        if (activePage !in setOf(0, 2, 3, 5)) return false
+        if (activePage !in setOf(0, 2, 3)) return false
         val hr = hostRect()
         val g = getGeometry()
         when (e.actionMasked) {
@@ -207,6 +207,7 @@ class ResizeOverlayView(
                     0 -> {
                         val kr = keysRect(hr, g)
                         val outTopX = hr.left + hr.width() * 0.18f
+                        val sy = hr.top + keyboard.spaceRowTopPx()
                         dragTarget = when {
                             isSplitActive() && near(e.x, e.y, hr.centerX(), hr.top + hr.height() * 0.25f, 24f) -> Target.KB_GAP
                             near(e.x, e.y, outTopX, hr.top, 26f) || (abs(e.y - hr.top) <= 14 * d && e.x < kr.centerX() - 28 * d) -> Target.KB_HEIGHT
@@ -214,32 +215,26 @@ class ResizeOverlayView(
                             near(e.x, e.y, kr.right, kr.centerY(), 24f) || (abs(e.x - kr.right) <= 14 * d && e.y in kr.top..kr.bottom) -> Target.PAD_RIGHT
                             near(e.x, e.y, kr.centerX(), kr.top, 24f) || (abs(e.y - kr.top) <= 14 * d && e.x in kr.left..kr.right) -> Target.PAD_TOP
                             near(e.x, e.y, kr.centerX(), kr.bottom, 24f) || (abs(e.y - kr.bottom) <= 14 * d && e.x in kr.left..kr.right) -> Target.PAD_BOTTOM
+                            sy > hr.top && (near(e.x, e.y, hr.centerX(), sy, 24f) || (abs(e.y - sy) <= 14 * d && e.x in hr.left..hr.right)) -> Target.SPACE_HEIGHT
                             else -> Target.NONE
                         }
                     }
                     2 -> {
-                        if (fnTab.visibility == VISIBLE) {
+                        val sx = hr.left + keyboard.stripRightPx()
+                        val numHit = keyboard.hasSideStrip && (near(e.x, e.y, sx, hr.centerY(), 24f) || (abs(e.x - sx) <= 14 * d && e.y in hr.top..hr.bottom))
+                        dragTarget = if (numHit) {
+                            Target.NUM_WIDTH
+                        } else if (fnTab.visibility == VISIBLE) {
                             val tr = tabRect()
-                            dragTarget = when {
+                            when {
                                 near(e.x, e.y, tr.right, tr.centerY(), 22f) -> Target.TAB_WIDTH
                                 near(e.x, e.y, tr.centerX(), tr.top, 22f) -> Target.TAB_HEIGHT
                                 e.x in (tr.left - 12 * d)..(tr.right + 12 * d) && e.y in (tr.top - 12 * d)..(tr.bottom + 12 * d) -> Target.TAB_MOVE
                                 else -> Target.NONE
                             }
-                        }
+                        } else Target.NONE
                     }
                     3 -> {
-                        val sx = hr.left + keyboard.stripRightPx()
-                        val sy = hr.top + keyboard.spaceRowTopPx()
-                        val numHit = keyboard.hasSideStrip && (near(e.x, e.y, sx, hr.centerY(), 24f) || (abs(e.x - sx) <= 14 * d && e.y in hr.top..hr.bottom))
-                        val spaceHit = sy > hr.top && (near(e.x, e.y, hr.centerX(), sy, 24f) || (abs(e.y - sy) <= 14 * d && e.x in hr.left..hr.right))
-                        dragTarget = when {
-                            numHit -> Target.NUM_WIDTH
-                            spaceHit -> Target.SPACE_HEIGHT
-                            else -> Target.NONE
-                        }
-                    }
-                    5 -> {
                         val ys = keyboard.hitZoneYs()
                         var bestIdx = -1
                         var bestDist = 20f * d

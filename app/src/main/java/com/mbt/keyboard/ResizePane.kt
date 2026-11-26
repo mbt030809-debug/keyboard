@@ -146,6 +146,9 @@ class ResizePane(
                         { if (!large && geometry.gapPct == 0) context.getString(R.string.resize_gap_off) else "${geometry.gapPct}%" },
                         { geometry.gapPct > KeyboardGeometry.GAP_MIN }, { geometry.gapPct < KeyboardGeometry.GAP_MAX })
                 }
+                addLinkedStepper(context.getString(R.string.resize_space_row), ResizeOverlayView.Target.SPACE_HEIGHT,
+                    { geometry = geometry.spaceRowBy(it) }, { "${geometry.spaceRowPct}%" },
+                    { geometry.spaceRowPct > KeyboardGeometry.SPACE_ROW_MIN }, { geometry.spaceRowPct < KeyboardGeometry.SPACE_ROW_MAX })
                 addFontScaleSlider()
             },
             Page(R.string.resize_page_gap, R.string.resize_title_gap, R.string.resize_badge_12, R.string.resize_desc_gap, ResizeDiagram.Part.GAP) {
@@ -156,37 +159,36 @@ class ResizePane(
             },
             Page(R.string.resize_page_tab, R.string.resize_title_tab, R.string.resize_badge_tab, R.string.resize_desc_tab, ResizeDiagram.Part.TAB, note = R.string.resize_note_tab) {
                 addCompactSwitchRow()
-                addLinkedStepper("보조탭 세로 높이", ResizeOverlayView.Target.TAB_HEIGHT,
-                    { geometry = geometry.fnTabHeightBy(it) }, { "${geometry.fnTabHeightPct}%" },
-                    { geometry.fnTabHeightPct > KeyboardGeometry.FN_TAB_HEIGHT_MIN }, { geometry.fnTabHeightPct < KeyboardGeometry.FN_TAB_HEIGHT_MAX })
-                addLinkedStepper("보조탭 가로 너비", ResizeOverlayView.Target.TAB_WIDTH,
-                    {
-                        val maxW = if (keyboard.hasTopNumberRow) 100 else KeyboardGeometry.FN_TAB_WIDTH_MAX
-                        geometry = geometry.copy(fnTabWidthPct = (geometry.fnTabWidthPct + it * 5).coerceIn(KeyboardGeometry.FN_TAB_WIDTH_MIN, maxW)).clamped()
-                    },
-                    { "${geometry.fnTabWidthPct}%" },
-                    { geometry.fnTabWidthPct > KeyboardGeometry.FN_TAB_WIDTH_MIN },
-                    { geometry.fnTabWidthPct < (if (keyboard.hasTopNumberRow) 100 else KeyboardGeometry.FN_TAB_WIDTH_MAX) })
-                if (!keyboard.hasTopNumberRow) {
-                    addLinkedStepper("보조탭 좌우 위치", ResizeOverlayView.Target.TAB_MOVE,
-                        { geometry = geometry.copy(fnTabXdp = geometry.fnTabXdp + it * 2).clamped() }, { "${geometry.fnTabXdp}dp" },
-                        { geometry.fnTabXdp > KeyboardGeometry.FN_TAB_X_MIN }, { geometry.fnTabXdp < KeyboardGeometry.FN_TAB_X_MAX })
+                val numSplit = Prefs.numberKeysLeft(context)
+                val fnTabOn = Prefs.fnTabEnabled(context)
+                if (numSplit || fnTabOn) {
+                    addLinkedStepper(context.getString(R.string.resize_num_height), ResizeOverlayView.Target.NUM_WIDTH,
+                        { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
+                        { geometry.numHeightPct > KeyboardGeometry.NUM_HEIGHT_MIN }, { geometry.numHeightPct < KeyboardGeometry.NUM_HEIGHT_MAX })
+                    addStepper(R.string.resize_num_row_gap, { geometry = geometry.numRowGapBy(it) }, { "${geometry.numRowGapDp}dp" },
+                        { geometry.numRowGapDp > KeyboardGeometry.NUM_ROW_GAP_MIN }, { geometry.numRowGapDp < KeyboardGeometry.NUM_ROW_GAP_MAX })
                 }
-                addLinkedStepper("보조탭 상하 위치", ResizeOverlayView.Target.TAB_MOVE,
-                    { geometry = geometry.copy(fnTabYdp = geometry.fnTabYdp + it * 2).clamped() }, { "${geometry.fnTabYdp}dp" },
-                    { geometry.fnTabYdp > KeyboardGeometry.FN_TAB_Y_MIN }, { geometry.fnTabYdp < KeyboardGeometry.FN_TAB_Y_MAX })
-            },
-            Page(R.string.resize_page_numrow, R.string.resize_title_numrow, R.string.resize_badge_123, R.string.resize_desc_numrow, ResizeDiagram.Part.NUMROW) {
-                addLinkedStepper(context.getString(R.string.resize_num_height), ResizeOverlayView.Target.NUM_WIDTH,
-                    { geometry = geometry.numHeightBy(it) }, { "${geometry.numHeightPct}%" },
-                    { geometry.numHeightPct > KeyboardGeometry.NUM_HEIGHT_MIN }, { geometry.numHeightPct < KeyboardGeometry.NUM_HEIGHT_MAX })
-                addLinkedStepper(context.getString(R.string.resize_space_row), ResizeOverlayView.Target.SPACE_HEIGHT,
-                    { geometry = geometry.spaceRowBy(it) }, { "${geometry.spaceRowPct}%" },
-                    { geometry.spaceRowPct > KeyboardGeometry.SPACE_ROW_MIN }, { geometry.spaceRowPct < KeyboardGeometry.SPACE_ROW_MAX })
-            },
-            Page(R.string.resize_page_numgap, R.string.resize_title_numgap, R.string.resize_badge_1234, R.string.resize_desc_numgap, ResizeDiagram.Part.NUMGAP) {
-                addStepper(R.string.resize_num_row_gap, { geometry = geometry.numRowGapBy(it) }, { "${geometry.numRowGapDp}dp" },
-                    { geometry.numRowGapDp > KeyboardGeometry.NUM_ROW_GAP_MIN }, { geometry.numRowGapDp < KeyboardGeometry.NUM_ROW_GAP_MAX })
+                if (fnTabOn) {
+                    addLinkedStepper("보조탭 세로 높이", ResizeOverlayView.Target.TAB_HEIGHT,
+                        { geometry = geometry.fnTabHeightBy(it) }, { "${geometry.fnTabHeightPct}%" },
+                        { geometry.fnTabHeightPct > KeyboardGeometry.FN_TAB_HEIGHT_MIN }, { geometry.fnTabHeightPct < KeyboardGeometry.FN_TAB_HEIGHT_MAX })
+                    addLinkedStepper("보조탭 가로 너비", ResizeOverlayView.Target.TAB_WIDTH,
+                        {
+                            val maxW = if (!numSplit) 100 else KeyboardGeometry.FN_TAB_WIDTH_MAX
+                            geometry = geometry.copy(fnTabWidthPct = (geometry.fnTabWidthPct + it * 5).coerceIn(KeyboardGeometry.FN_TAB_WIDTH_MIN, maxW)).clamped()
+                        },
+                        { "${geometry.fnTabWidthPct}%" },
+                        { geometry.fnTabWidthPct > KeyboardGeometry.FN_TAB_WIDTH_MIN },
+                        { geometry.fnTabWidthPct < (if (!numSplit) 100 else KeyboardGeometry.FN_TAB_WIDTH_MAX) })
+                    if (numSplit) {
+                        addLinkedStepper("보조탭 좌우 위치", ResizeOverlayView.Target.TAB_MOVE,
+                            { geometry = geometry.copy(fnTabXdp = geometry.fnTabXdp + it * 2).clamped() }, { "${geometry.fnTabXdp}dp" },
+                            { geometry.fnTabXdp > KeyboardGeometry.FN_TAB_X_MIN }, { geometry.fnTabXdp < KeyboardGeometry.FN_TAB_X_MAX })
+                    }
+                    addLinkedStepper("보조탭 상하 위치", ResizeOverlayView.Target.TAB_MOVE,
+                        { geometry = geometry.copy(fnTabYdp = geometry.fnTabYdp + it * 2).clamped() }, { "${geometry.fnTabYdp}dp" },
+                        { geometry.fnTabYdp > KeyboardGeometry.FN_TAB_Y_MIN }, { geometry.fnTabYdp < KeyboardGeometry.FN_TAB_Y_MAX })
+                }
             },
             Page(R.string.resize_page_hit, R.string.resize_title_hit, R.string.resize_badge_hit, R.string.resize_desc_hit, ResizeDiagram.Part.HIT) {
                 addLinkedStepper(context.getString(R.string.resize_hit0), ResizeOverlayView.Target.HIT_LINE,
@@ -240,13 +242,12 @@ class ResizePane(
 
     private fun showPage(index: Int) {
         pageIndex = index
-        keyboard.showHitZones = (index == 5)
+        keyboard.showHitZones = (index == 3)
         overlay.activePage = index
         overlay.selectedTarget = when (index) {
             0 -> ResizeOverlayView.Target.KB_HEIGHT
-            2 -> ResizeOverlayView.Target.TAB_HEIGHT
-            3 -> ResizeOverlayView.Target.SPACE_HEIGHT
-            5 -> {
+            2 -> if (Prefs.fnTabEnabled(context)) ResizeOverlayView.Target.TAB_HEIGHT else ResizeOverlayView.Target.NUM_WIDTH
+            3 -> {
                 overlay.selectedHitLine = 1
                 ResizeOverlayView.Target.HIT_LINE
             }
@@ -326,13 +327,13 @@ class ResizePane(
         }
         val swLeft = MaterialSwitch(context).apply {
             id = R.id.switchNumberLeft
-            text = "숫자 좌측"
-            isChecked = Prefs.numberKeysLeft(context)
+            text = "숫자 탭 분리"
+            isChecked = !Prefs.numberKeysLeft(context)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also {
                 it.marginEnd = (8 * density).toInt()
             }
             setOnCheckedChangeListener { _, on ->
-                Prefs.setNumberKeysLeft(context, on)
+                Prefs.setNumberKeysLeft(context, !on)
                 showPage(pageIndex)
             }
         }
@@ -343,7 +344,7 @@ class ResizePane(
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             setOnCheckedChangeListener { _, on ->
                 Prefs.setFnTabEnabled(context, on)
-                refresh()
+                showPage(pageIndex)
             }
         }
         row.addView(swLeft)

@@ -80,9 +80,9 @@ class ResizeActivityTest {
     @Test fun sevenTabsInPriorityOrderAndTheFirstIsSelected() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                assertEquals(7, chips(a).childCount)
+                assertEquals(5, chips(a).childCount)
                 assertTrue(title(a).startsWith("① 전체 크기"))
-                listOf("② 키 사이 간격", "③ 보조탭", "④ 숫자줄·스페이스바 줄 크기", "⑤ 숫자줄 여백", "⑥ 터치 인식 영역", "모서리 둥글기").forEachIndexed { i, t ->
+                listOf("② 키 사이 간격", "③ 보조키", "④ 터치 인식 영역", "⑤ 모서리 둥글기").forEachIndexed { i, t ->
                     goTo(a, i + 1)
                     assertTrue("${title(a)} vs $t", title(a).startsWith(t))
                 }
@@ -96,8 +96,8 @@ class ResizeActivityTest {
                 goTo(a, 1)
                 assertTrue(title(a).startsWith("② "))
                 assertTrue(chips(a).getChildAt(1).let { (it as com.google.android.material.chip.Chip).isChecked })
-                goTo(a, 5)
-                assertTrue(title(a).startsWith("⑥ "))
+                goTo(a, 3)
+                assertTrue(title(a).startsWith("④ "))
                 goTo(a, 0)
                 assertTrue(title(a).startsWith("① "))
             }
@@ -159,7 +159,7 @@ class ResizeActivityTest {
                 assertTrue(a.findViewById<View>(R.id.switchFnTab) != null)
                 assertTrue(a.findViewById<View>(R.id.stepPlus) != null)
                 assertEquals(View.VISIBLE, a.findViewById<View>(R.id.pageNote).visibility)
-                goTo(a, 4); step(a, 0, plus = true); step(a, 0, plus = true)                 // ⑤ 숫자줄 여백 +2
+                step(a, 2, plus = true); step(a, 2, plus = true)                 // ③ 보조키 안 숫자줄 여백 +2
                 val g = Prefs.geometry(a, large = false)
                 assertEquals(7, g.keyGapDp); assertEquals(4, g.rowGapDp)
                 assertEquals(8, g.numRowGapDp)
@@ -170,7 +170,7 @@ class ResizeActivityTest {
     @Test fun hitZonePageShowsReadoutsAndResetRestoresTheDefaults() {
         ActivityScenario.launch(ResizeActivity::class.java).use { sc ->
             sc.onActivity { a ->
-                goTo(a, 5)
+                goTo(a, 3)
                 assertTrue(a.findViewById<View>(R.id.stepPlus) != null)
 
             }
