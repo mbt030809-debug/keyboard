@@ -1699,8 +1699,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 key.type == KeyType.VOICE && voiceListening -> theme.accent
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
                 key.type == KeyType.ENTER -> theme.enterKey
-                key.type == KeyType.SPACE || key.type == KeyType.BACKSPACE || key.type == KeyType.SHIFT || key.type == KeyType.EMOJI || key.type == KeyType.VOICE || isDigitKey(key) ->
+                key.type == KeyType.SPACE || key.type == KeyType.BACKSPACE || key.type == KeyType.SHIFT || key.type == KeyType.EMOJI || key.type == KeyType.VOICE ->
                     if (theme.spaceKey != 0) theme.spaceKey else theme.specialKey
+                isDigitKey(key) -> if (theme.spaceKey != 0) theme.spaceKey else theme.numberKey
                 isSpecial || cell.duplicate -> theme.specialKey
                 else -> theme.key
             }

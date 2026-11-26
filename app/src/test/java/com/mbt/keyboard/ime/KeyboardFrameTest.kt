@@ -447,6 +447,9 @@ class GlassThemeDrawTest {
         override fun drawRect(left: Float, top: Float, right: Float, bottom: Float, paint: android.graphics.Paint) {
             if (paint.shader != null) gradientRects++
         }
+        override fun drawPath(path: android.graphics.Path, paint: android.graphics.Paint) {
+            if (paint.shader != null) gradientRects++
+        }
         override fun drawRoundRect(left: Float, top: Float, right: Float, bottom: Float, rx: Float, ry: Float, paint: android.graphics.Paint) {
             if (paint.style == android.graphics.Paint.Style.STROKE) borders++
         }

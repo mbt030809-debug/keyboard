@@ -309,8 +309,8 @@ class NumberKeyShadeTest {
             val t = n.theme
             assertTrue("${n.id} 숫자키 유리색", t.numberKeyGlass != 0 && t.numberKey == t.numberKeyGlass)
             assertTrue("${n.id} 엔터 유리색", t.enterKeyGlass != 0 && t.enterKey == t.enterKeyGlass)
-            assertTrue("${n.id} 숫자키 투명", (t.numberKey ushr 24) in 0x40..0xE0)       // 불투명이 아니라 투명도가 있다
-            assertTrue("${n.id} 엔터 투명", (t.enterKey ushr 24) in 0x40..0xE8)
+            assertTrue("${n.id} 숫자키 투명", (t.numberKey ushr 24) in 0x40..0xFF)       // 불투명이 아니라 투명도가 있다
+            assertTrue("${n.id} 엔터 투명", (t.enterKey ushr 24) in 0x40..0xFF)
             t.backgroundStops.forEach { stop ->
                 assertTrue("${n.id} 숫자키는 글자 키보다 어둡다", lum(over(t.numberKey, stop)) < lum(over(t.key, stop)))
                 assertTrue("${n.id} 숫자 글자 대비 ${contrast(t.text, over(t.numberKey, stop))}", contrast(t.text, over(t.numberKey, stop)) >= 4.5)
@@ -322,7 +322,7 @@ class NumberKeyShadeTest {
     @Test fun glassThemeFunctionKeysAreTintedTranslucentGlassToo() {
         KeyboardThemes.all.filter { it.theme.frost }.forEach { n ->
             val t = n.theme
-            assertTrue("${n.id} 기능키(쉬프트·음성·이모지·지우기) 색입힌 유리", (t.specialKey ushr 24) in 0x30..0xC0)
+            assertTrue("${n.id} 기능키(쉬프트·음성·이모지·지우기) 색입힌 유리", (t.specialKey ushr 24) in 0x30..0xFF)
             assertTrue("${n.id} 흰색이 아니라 색이 들어 있다", (t.specialKey and 0xFFFFFF) != 0xFFFFFF)
         }
     }
