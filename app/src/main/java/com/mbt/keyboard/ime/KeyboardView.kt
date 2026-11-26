@@ -3,6 +3,7 @@ package com.mbt.keyboard.ime
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Path
@@ -1295,10 +1296,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         glassPaint.shader = LinearGradient(
             r.left, r.top, r.right, r.bottom,
             intArrayOf(
-                scaleAlpha((if (isPlate) 0x44 else 0x4E shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x1A else 0x20 shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x10 else 0x14 shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x2A else 0x30 shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x44 else 0x4E) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x1A else 0x20) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x10 else 0x14) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x2A else 0x30) shl 24) or 0xFFFFFF, s),
             ),
             floatArrayOf(0f, 0.35f, 0.72f, 1f),
             Shader.TileMode.CLAMP,
@@ -1310,9 +1311,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         glassPaint.shader = LinearGradient(
             r.left, r.top, r.right, r.bottom,
             intArrayOf(
-                scaleAlpha((if (isPlate) 0x52 else 0x5C shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x22 else 0x28 shl 24) or 0xFFFFFF, s),
-                scaleAlpha((if (isPlate) 0x36 else 0x3E shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x52 else 0x5C) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x22 else 0x28) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) 0x36 else 0x3E) shl 24) or 0xFFFFFF, s),
             ),
             floatArrayOf(0f, 0.55f, 1f),
             Shader.TileMode.CLAMP,
