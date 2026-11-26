@@ -181,8 +181,8 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         val glassChips = findViewById<com.google.android.material.chip.ChipGroup>(R.id.glassTypeChips)
-        val glassChipIds = listOf(R.id.chipGlassNormal, R.id.chipGlassBlur, R.id.chipGlassReed, R.id.chipGlass3d)
-        glassChips.check(glassChipIds[Prefs.glassType(this).coerceIn(0, 3)])
+        val glassChipIds = listOf(R.id.chipGlassNormal, R.id.chipGlassBlur, R.id.chipGlassReed, R.id.chipGlass3d, R.id.chipGlassMatte)
+        glassChips.check(glassChipIds[Prefs.glassType(this).coerceIn(0, 4)])
         glassChips.setOnCheckedStateChangeListener { _, checkedIds ->
             val checked = checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener
             val idx = glassChipIds.indexOf(checked)

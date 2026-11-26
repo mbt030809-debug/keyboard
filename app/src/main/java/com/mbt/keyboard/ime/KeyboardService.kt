@@ -227,7 +227,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     /**
-     * 블러(1)·리드(2)·3D(3) 모드에서 배경 불투명도를 0%로 내려도 뒤 앱 화면이 그대로 비치지 않고
+     * 블러(1)·리드(2)·3D(3)·무광(4) 모드에서 배경 불투명도를 0%로 내려도 뒤 앱 화면이 그대로 비치지 않고
      * Android 12+(API 31+) 시스템 SurfaceFlinger 가우시안 블러가 실시간으로 적용되도록 윈도우 블러를 연결한다.
      */
     private fun applyWindowBlur() {

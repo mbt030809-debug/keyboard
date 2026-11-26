@@ -340,6 +340,7 @@ const val GLASS_NORMAL = 0
 const val GLASS_BLUR = 1
 const val GLASS_REED = 2
 const val GLASS_3D = 3
+const val GLASS_MATTE = 4
 
 const val KEY_GLASS_TYPE = "glass_type"
 const val KEY_KEY_GLASS_STRENGTH = "key_glass_strength_pct"
@@ -367,11 +368,11 @@ fun setTextColor(context: Context, color: Int) =
     
 fun glassType(context: Context): Int =
     context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_GLASS_TYPE, GLASS_BLUR)
-    .coerceIn(GLASS_NORMAL, GLASS_3D)
+    .coerceIn(GLASS_NORMAL, GLASS_MATTE)
 
     fun setGlassType(context: Context, type: Int) =
     context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-    .putInt(KEY_GLASS_TYPE, type.coerceIn(GLASS_NORMAL, GLASS_3D)).apply()
+    .putInt(KEY_GLASS_TYPE, type.coerceIn(GLASS_NORMAL, GLASS_MATTE)).apply()
     
 fun keyGlassStrengthPercent(context: Context): Int =
     context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_KEY_GLASS_STRENGTH, 65)
