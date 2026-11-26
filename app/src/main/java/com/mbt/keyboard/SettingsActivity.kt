@@ -171,17 +171,6 @@ class SettingsActivity : AppCompatActivity() {
             if (fromUser) Prefs.setBgGlassStrengthPercent(this, value.toInt())
         }
 
-        val groupTabGlass = findViewById<View>(R.id.groupTabGlass)
-        val sliderTabGlass = findViewById<Slider>(R.id.sliderTabGlass)
-        val valueTabGlass = findViewById<TextView>(R.id.valueTabGlass)
-        groupTabGlass.visibility = if (Prefs.fnTabEnabled(this)) View.VISIBLE else View.GONE
-        sliderTabGlass.value = Prefs.tabGlassStrengthPercent(this).toFloat()
-        valueTabGlass.text = "${Prefs.tabGlassStrengthPercent(this)}%"
-        sliderTabGlass.addOnChangeListener { _, value, fromUser ->
-            valueTabGlass.text = "${value.toInt()}%"
-            if (fromUser) Prefs.setTabGlassStrengthPercent(this, value.toInt())
-        }
-
         val sliderKeyRadius = findViewById<Slider>(R.id.sliderKeyRadius)
         val valueKeyRadius = findViewById<TextView>(R.id.valueKeyRadius)
         sliderKeyRadius.value = Prefs.keyRadiusDp(this).toFloat()
@@ -305,10 +294,7 @@ class SettingsActivity : AppCompatActivity() {
             currentTab = i
         }
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                findViewById<View>(R.id.groupTabGlass)?.visibility = if (Prefs.fnTabEnabled(this@SettingsActivity)) View.VISIBLE else View.GONE
-                show(tab.position)
-            }
+            override fun onTabSelected(tab: TabLayout.Tab) = show(tab.position)
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
             override fun onTabReselected(tab: TabLayout.Tab) = Unit
         })

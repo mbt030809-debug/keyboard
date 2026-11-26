@@ -68,18 +68,17 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val pad = src.fnTabPadPx()
         val top = pad
         val kh = height - src.fnTabPadBottomPx()          // 버튼 아래 끝
-        val useTabGlass = src.tabGlassOn
-        val useGlassKey = src.glassType >= 0 && src.keyGlassOn
-        val isGlassRadius = theme.frost || useTabGlass || useGlassKey
-        val radius = src.keyRadiusFor(kw - 2 * src.fnTabInsetPx(), kh - top, isGlassRadius)
-        // 키보드 바탕: 버튼 상하좌우로 같은 폭만큼, 버튼과 똑같이 반투명
-        val plateLeft = 0f
-        // 탭 뒤에는 앱 화면이 있으므로 글래스 테마도 불투명도 슬라이더만큼 비치게 한다 (색은 판의 번짐색)
-        paint.color = withAlpha(if (theme.frost) theme.backgroundMid else theme.background, alphaPercent)
-        // 모서리는 버튼 모서리와 같은 중심(동심원): 여백이 0이면 버튼 모서리와 똑같이 맞물려 빈틈이 남지 않는다
-        val gx = src.fnTabInsetPx()
         val w = width.toFloat(); val h = height.toFloat()
-        val tabRadius = src.tabRadiusFor(w, h, isGlassRadius)
+        val attached = src.bgGlassOn && (src.frostTabAttached || src.fnTabDocked)
+        val useGlassKey = src.glassType >= 0 && src.keyGlassOn
+        val isGlassRadius = theme.frost || attached || useGlassKey
+        val radius = src.keyRadiusFor(kw - 2 * src.fnTabInsetPx(), kh - top, isGlassRadius)
+        val layer = canvas.saveLayerAlpha(0f, 0f, w, h, (alphaPercent * 255 / 100).coerceIn(0, 255))
+        // 키보드 바탕: 배경과 동일한 곡률·유리효과를 따르며, 탭 불투명도 슬라이더는 유리·키 배경·글씨 전체에 함께 적용된다
+        val plateLeft = 0f
+        paint.color = if (theme.frost) theme.backgroundMid else theme.background
+        val gx = src.fnTabInsetPx()
+        val tabRadius = src.plateRadiusFor(w, h, isGlassRadius)
         val rl = tabRadius; val rr = tabRadius
         val plateW = src.width.toFloat().coerceAtLeast(w)
         val plateH = src.height.toFloat().coerceAtLeast(h)
@@ -91,20 +90,23 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val rrb = if (docked && tabR <= plateW - plateRad + 1f * d && tabR > plateRad) 0f else tabRadius
         plate.rewind()
         plate.addRoundRect(RectF(plateLeft, 0f, w, h), floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)
-        if (useTabGlass) {
-            // 글래스 표면: 보조탭 유리 강도(tabGlassStrength)와 보조탭 둥글기(tabRadiusDp)로 유리 표면·3D/무광 광학·테두리 림 반사 적용
-            val tabG = if (src.glassType >= 0) src.tabGlassStrength else 1f
+        if (attached || (src.bgGlassOn && src.glassType >= 0)) {
             canvas.save()
             canvas.clipPath(plate)
-            src.drawFrostTabSurface(canvas, w, h, (alphaPercent * 255 / 100).coerceIn(0, 255), rlb, rrb)
+            src.drawFrostTabSurface(canvas, w, h, rlb, rrb)
             canvas.restore()
+            canvas.save()
+            if (docked) {
+                canvas.clipOutRect(0f, h - 3f * d, w, h + 1f)
+            }
             paint.style = Paint.Style.STROKE
             paint.color = 0xFFFFFFFF.toInt()
             paint.strokeWidth = 1.6f * d
-            paint.shader = src.frostRimShader(w, h, tabG)
+            paint.shader = src.frostRimShader(w, h)
             canvas.drawPath(plate, paint)
             paint.shader = null
             paint.style = Paint.Style.FILL
+            canvas.restore()
         } else {
             canvas.drawPath(plate, paint)
         }
@@ -144,6 +146,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             val y = (top + kh) / 2f - (paint.descent() + paint.ascent()) / 2f
             canvas.drawText(k.label, (l + r) / 2f, y, paint)
         }
+        canvas.restoreToCount(layer)
     }
 
     override fun onTouchEvent(e: MotionEvent): Boolean {

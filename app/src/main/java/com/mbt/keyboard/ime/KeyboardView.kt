@@ -593,14 +593,15 @@ class KeyboardView(context: Context) : View(context) {
             val stripShift = if (inStrip) (frame.numberGapDp - frame.keyGapDp) * density else 0f
             val rowStartX = if (inStrip) originX + stripPx + stripShift else originX
             val rowUsableW = if (inStrip) usableW - stripPx - stripShift else usableW
+            val gapW = if (doSplit) rowUsableW * splitGapFraction else 0f
             if (hasSide && r == layout.rows.size - 1) {
-                // 모아키 맨 아래 줄: 전체·복사·붙임 키의 가로 폭을 숫자 키 한 칸(띠 폭의 절반)과 똑같이 맞춘다
-                val rest = halves.left.filter { it.key.type !in FN_TYPES }.sumOf { it.weight.toDouble() }.toFloat()
-                val f = (stripPx / 2f) / usableW
-                val fnWeight = f * rest / (1f - 3f * f)
+                // 모아키·좌측숫자 맨 아래 줄: 폴드 펼침(split) 여부와 무관하게 전체·복사·붙임 키의 가로 폭을 숫자 키 한 칸(띠 폭의 절반)과 똑같이 맞춘다
+                val totalRest = (halves.left + halves.right).filter { it.key.type !in FN_TYPES }.sumOf { it.weight.toDouble() }.toFloat()
+                val keyBearingW = (rowUsableW - gapW).coerceAtLeast(1f)
+                val f = (stripPx / 2f) / keyBearingW
+                val fnWeight = f * totalRest / (1f - 3f * f)
                 halves = Split.Halves(halves.left.map { if (it.key.type in FN_TYPES) Split.Part(it.key, fnWeight) else it }, halves.right)
             }
-            val gapW = if (doSplit) rowUsableW * splitGapFraction else 0f
             for (pl in Split.place(halves, rowStartX, rowUsableW, gapW)) {
                 if (pl.part.key.type == KeyType.SPACER) continue
                 val rect = RectF(pl.left, top, pl.right, top + rowH)
@@ -809,10 +810,6 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     var bgRadiusDp: Float = -1f
         set(v) { if (field != v) { field = v; invalidate() } }
 
-    /** 사용자 설정 보조탭 모서리 둥글기(dp). 음수면 배경/키 둥글기를 따른다 */
-    var tabRadiusDp: Float = -1f
-        set(v) { if (field != v) { field = v; invalidate() } }
-
     fun effectiveKeyRadiusPx(): Float = if (keyRadiusDp >= 0f) keyRadiusDp * density else 7 * density
 
     /** 글래스 테마의 키 모서리 반지름 (판 모서리와 동심원을 이루도록 한곳에서 정한다) */
@@ -840,13 +837,6 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     /** 키보드 배경판 및 보조탭용 크기 비례(%) 둥글기 반지름 */
     fun plateRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || bgGlassOn || keyGlassOn): Float {
         val baseDp = if (bgRadiusDp >= 0f) bgRadiusDp else if (keyRadiusDp >= 0f) keyRadiusDp else if (frost) 7f * FROST_KEY_RADIUS_SCALE else 7f
-        val ratio = (baseDp / 40f).coerceIn(0f, 0.5f)
-        return min(w, h) * ratio
-    }
-
-    /** 보조탭 배경판용 크기 비례(%) 둥글기 반지름 */
-    fun tabRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || tabGlassOn || keyGlassOn): Float {
-        val baseDp = if (tabRadiusDp >= 0f) tabRadiusDp else if (bgRadiusDp >= 0f) bgRadiusDp else if (keyRadiusDp >= 0f) keyRadiusDp else if (frost) 7f * FROST_KEY_RADIUS_SCALE else 7f
         val ratio = (baseDp / 40f).coerceIn(0f, 0.5f)
         return min(w, h) * ratio
     }
@@ -884,13 +874,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         set(v) { if (field != v) { field = v; invalidate() } }
     var bgGlassStrength: Float = 0.85f
         set(v) { if (field != v) { field = v; invalidate() } }
-    var tabGlassStrength: Float = 0.65f
-        set(v) { if (field != v) { field = v; invalidate() } }
-
     val effectiveGlassType: Int get() = effGlass
     private val effGlass: Int get() = if (glassType >= 0) glassType else if (theme.frost) 1 else 0
     val bgGlassOn: Boolean get() = if (glassType >= 0) bgGlassStrength > 0.01f else theme.frost
-    val tabGlassOn: Boolean get() = if (glassType >= 0) tabGlassStrength > 0.01f else theme.frost
     val keyGlassOn: Boolean get() = if (glassType >= 0) keyGlassStrength > 0.01f else theme.frost
 
     private val fadeMaskPaint = Paint().apply { xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN) }
@@ -1162,32 +1148,36 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
      * 이어 붙은 전복붙 탭의 유리 바탕. 판과 같은 표면을 [alpha](0~255)만큼 투명하게 그리고,
      * 테두리를 따라 흐르는 안쪽 림 반사는 유리 강도 그대로 선명하게 유지한다.
      */
-    fun drawFrostTabSurface(canvas: Canvas, tabW: Float, tabH: Float, alpha: Int, rlb: Float = tabRadiusFor(tabW, tabH), rrb: Float = tabRadiusFor(tabW, tabH)) {
+    fun drawFrostTabSurface(canvas: Canvas, tabW: Float, tabH: Float, rlb: Float = plateRadiusFor(tabW, tabH), rrb: Float = plateRadiusFor(tabW, tabH)) {
         ensureFrostBitmaps()
-        val layer = canvas.saveLayerAlpha(0f, 0f, tabW, tabH, alpha)
         val shift = tabH + fnTabGapPx()                     // 탭 아래 틈만큼 위쪽: 탭 좌표 → 판 좌표
+        canvas.save()
         canvas.translate(-frostTabLeftPx, shift)
         drawFrostSurface(canvas, frostTabLeftPx, -shift, frostTabLeftPx + tabW, -shift + tabH)
-        canvas.restoreToCount(layer)
-        if (tabGlassOn) {
-            val tabG = (if (glassType >= 0) tabGlassStrength else 1f).coerceIn(0f, 1f)
-            val r = tabRadiusFor(tabW, tabH)
+        canvas.restore()
+        if (glassType >= 0 && bgGlassStrength > 0.01f) {
+            val bgG = bgGlassStrength.coerceIn(0f, 1f)
+            val r = plateRadiusFor(tabW, tabH)
             if (effGlass == 3) {
-                draw3dDomeOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, tabG, isPlate = true)
+                draw3dDomeOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, bgG, isPlate = true)
             } else if (effGlass == 4) {
-                drawMattePillowOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, tabG, isPlate = true)
+                drawMattePillowOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, bgG, isPlate = true)
             }
             val ins = 1.6f * density
             glassPaint.style = Paint.Style.STROKE
             glassPaint.color = 0xFFFFFFFF.toInt()
             glassPaint.strokeWidth = 1.5f * density
-            glassPaint.shader = frostInnerRimShader(tabW, tabH, tabG)
+            glassPaint.shader = frostInnerRimShader(tabW, tabH, bgG)
             val ir = (r - ins).coerceAtLeast(0f)
             val irbL = if (rlb <= 0.5f) 0f else (rlb - ins).coerceAtLeast(0f)
             val irbR = if (rrb <= 0.5f) 0f else (rrb - ins).coerceAtLeast(0f)
             if (kotlin.math.abs(irbL - ir) < 0.5f && kotlin.math.abs(irbR - ir) < 0.5f) {
                 canvas.drawRoundRect(ins, ins, tabW - ins, tabH - ins, ir, ir, glassPaint)
             } else {
+                canvas.save()
+                if (fnTabDocked) {
+                    canvas.clipOutRect(0f, tabH - 3f * density, tabW, tabH + 1f)
+                }
                 val innerPath = Path().apply {
                     addRoundRect(
                         RectF(ins, ins, tabW - ins, tabH - ins),
@@ -1196,6 +1186,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                     )
                 }
                 canvas.drawPath(innerPath, glassPaint)
+                canvas.restore()
             }
             glassPaint.shader = null
             glassPaint.style = Paint.Style.FILL
@@ -1465,6 +1456,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         canvas.restoreToCount(layer)
         // 테두리를 따라 빛나는 이중 림 (셰이더 설정 전 반드시 color=0xFFFFFFFF로 alpha=255 복원)
         canvas.save()
+        if (fnTabDocked && fnTab && bgGlassOn) {
+            canvas.clipOutRect(frostTabLeftPx + 1.5f * density, -1f, frostTabLeftPx + fnTabWidthPx() - 1.5f * density, 5f * density)
+        }
         glassPaint.style = Paint.Style.STROKE
         glassPaint.shader = null
 

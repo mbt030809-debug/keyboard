@@ -367,18 +367,7 @@ fun bgRadiusDp(context: Context): Int =
 fun setBgRadiusDp(context: Context, dp: Int) =
     context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
         .putInt(KEY_BG_RADIUS_DP, dp.coerceIn(KEY_RADIUS_MIN, KEY_RADIUS_MAX)).apply()
-const val KEY_TAB_RADIUS_DP = "tab_radius_dp"
-
-fun tabRadiusDp(context: Context): Int =
-    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_TAB_RADIUS_DP, KEY_RADIUS_DEFAULT)
-        .coerceIn(KEY_RADIUS_MIN, KEY_RADIUS_MAX)
-
-fun setTabRadiusDp(context: Context, dp: Int) =
-    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-        .putInt(KEY_TAB_RADIUS_DP, dp.coerceIn(KEY_RADIUS_MIN, KEY_RADIUS_MAX)).apply()
-
 const val KEY_BG_GLASS_STRENGTH = "bg_glass_strength_pct"
-const val KEY_TAB_GLASS_STRENGTH = "tab_glass_strength_pct"
 
 fun textColor(context: Context): Int =
     context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_TEXT_COLOR, 0)
@@ -410,13 +399,5 @@ fun bgGlassStrengthPercent(context: Context): Int =
 fun setBgGlassStrengthPercent(context: Context, pct: Int) =
     context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
     .putInt(KEY_BG_GLASS_STRENGTH, pct.coerceIn(0, 100)).apply()
-
-fun tabGlassStrengthPercent(context: Context): Int =
-    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt(KEY_TAB_GLASS_STRENGTH, 65)
-    .coerceIn(0, 100)
-
-fun setTabGlassStrengthPercent(context: Context, pct: Int) =
-    context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
-    .putInt(KEY_TAB_GLASS_STRENGTH, pct.coerceIn(0, 100)).apply()
 
 }
