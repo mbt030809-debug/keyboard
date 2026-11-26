@@ -6,6 +6,10 @@ import android.content.pm.PackageManager
 import android.content.ClipboardManager
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
+import android.view.WindowManager
 import android.inputmethodservice.InputMethodService
 import android.os.Handler
 import android.os.Looper
@@ -200,6 +204,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         host.addView(quickPanel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         view.visibility = View.VISIBLE
         refreshFnTab()
+        applyWindowBlur()
     }
 
     /** 설정 화면에서 바꾼 입력 타이밍(멈춤 기준, 꾹 누르기 시간)을 반영 */
@@ -218,6 +223,36 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.bgGlassStrength = Prefs.bgGlassStrengthPercent(this) / 100f
         view.keyRadiusDp = Prefs.keyRadiusDp(this).toFloat()
         refreshFnTab()
+        applyWindowBlur()
+    }
+
+    /**
+     * 블러(1)·리드(2)·3D(3) 모드에서 배경 불투명도를 0%로 내려도 뒤 앱 화면이 그대로 비치지 않고
+     * Android 12+(API 31+) 시스템 SurfaceFlinger 가우시안 블러가 실시간으로 적용되도록 윈도우 블러를 연결한다.
+     */
+    private fun applyWindowBlur() {
+        val win = window?.window ?: return
+        win.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val blurActive = ::view.isInitialized && view.bgGlassOn && view.effectiveGlassType != 0
+            val blurPx = if (blurActive) {
+                (24f * view.bgGlassStrength * resources.displayMetrics.density).toInt().coerceIn(4, 150)
+            } else {
+                0
+            }
+            val lp = win.attributes
+            if (blurPx > 0) {
+                win.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                lp.blurBehindRadius = blurPx
+                win.attributes = lp
+                win.setBackgroundBlurRadius(blurPx)
+            } else {
+                win.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                lp.blurBehindRadius = 0
+                win.attributes = lp
+                win.setBackgroundBlurRadius(0)
+            }
+        }
     }
 
     /**
