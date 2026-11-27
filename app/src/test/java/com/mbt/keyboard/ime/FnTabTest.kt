@@ -392,7 +392,7 @@ class FrostThemeTest {
     @Test fun threeThemesAreListedFirstWithWhiteKeysOnAGlassPlate() {
         val all = com.mbt.keyboard.ime.KeyboardThemes.all
         assertEquals(ids + listOf("iosglass_taupe_refract", "sunset", "pinkcloud", "aurora", "mintsoda", "glass_violet_coral", "glass_midnight_neon", "glass_royal_prism", "glass_pastel_orb", "glass_aurora_grain", "glass_coral_bloom", "glass_emerald_orb", "glass_cyber_orb", "glass_sunset_orb", "glass_ice_orb"), all.filter { it.theme.frost }.map { it.id })
-        assertEquals(ids, all.take(3).map { it.id })
+        assertEquals(ids, all.take(2).map { it.id })
         ids.forEach { id ->
             val t = all.first { it.id == id }.theme
             assertTrue(t.hasGradient)

@@ -129,7 +129,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             canvas.restore()
             if (docked && dockLayer >= 0) {
                 // 삐져나온 부분은 위(tabAlpha) → 키보드와 만나는 아래(255)로 부드럽게 그라데이션 불투명 적용
-                val gradSpan = 8.4f * d
+                val gradSpan = 12.6f * d
                 val gradTop = (clipBottom - gradSpan).coerceAtLeast(0f)
                 val a0 = tabAlpha
                 val a1 = tabAlpha + ((255 - tabAlpha) * 0.20f).toInt()
