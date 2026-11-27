@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Graphite neutral ramp (Dark) -->
-    <color name="surface_page">#141415</color>
-    <color name="surface_card">#19191B</color>
-    <color name="surface_raised">#232325</color>
-    <color name="hairline">#16EDEDED</color>
+    <!-- One UI / Material 3 Expressive tonal surfaces (Dark) -->
+    <color name="surface_page">#0E1013</color>
+    <color name="surface_card">#1B1E24</color>
+    <color name="surface_raised">#262A33</color>
+    <color name="hairline">#1AFFFFFF</color>
 
-    <!-- Three text roles -->
-    <color name="text_primary">#EDEDED</color>
-    <color name="text_secondary">#A1A1A6</color>
-    <color name="text_muted">#85858B</color>
+    <!-- Text roles -->
+    <color name="text_primary">#F2F4F8</color>
+    <color name="text_secondary">#A4AAB5</color>
+    <color name="text_muted">#7E8592</color>
 
-    <!-- Single Cobalt accent (Dark) -->
-    <color name="brand">#7BA3FF</color>
-    <color name="brand_on">#0B173D</color>
-    <color name="brand_container">#1C2A52</color>
-    <color name="brand_on_container">#DCE6FF</color>
+    <!-- Vivid Galaxy Blue accent (Dark) -->
+    <color name="brand">#8AB4FF</color>
+    <color name="brand_on">#06255C</color>
+    <color name="brand_container">#1B3566</color>
+    <color name="brand_on_container">#DCE9FF</color>
 
     <!-- Semantic status colors -->
-    <color name="ok">#4CC38A</color>
-    <color name="ok_bg">#162C22</color>
-    <color name="status_todo_bg">#1C2A52</color>
+    <color name="ok">#4ADE80</color>
+    <color name="ok_bg">#132E1E</color>
+    <color name="status_todo_bg">#1B3566</color>
 </resources>

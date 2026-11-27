@@ -30,7 +30,7 @@ class ThemeSwatch(context: Context, val theme: KeyboardTheme) : View(context) {
     override fun onDraw(canvas: Canvas) {
         val w = width.toFloat()
         val h = height.toFloat()
-        val r = 10 * d
+        val r = 14 * d
         paint.style = Paint.Style.FILL
         paint.color = theme.background
         paint.shader = theme.backgroundShader(w, h)

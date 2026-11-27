@@ -8,17 +8,17 @@
     android:clipToPadding="false"
     android:orientation="vertical">
 
-    <!-- Top header bar: quiet chrome, product wordmark + single secondary action -->
+    <!-- Top app bar: spacious One UI / M3 Expressive header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:minHeight="52dp"
+        android:minHeight="60dp"
         android:orientation="horizontal"
-        android:paddingStart="20dp"
-        android:paddingTop="12dp"
+        android:paddingStart="24dp"
+        android:paddingTop="14dp"
         android:paddingEnd="16dp"
-        android:paddingBottom="8dp">
+        android:paddingBottom="10dp">
 
         <TextView
             android:layout_width="0dp"
@@ -27,42 +27,53 @@
             android:fontFamily="sans-serif-medium"
             android:text="@string/app_name"
             android:textColor="@color/text_primary"
-            android:textSize="18sp" />
+            android:textSize="22sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTry"
-            style="@style/Widget.Mbt.Button.Secondary"
+            style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:minWidth="0dp"
-            android:minHeight="36dp"
-            android:paddingStart="12dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="4dp"
+            android:minHeight="40dp"
+            android:paddingStart="14dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="6dp"
             android:text="@string/try_button"
+            android:textColor="?attr/colorOnPrimaryContainer"
             android:textSize="13sp"
-            app:cornerRadius="8dp"
+            app:backgroundTint="?attr/colorPrimaryContainer"
+            app:cornerRadius="20dp"
             app:icon="@drawable/ic_keyboard"
             app:iconGravity="textStart"
             app:iconPadding="6dp"
             app:iconSize="16dp"
-            app:iconTint="@color/text_secondary" />
+            app:iconTint="?attr/colorOnPrimaryContainer" />
     </LinearLayout>
 
+    <!-- Floating pill-segmented navigation tabs -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabs"
         android:layout_width="match_parent"
         android:layout_height="44dp"
-        android:background="@color/surface_page"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_tab_container"
         app:tabGravity="fill"
-        app:tabIndicatorColor="@color/brand"
-        app:tabIndicatorFullWidth="false"
-        app:tabIndicatorHeight="2dp"
+        app:tabIndicator="@drawable/bg_tab_pill"
+        app:tabIndicatorColor="@color/surface_card"
+        app:tabIndicatorFullWidth="true"
+        app:tabIndicatorGravity="stretch"
         app:tabMode="fixed"
-        app:tabRippleColor="@color/hairline"
+        app:tabRippleColor="@android:color/transparent"
         app:tabSelectedTextColor="@color/text_primary"
-        app:tabTextColor="@color/text_muted">
+        app:tabTextColor="@color/text_secondary">
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
@@ -84,11 +95,6 @@
             android:layout_height="wrap_content"
             android:text="@string/tab_theme" />
     </com.google.android.material.tabs.TabLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/hairline" />
 
     <ScrollView
         android:id="@+id/scroll"

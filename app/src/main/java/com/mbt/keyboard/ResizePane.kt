@@ -372,12 +372,12 @@ class ResizePane(
         val valueTv = TextView(context).apply {
             id = R.id.valueFontScale
             textSize = 12f
-            typeface = android.graphics.Typeface.MONOSPACE
+            typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
             fontFeatureSettings = "tnum"
-            setTextColor(primaryText)
-            setBackgroundResource(R.drawable.bg_keycap_badge)
-            val hp = (8 * density).toInt()
-            val vp = (2 * density).toInt()
+            setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.brand_on_container))
+            setBackgroundResource(R.drawable.bg_value_pill)
+            val hp = (10 * density).toInt()
+            val vp = (4 * density).toInt()
             setPadding(hp, vp, hp, vp)
             text = context.getString(R.string.font_scale_value, Prefs.fontScalePercent(context))
         }

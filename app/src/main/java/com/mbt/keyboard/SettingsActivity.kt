@@ -46,6 +46,7 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this)
         AppUpdater.checkAndUpdate(this)
         setContentView(R.layout.activity_settings)
         findViewById<View>(R.id.btnCheckUpdate)?.setOnClickListener {
@@ -339,7 +340,7 @@ class SettingsActivity : AppCompatActivity() {
             0xFFF48FB1.toInt() to "핑크",
         )
         var chosen = Prefs.textColor(this)
-        val size = (36 * d).toInt()
+        val size = (40 * d).toInt()
         val gap = (12 * d).toInt()
         val accentColor = ContextCompat.getColor(this, R.color.brand)
         val hairlineColor = ContextCompat.getColor(this, R.color.hairline)
@@ -350,7 +351,7 @@ class SettingsActivity : AppCompatActivity() {
                 val gd = v.background as android.graphics.drawable.GradientDrawable
                 val sel = (col == chosen)
                 gd.setStroke(
-                    ((if (sel) 2.5f else 1f) * d).toInt(),
+                    ((if (sel) 3.2f else 1f) * d).toInt(),
                     if (sel) accentColor else hairlineColor,
                 )
             }
@@ -413,8 +414,8 @@ class SettingsActivity : AppCompatActivity() {
                 setPadding(0, (8 * d).toInt(), 0, 0)
             }
             swatches += Triple(id, sw, label)
-            cell.addView(sw, android.widget.LinearLayout.LayoutParams((108 * d).toInt(), (72 * d).toInt()))
-            cell.addView(label, android.widget.LinearLayout.LayoutParams((108 * d).toInt(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
+            cell.addView(sw, android.widget.LinearLayout.LayoutParams((116 * d).toInt(), (78 * d).toInt()))
+            cell.addView(label, android.widget.LinearLayout.LayoutParams((116 * d).toInt(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
             list.addView(cell, android.widget.LinearLayout.LayoutParams(
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -491,7 +492,7 @@ class SettingsActivity : AppCompatActivity() {
         val d = resources.displayMetrics.density
         v.background = android.graphics.drawable.GradientDrawable().apply {
             shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-            cornerRadius = 6f * d
+            cornerRadius = 12f * d
             setColor(fillColor)
         }
     }
@@ -522,18 +523,16 @@ class SettingsActivity : AppCompatActivity() {
         val secondaryText = ContextCompat.getColor(this, R.color.text_secondary)
 
         fun secondaryButton(label: String, onClick: () -> Unit) =
-            MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            MaterialButton(this, null, com.google.android.material.R.attr.materialButtonTonalStyle).apply {
                 text = label
                 textSize = 13f
                 typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
                 setTextColor(primaryText)
                 backgroundTintList = android.content.res.ColorStateList.valueOf(surfaceRaised)
-                strokeColor = android.content.res.ColorStateList.valueOf(hairline)
-                strokeWidth = (1 * d).toInt()
-                cornerRadius = (10 * d).toInt()
+                cornerRadius = (24 * d).toInt()
                 insetTop = 0
                 insetBottom = 0
-                minHeight = (40 * d).toInt()
+                minHeight = (44 * d).toInt()
                 setOnClickListener { onClick() }
             }
 
@@ -541,9 +540,8 @@ class SettingsActivity : AppCompatActivity() {
             val section = findViewById<android.widget.LinearLayout>(secId) ?: return@forEach
             val card = com.google.android.material.card.MaterialCardView(this).apply {
                 setCardBackgroundColor(surfaceCard)
-                strokeColor = hairline
-                strokeWidth = (1 * d).toInt()
-                radius = 14f * d
+                strokeWidth = 0
+                radius = 24f * d
                 cardElevation = 0f
                 layoutParams = LinearLayout.LayoutParams(
                     android.view.ViewGroup.LayoutParams.MATCH_PARENT,
