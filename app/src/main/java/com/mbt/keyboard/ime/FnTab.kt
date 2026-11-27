@@ -87,10 +87,23 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val rlb = tabRadius; val rrb = tabRadius
         plate.rewind()
         plate.addRoundRect(RectF(plateLeft, 0f, w, h), floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)
+        val kbPlatePath = if (docked) {
+            val pw = src.width.toFloat().coerceAtLeast(w)
+            val ph = src.height.toFloat().coerceAtLeast(h)
+            val pr = src.plateRadiusFor(pw, ph, isGlassRadius)
+            val kx = -src.frostTabLeftPx
+            Path().apply {
+                addRoundRect(
+                    RectF(kx, clipBottom, kx + pw, clipBottom + ph),
+                    floatArrayOf(pr, pr, pr, pr, 0f, 0f, 0f, 0f),
+                    Path.Direction.CW,
+                )
+            }
+        } else null
         if (clipBottom > 1f) {
-            val dockLayer = if (docked) canvas.saveLayer(0f, 0f, w, clipBottom, null) else -1
+            val dockLayer = if (docked) canvas.saveLayer(0f, 0f, w, h, null) else -1
             canvas.save()
-            if (docked) canvas.clipRect(0f, 0f, w, clipBottom)
+            if (kbPlatePath != null) canvas.clipOutPath(kbPlatePath)
             if (attached || (src.bgGlassOn && src.glassType >= 0)) {
                 canvas.save()
                 canvas.clipPath(plate)
@@ -134,7 +147,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
                     floatArrayOf(0f, 0.25f, 0.50f, 0.75f, 1f),
                     android.graphics.Shader.TileMode.CLAMP,
                 )
-                canvas.drawRect(0f, 0f, w, clipBottom, dockMaskPaint)
+                canvas.drawRect(0f, 0f, w, h, dockMaskPaint)
                 dockMaskPaint.shader = null
                 canvas.restoreToCount(dockLayer)
             }
