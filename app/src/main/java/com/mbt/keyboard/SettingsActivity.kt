@@ -410,6 +410,7 @@ class SettingsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         AppUpdater.resumePendingInstall(this)
+        AppUpdater.checkAndUpdate(this)
         if (::resizePane.isInitialized) resizePane.refresh()
         refreshStatus()
     }

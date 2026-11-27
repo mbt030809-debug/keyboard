@@ -15,29 +15,33 @@ import java.net.URL
 object AppUpdater {
     private const val BRANCH = "ccr-131ce975-kvfk2l"
     private const val VERSION_URL = "https://raw.githubusercontent.com/mbt030809-debug/keyboard/$BRANCH/app/version.properties"
-    private var checkedThisSession = false
+    private var lastCheckMs = 0L
+    private var checking = false
+    private var lastPromptedBuild = 0
     private var pendingApk: File? = null
 
     fun checkAndUpdate(activity: Activity) {
-        if (checkedThisSession) return
         if (Build.FINGERPRINT.contains("robolectric", ignoreCase = true)) return
-        checkedThisSession = true
+        val now = System.currentTimeMillis()
+        if (checking || now - lastCheckMs < 5_000L) return
+        checking = true
+        lastCheckMs = now
         val currentBuild = try {
             val pi = activity.packageManager.getPackageInfo(activity.packageName, 0)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) pi.longVersionCode.toInt() else @Suppress("DEPRECATION") pi.versionCode
         } catch (_: Throwable) {
+            checking = false
             return
         }
         Thread {
             try {
-                val props = fetchText(VERSION_URL) ?: return@Thread
+                val props = fetchText("$VERSION_URL?t=${System.currentTimeMillis()}") ?: return@Thread
                 val remoteBuild = Regex("""build\s*=\s*(\d+)""").find(props)?.groupValues?.get(1)?.toIntOrNull() ?: return@Thread
-                if (remoteBuild <= currentBuild) return@Thread
-                val apkUrl = "https://github.com/mbt030809-debug/keyboard/raw/refs/heads/$BRANCH/dist/mbt-keyboard-b$remoteBuild-20261124.apk"
+                if (remoteBuild <= currentBuild || remoteBuild == lastPromptedBuild) return@Thread
+                val apkUrl = "https://raw.githubusercontent.com/mbt030809-debug/keyboard/$BRANCH/dist/mbt-keyboard-b$remoteBuild-20261124.apk"
                 val dir = File(activity.cacheDir, "updates").apply { mkdirs() }
                 val outFile = File(dir, "mbt-keyboard-b$remoteBuild.apk")
                 if (!outFile.exists() || outFile.length() < 100_000L) {
-                    if (!urlExists(apkUrl)) return@Thread
                     activity.runOnUiThread {
                         if (!activity.isFinishing) {
                             Toast.makeText(activity, "새 버전(b$remoteBuild) 다운로드 중...", Toast.LENGTH_SHORT).show()
@@ -45,12 +49,15 @@ object AppUpdater {
                     }
                     if (!download(apkUrl, outFile)) return@Thread
                 }
+                lastPromptedBuild = remoteBuild
                 activity.runOnUiThread {
                     if (!activity.isFinishing && !activity.isDestroyed) {
                         launchInstall(activity, outFile)
                     }
                 }
             } catch (_: Throwable) {
+            } finally {
+                checking = false
             }
         }.start()
     }
@@ -87,8 +94,9 @@ object AppUpdater {
 
     private fun fetchText(urlStr: String): String? {
         val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 4000
-            readTimeout = 4000
+            connectTimeout = 5000
+            readTimeout = 5000
+            useCaches = false
         }
         return try {
             if (conn.responseCode == 200) conn.inputStream.bufferedReader().use { it.readText() } else null
@@ -97,36 +105,33 @@ object AppUpdater {
         }
     }
 
-    private fun urlExists(urlStr: String): Boolean {
-        val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
-            requestMethod = "HEAD"
-            instanceFollowRedirects = true
-            connectTimeout = 4000
-            readTimeout = 4000
-        }
-        return try {
-            conn.responseCode in 200..299
-        } finally {
-            conn.disconnect()
-        }
-    }
-
     private fun download(urlStr: String, dest: File): Boolean {
         val tmp = File(dest.parentFile, dest.name + ".tmp")
-        val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
-            instanceFollowRedirects = true
-            connectTimeout = 8000
-            readTimeout = 30000
-        }
-        return try {
-            if (conn.responseCode !in 200..299) return false
-            conn.inputStream.use { input ->
-                tmp.outputStream().use { output -> input.copyTo(output) }
+        var currentUrl = urlStr
+        for (hop in 0..4) {
+            val conn = (URL(currentUrl).openConnection() as HttpURLConnection).apply {
+                instanceFollowRedirects = false
+                connectTimeout = 8000
+                readTimeout = 45000
+                useCaches = false
             }
-            if (tmp.length() < 100_000L) { tmp.delete(); return false }
-            tmp.renameTo(dest)
-        } finally {
-            conn.disconnect()
+            try {
+                val code = conn.responseCode
+                if (code in listOf(301, 302, 303, 307, 308)) {
+                    val loc = conn.getHeaderField("Location") ?: return false
+                    currentUrl = URL(URL(currentUrl), loc).toString()
+                    continue
+                }
+                if (code !in 200..299) return false
+                conn.inputStream.use { input ->
+                    tmp.outputStream().use { output -> input.copyTo(output) }
+                }
+                if (tmp.length() < 100_000L) { tmp.delete(); return false }
+                return tmp.renameTo(dest)
+            } finally {
+                conn.disconnect()
+            }
         }
+        return false
     }
 }
