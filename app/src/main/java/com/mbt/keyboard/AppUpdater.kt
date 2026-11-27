@@ -20,10 +20,10 @@ object AppUpdater {
     private var lastPromptedBuild = 0
     private var pendingApk: File? = null
 
-    fun checkAndUpdate(activity: Activity) {
+    fun checkAndUpdate(activity: Activity, manual: Boolean = false) {
         if (Build.FINGERPRINT.contains("robolectric", ignoreCase = true)) return
         val now = System.currentTimeMillis()
-        if (checking || now - lastCheckMs < 5_000L) return
+        if (checking || (!manual && now - lastCheckMs < 5_000L)) return
         checking = true
         lastCheckMs = now
         val currentBuild = try {
@@ -37,7 +37,16 @@ object AppUpdater {
             try {
                 val props = fetchText("$VERSION_URL?t=${System.currentTimeMillis()}") ?: return@Thread
                 val remoteBuild = Regex("""build\s*=\s*(\d+)""").find(props)?.groupValues?.get(1)?.toIntOrNull() ?: return@Thread
-                if (remoteBuild <= currentBuild || remoteBuild == lastPromptedBuild) return@Thread
+                if (remoteBuild <= currentBuild || (!manual && remoteBuild == lastPromptedBuild)) {
+                    if (manual && remoteBuild <= currentBuild) {
+                        activity.runOnUiThread {
+                            if (!activity.isFinishing) {
+                                Toast.makeText(activity, "현재 최신 버전(b$currentBuild)입니다", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    return@Thread
+                }
                 val apkUrl = "https://github.com/mbt030809-debug/keyboard/raw/refs/heads/$BRANCH/dist/mbt-keyboard-b$remoteBuild-20261124.apk"
                 val dir = File(activity.cacheDir, "updates").apply { mkdirs() }
                 val outFile = File(dir, "mbt-keyboard-b$remoteBuild.apk")

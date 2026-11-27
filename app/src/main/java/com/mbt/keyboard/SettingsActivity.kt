@@ -47,6 +47,10 @@ class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppUpdater.checkAndUpdate(this)
+        findViewById<View>(R.id.btnCheckUpdate)?.setOnClickListener {
+            Toast.makeText(this, "업데이트 확인 중...", Toast.LENGTH_SHORT).show()
+            AppUpdater.checkAndUpdate(this, manual = true)
+        }
         setContentView(R.layout.activity_settings)
 
         // edge-to-edge: 상태바·내비게이션 바 영역 피하기
