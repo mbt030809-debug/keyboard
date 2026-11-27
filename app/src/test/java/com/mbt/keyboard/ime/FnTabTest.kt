@@ -327,7 +327,7 @@ class FnTabTest {
 @Config(sdk = [34])
 class FrostThemeTest {
     private val ctx get() = ApplicationProvider.getApplicationContext<Context>()
-    private val ids = listOf("iosglass_holo", "iosglass_taupe", "iosglass_navy")
+    private val ids = listOf("iosglass_holo", "iosglass_navy")
 
     @Test fun plateIsOneGlassSheetAndEveryKeyIsAClearGlassButton() {
         for (id in ids) {

@@ -72,7 +72,7 @@ object KeyboardThemes {
         // 감성 테마: 그라데이션 배경 + 반투명 유리 키
         // 프로스티드 글래스 (iOS 27 스타일): 유리 판 한 장 + 선명한 흰 유리 키
         NamedTheme(
-            "iosglass_holo", "iOS 글래스 · 홀로그램",
+            "iosglass_holo", "홀로그램",
             KeyboardTheme(
                 background = 0xFFBFC7EC.toInt(), backgroundMid = 0xFFEFF0D2.toInt(), backgroundEnd = 0xFFE9D5EE.toInt(),
                 key = 0xCCFFFFFF.toInt(), specialKey = 0x99B7C2EE.toInt(), keyPressed = 0xFFC9D0E8.toInt(),
@@ -82,17 +82,7 @@ object KeyboardThemes {
             ),
         ),
         NamedTheme(
-            "iosglass_taupe", "iOS 글래스 · 웜 그레이지",
-            KeyboardTheme(
-                background = 0xFFA89E8D.toInt(), backgroundMid = 0xFFB8AC98.toInt(), backgroundEnd = 0xFF9EA0B2.toInt(),
-                key = 0xD0FFFFFF.toInt(), specialKey = 0x99CDBFA6.toInt(), keyPressed = 0xFFC9CFDC.toInt(),
-                text = 0xFF1C1F2A.toInt(), accent = 0xFF4660C8.toInt(), onAccent = 0xFFFFFFFF.toInt(),
-                frost = true, frostStyle = 1, frostTint = 0x24FFFFFF,
-                numberKeyGlass = 0x99D9CCB8.toInt(), enterKeyGlass = 0xB89DB2E8.toInt(),
-            ),
-        ),
-        NamedTheme(
-            "iosglass_navy", "iOS 글래스 · 딥 네이비",
+            "iosglass_navy", "딥 네이비",
             KeyboardTheme(
                 background = 0xFF1B1F3D.toInt(), backgroundMid = 0xFF2A2F5C.toInt(), backgroundEnd = 0xFF1F3A55.toInt(),
                 key = 0xB8FFFFFF.toInt(), specialKey = 0xB0B9C9EE.toInt(), keyPressed = 0xFFB4C2E0.toInt(),
