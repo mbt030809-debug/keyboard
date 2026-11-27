@@ -1028,12 +1028,12 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             // 1. 일반(맑은 크리스탈 유리): 블러 없이 선명한 배경 위에 맑은 유리 광택과 사선 반사광 적용
             val shader = theme.backgroundShader(w, h)
             if (shader == null) {
-                glassPaint.color = if (t >= 0f) withBgOpacity(theme.background) else theme.background
+                glassPaint.color = withBgOpacity(theme.background)
                 canvas.drawRect(l, t, r, b, glassPaint)
             } else {
                 glassPaint.color = 0xFFFFFFFF.toInt()
                 glassPaint.shader = shader
-                glassPaint.alpha = if (t >= 0f) (bgOpacity * 255f).toInt().coerceIn(0, 255) else 255
+                glassPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
                 canvas.drawRect(l, t, r, b, glassPaint)
                 glassPaint.shader = null
             }
@@ -1047,11 +1047,11 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 val sl = l.coerceIn(0f, bmp.width.toFloat()); val sr = r.coerceIn(0f, bmp.width.toFloat())
                 val st = (t + extra).coerceIn(0f, (bmp.height - 2).coerceAtLeast(0).toFloat()); val sb = (b + extra).coerceIn((st + 1f).coerceAtMost(bmp.height.toFloat()), bmp.height.toFloat())
                 glassPaint.color = 0xFFFFFFFF.toInt()
-                if (t >= 0f) glassPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
+                glassPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
                 if (sr > sl && sb > st) canvas.drawBitmap(bmp, Rect(sl.toInt(), st.toInt(), sr.toInt(), sb.toInt()), RectF(l, t, r, b), glassPaint)
             }
             glassPaint.shader = null
-            val tintBase = if (t >= 0f) withBgOpacity(theme.frostTint) else theme.frostTint
+            val tintBase = withBgOpacity(theme.frostTint)
             val tintA = (((tintBase ushr 24) and 0xFF) * bgG * (if (theme.frost) 0.55f else 0.35f)).toInt().coerceIn(0, 255)
             glassPaint.color = (tintA shl 24) or (tintBase and 0x00FFFFFF)
             canvas.drawRect(l, t, r, b, glassPaint)
@@ -1310,7 +1310,14 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             floatArrayOf(0f, 0.25f, 0.52f, 0.78f, 0.94f, 1f),
             Shader.TileMode.CLAMP,
         )
-        canvas.drawPath(topPath, glassPaint)
+        if (isPlate && fnTabDocked && fnTab && r.top == 0f && r.width() > fnTabWidthPx() + 4f * density) {
+            canvas.save()
+            canvas.clipOutRect(frostTabLeftPx + 1.5f * density, 0f, frostTabLeftPx + fnTabWidthPx() - 1.5f * density, topY0 + topReach)
+            canvas.drawPath(topPath, glassPaint)
+            canvas.restore()
+        } else {
+            canvas.drawPath(topPath, glassPaint)
+        }
 
         if (skipBottom) {
             canvas.restore()
@@ -1722,7 +1729,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         val shader = theme.backgroundShader(kbW, kbH)
         if (shader == null) {
             bgPaint.shader = null
-            bgPaint.color = if (theme.frost) theme.backgroundMid else theme.background
+            bgPaint.color = withBgOpacity(if (theme.frost) theme.backgroundMid else theme.background)
             canvas.drawPath(platePath, bgPaint)
         } else {
             val shift = if (frostTabOffsetYpx > 0f) frostTabOffsetYpx else tabH + fnTabGapPx()
@@ -1732,7 +1739,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             bgPaint.shader = shader
             bgPaint.alpha = 255
             canvas.drawPath(platePath, bgPaint)
-            bgPaint.alpha = 255
+            bgPaint.alpha = (bgOpacity * 255f).toInt().coerceIn(0, 255)
             bgPaint.shader = null
         }
     }

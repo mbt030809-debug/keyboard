@@ -175,7 +175,7 @@ class ResizePane(
                     addLinkedStepper("보조탭 가로 너비", ResizeOverlayView.Target.TAB_WIDTH,
                         {
                             val maxW = if (!numSplit) 100 else KeyboardGeometry.FN_TAB_WIDTH_MAX
-                            geometry = geometry.copy(fnTabWidthPct = (geometry.fnTabWidthPct + it * 5).coerceIn(KeyboardGeometry.FN_TAB_WIDTH_MIN, maxW)).clamped()
+                            geometry = geometry.copy(fnTabWidthPct = (geometry.fnTabWidthPct + it).coerceIn(KeyboardGeometry.FN_TAB_WIDTH_MIN, maxW)).clamped()
                         },
                         { "${geometry.fnTabWidthPct}%" },
                         { geometry.fnTabWidthPct > KeyboardGeometry.FN_TAB_WIDTH_MIN },
