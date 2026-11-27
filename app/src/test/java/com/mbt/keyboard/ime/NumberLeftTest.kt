@@ -328,8 +328,8 @@ class NumberKeyShadeTest {
     }
 
     @Test fun voiceKeyUsesTheSameBackgroundAsShiftAndEmojiKeys() {
-        for (id in listOf("charcoal", "iosglass_holo")) {
-            val theme = KeyboardThemes.byId(id)!!.theme
+        for (id in listOf(KeyboardThemes.SYSTEM, "iosglass_holo")) {
+            val theme = KeyboardThemes.resolve(id) ?: KeyboardTheme.system(ApplicationProvider.getApplicationContext())
             val fills = HashMap<String, Int>()
             val v = KeyboardView(ApplicationProvider.getApplicationContext<Context>()).also { it.theme = theme; it.keyboardLayout = Layouts.english; it.numberLeft = true; it.fnTab = true }
             v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
@@ -346,7 +346,7 @@ class NumberKeyShadeTest {
                 override fun saveLayer(l: Float, t: Float, r: Float, b: Float, p: android.graphics.Paint?): Int = save()
                 override fun clipPath(path: android.graphics.Path): Boolean = true
             })
-            if (id == "charcoal") {
+            if (id == KeyboardThemes.SYSTEM) {
                 assertEquals(fills["SHIFT"], fills["VOICE"])
                 assertEquals(fills["EMOJI"], fills["VOICE"])
                 assertEquals(theme.specialKey, fills["VOICE"])

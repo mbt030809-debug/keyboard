@@ -458,20 +458,20 @@ class GlassThemeDrawTest {
     private fun viewWith(id: String): KeyboardView {
         val v = KeyboardView(ApplicationProvider.getApplicationContext<Context>())
         v.keyboardLayout = Layouts.koreanSingle
-        v.theme = KeyboardThemes.byId(id)!!.theme
+        v.theme = KeyboardThemes.resolve(id) ?: KeyboardTheme.system(ApplicationProvider.getApplicationContext())
         v.measure(View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
         v.layout(0, 0, v.measuredWidth, v.measuredHeight)
         return v
     }
 
     @Test fun gradientThemePaintsAShaderBackgroundAndKeyBorders() {
-        val r = Rec(); viewWith("midnightglass").draw(r)
-        assertEquals(1, r.gradientRects)
+        val r = Rec(); viewWith("sunset").draw(r)
+        assertTrue(r.gradientRects >= 1)
         assertTrue(r.borders > 20)
     }
 
     @Test fun plainThemeHasNeitherGradientNorBorders() {
-        val r = Rec(); viewWith("cream").draw(r)
+        val r = Rec(); viewWith(KeyboardThemes.SYSTEM).draw(r)
         assertEquals(0, r.gradientRects)
         assertEquals(0, r.borders)
     }

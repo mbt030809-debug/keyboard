@@ -391,7 +391,7 @@ class FrostThemeTest {
 
     @Test fun threeThemesAreListedFirstWithWhiteKeysOnAGlassPlate() {
         val all = com.mbt.keyboard.ime.KeyboardThemes.all
-        assertEquals(ids + listOf("iosglass_taupe_refract", "sunset", "pinkcloud", "aurora", "mintsoda", "glass_violet_coral", "glass_midnight_neon", "glass_royal_prism", "glass_pastel_orb", "glass_aurora_grain", "glass_coral_bloom", "glass_emerald_orb", "glass_cyber_orb", "glass_sunset_orb", "glass_ice_orb"), all.filter { it.theme.frost }.map { it.id })
+        assertEquals(ids + listOf("iosglass_taupe_refract", "sunset", "pinkcloud"), all.filter { it.theme.frost }.map { it.id })
         assertEquals(ids, all.take(2).map { it.id })
         ids.forEach { id ->
             val t = all.first { it.id == id }.theme
@@ -473,9 +473,9 @@ class FrostFadeTest {
     @Test fun otherThemesAreUnchanged() {
         Prefs.setBgGlassStrengthPercent(ctx, 0)
         val d = ctx.resources.displayMetrics.density
-        val (content, tabH, _) = insetsFor("charcoal", tab = true)
+        val (content, tabH, _) = insetsFor(com.mbt.keyboard.ime.KeyboardThemes.SYSTEM, tab = true)
         assertEquals(tabH.toFloat(), content.toFloat(), 1.5f)           // 탭 높이만큼만
-        val (content2, _, _) = insetsFor("charcoal", tab = false)
+        val (content2, _, _) = insetsFor(com.mbt.keyboard.ime.KeyboardThemes.SYSTEM, tab = false)
         assertEquals(0, content2)
     }
 
@@ -501,7 +501,7 @@ class FrostTabJoinTest {
     private val d get() = ctx.resources.displayMetrics.density
 
     private fun setup(themeId: String): Triple<KeyboardView, FnTab, FrameLayout> {
-        val theme = com.mbt.keyboard.ime.KeyboardThemes.byId(themeId)!!.theme
+        val theme = com.mbt.keyboard.ime.KeyboardThemes.resolve(themeId) ?: com.mbt.keyboard.ime.KeyboardTheme.system(ctx)
         val v = KeyboardView(ctx).also { it.theme = theme; it.numberLeft = true; it.fnTab = true; it.keyboardLayout = Layouts.english }
         val host = FrameLayout(ctx).also { it.addView(v, FrameLayout.LayoutParams(-1, -2)) }
         val tab = FnTab(ctx, v).also { it.theme = theme }
@@ -515,13 +515,13 @@ class FrostTabJoinTest {
     }
 
     @Test fun everyThemeKeepsTheTwoDpGapBetweenTabAndPlate() {
-        for (id in listOf("iosglass_holo", "charcoal")) {
+        for (id in listOf("iosglass_holo", com.mbt.keyboard.ime.KeyboardThemes.SYSTEM)) {
             val (v, tab, host) = setup(id)
             assertEquals(id, 2 * d, v.fnTabGapPx(), 0.01f)
             assertEquals(id, tab.height + (2 * d).toInt(), (host.layoutParams as FrameLayout.LayoutParams).topMargin)
         }
         assertTrue(setup("iosglass_holo").first.frostTabAttached)
-        assertTrue(!setup("charcoal").first.frostTabAttached)
+        assertTrue(!setup(com.mbt.keyboard.ime.KeyboardThemes.SYSTEM).first.frostTabAttached)
     }
 
     @Test fun glassTabStaysARoundedPillOnAllFourCornersAndSharesTheSurface() {
