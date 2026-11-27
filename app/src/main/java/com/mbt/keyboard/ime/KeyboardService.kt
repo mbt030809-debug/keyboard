@@ -6,14 +6,6 @@ import android.content.pm.PackageManager
 import android.content.ClipboardManager
 import android.content.SharedPreferences
 import android.content.res.Configuration
-import android.graphics.Color
-import android.graphics.PixelFormat
-import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.InsetDrawable
-import android.os.Build
-import android.view.WindowManager
 import android.inputmethodservice.InputMethodService
 import android.os.Handler
 import android.os.Looper
@@ -234,51 +226,34 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
 
     /**
      * 일반(0)을 제외한 유리효과(블러·리드·3D·무광)에서 배경 불투명도를 낮춰 뒤가 비칠 때,
-     * Android 12+(API 31+) SurfaceFlinger가 키보드 판 영역에 실시간 가우시안 블러를 렌더링하도록 연결한다.
-     * - windowIsTranslucent=true (Theme.MbtKeyboard.Ime) + alpha=1/255 라운드 코너 배경으로 DecorView가
-     *   BackgroundBlurDrawable을 생략하지 않게 보장한다.
-     * - FLAG_BLUR_BEHIND는 키보드 위쪽 앱 화면 전체까지 흐리게 하므로 사용하지 않는다.
+     * 삼성 One UI(`SemBlurInfo`) 또는 Android 12+(`setBackgroundBlurRadius`)로 키보드 판 뒤 화면에
+     * 실시간 가우시안 블러를 적용한다.
      */
     internal fun applyWindowBlur() {
         val win = window?.window ?: return
-        val blurActive = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            ::view.isInitialized &&
+        val blurActive = ::view.isInitialized &&
             view.bgGlassOn &&
             view.effectiveGlassType != 0 &&
             view.bgOpacity < 0.999f
-        val blurPx = if (blurActive) {
-            (24f * view.bgGlassStrength * resources.displayMetrics.density).toInt().coerceIn(8, 150)
-        } else {
-            0
-        }
-        val lp = win.attributes
-        lp.format = PixelFormat.TRANSLUCENT
-        win.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            lp.blurBehindRadius = 0
-        }
-        win.attributes = lp
-        if (blurPx > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val r = (view.bgRadiusDp * resources.displayMetrics.density).coerceAtLeast(0f)
-            val plateBg = GradientDrawable().apply {
-                setColor(Color.argb(1, 0, 0, 0))
-                cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
-            }
-            val topInset = if (::host.isInitialized) (host.layoutParams as? FrameLayout.LayoutParams)?.topMargin ?: 0 else 0
-            val bgDrawable: Drawable = if (topInset > 0) InsetDrawable(plateBg, 0, topInset, 0, 0) else plateBg
-            win.setBackgroundDrawable(bgDrawable)
-            win.setBackgroundBlurRadius(blurPx)
-        } else {
-            win.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                win.setBackgroundBlurRadius(0)
-            }
-        }
+        val density = resources.displayMetrics.density
+        val plateRadiusPx = if (::view.isInitialized) (view.bgRadiusDp * density).coerceAtLeast(0f) else 0f
+        val topInsetPx = if (::host.isInitialized) (host.layoutParams as? FrameLayout.LayoutParams)?.topMargin ?: 0 else 0
+        WindowBlur.apply(
+            win = win,
+            plateView = if (::host.isInitialized) host else null,
+            tabView = if (::fnTab.isInitialized) fnTab else null,
+            active = blurActive,
+            strength = if (::view.isInitialized) view.bgGlassStrength else 0f,
+            density = density,
+            plateRadiusPx = plateRadiusPx,
+            topInsetPx = topInsetPx,
+        )
     }
 
     override fun onWindowShown() {
         super.onWindowShown()
         applyWindowBlur()
+        if (::root.isInitialized) root.post { applyWindowBlur() }
     }
 
     /**
