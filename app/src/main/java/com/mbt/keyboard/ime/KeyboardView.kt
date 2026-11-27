@@ -563,6 +563,9 @@ class KeyboardView(context: Context) : View(context) {
         rowTops = FloatArray(layout.rows.size)
         val stripRows = if (fnTab) layout.rows.size else layout.rows.size - 1
         var top = padT
+        var upperGapLeft = Float.NaN
+        var upperGapRight = Float.NaN
+        val letterRowIdx = if (isNumberRow(0)) 1 else 0
         layout.rows.forEachIndexed { r, row ->
             val rowH = rowHeightPx(r)
             // 가로: 키 사이 간격의 절반씩 / 세로: 줄 사이 여백의 절반씩 비운다
@@ -594,15 +597,48 @@ class KeyboardView(context: Context) : View(context) {
             val rowStartX = if (inStrip) originX + stripPx + stripShift else originX
             val rowUsableW = if (inStrip) usableW - stripPx - stripShift else usableW
             val gapW = if (doSplit) rowUsableW * splitGapFraction else 0f
+            val isBottomSplit = doSplit && r == layout.rows.size - 1 && !upperGapLeft.isNaN() && !upperGapRight.isNaN()
+            val effectiveGapW = if (isBottomSplit) (upperGapRight - upperGapLeft).coerceAtLeast(0f) else gapW
             if (hasSide && r == layout.rows.size - 1) {
                 // 모아키·좌측숫자 맨 아래 줄: 폴드 펼침(split) 여부와 무관하게 전체·복사·붙임 키의 가로 폭을 숫자 키 한 칸(띠 폭의 절반)과 똑같이 맞춘다
                 val totalRest = (halves.left + halves.right).filter { it.key.type !in FN_TYPES }.sumOf { it.weight.toDouble() }.toFloat()
-                val keyBearingW = (rowUsableW - gapW).coerceAtLeast(1f)
+                val keyBearingW = (rowUsableW - effectiveGapW).coerceAtLeast(1f)
                 val f = (stripPx / 2f) / keyBearingW
                 val fnWeight = f * totalRest / (1f - 3f * f)
                 halves = Split.Halves(halves.left.map { if (it.key.type in FN_TYPES) Split.Part(it.key, fnWeight) else it }, halves.right)
             }
-            for (pl in Split.place(halves, rowStartX, rowUsableW, gapW)) {
+            var rowGapW = gapW
+            if (isBottomSplit) {
+                // 분할 키보드 맨 아래 줄의 좌·우 스페이스바 틈을 위쪽 글자 줄의 틈에 맞춘다
+                val leftSpaceIdx = halves.left.indexOfFirst { it.key.type == KeyType.SPACE }
+                val rightSpaceIdx = halves.right.indexOfFirst { it.key.type == KeyType.SPACE }
+                if (leftSpaceIdx >= 0 && rightSpaceIdx >= 0) {
+                    val total = (halves.left + halves.right).sumOf { it.weight.toDouble() }.toFloat()
+                    val keyBearingW = (rowUsableW - effectiveGapW).coerceAtLeast(1f)
+                    if (total > 0f) {
+                        val unit = keyBearingW / total
+                        val leftOtherW = halves.left.filter { it.key.type != KeyType.SPACE }.sumOf { it.weight.toDouble() }.toFloat() * unit
+                        val rightOtherW = halves.right.filter { it.key.type != KeyType.SPACE }.sumOf { it.weight.toDouble() }.toFloat() * unit
+                        val leftSpaceW = upperGapLeft - (rowStartX + leftOtherW)
+                        val rightSpaceW = (rowStartX + rowUsableW - rightOtherW) - upperGapRight
+                        if (leftSpaceW >= unit * 0.4f && rightSpaceW >= unit * 0.4f) {
+                            val newLeft = halves.left.mapIndexed { idx, p -> if (idx == leftSpaceIdx) p.copy(weight = leftSpaceW / unit) else p }
+                            val newRight = halves.right.mapIndexed { idx, p -> if (idx == rightSpaceIdx) p.copy(weight = rightSpaceW / unit) else p }
+                            halves = Split.Halves(newLeft, newRight)
+                            rowGapW = effectiveGapW
+                        }
+                    }
+                }
+            }
+            val placements = Split.place(halves, rowStartX, rowUsableW, rowGapW)
+            if (doSplit && r == letterRowIdx && halves.left.isNotEmpty() && halves.right.isNotEmpty()) {
+                val leftCount = halves.left.size
+                if (placements.size > leftCount) {
+                    upperGapLeft = placements[leftCount - 1].right
+                    upperGapRight = placements[leftCount].left
+                }
+            }
+            for (pl in placements) {
                 if (pl.part.key.type == KeyType.SPACER) continue
                 val rect = RectF(pl.left, top, pl.right, top + rowH)
                 val cell = Cell(pl.part.key, rect, RectF(rect.left + gapX, rect.top + gapTop, rect.right - gapX, rect.bottom - gapBottom), pl.part in dups)

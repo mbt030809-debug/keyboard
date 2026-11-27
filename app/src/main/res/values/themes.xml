@@ -34,6 +34,12 @@
         <item name="android:backgroundDimEnabled">false</item>
     </style>
 
+    <!-- IME 윈도우: Android 12+ 실시간 배경 가우시안 블러(setBackgroundBlurRadius)가 동작하도록 windowIsTranslucent=true 지정 -->
+    <style name="Theme.MbtKeyboard.Ime" parent="@android:style/Theme.DeviceDefault.InputMethod">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
     <!-- One UI / M3 Expressive tonal card: generous 24dp radius, soft surface contrast, no harsh 1px outline -->
     <style name="Widget.Mbt.Card" parent="Widget.Material3.CardView.Filled">
         <item name="cardBackgroundColor">@color/surface_card</item>

@@ -611,4 +611,26 @@ class SpaceRowScaleTest {
         assertEquals(100, com.mbt.keyboard.settings.Prefs.geometry(ctx, large = false, landscape = false).spaceRowPct)
         assertEquals(1.3f, g.copy(spaceRowPct = 130).spaceRowScale, 0.001f)
     }
+
+    @Test fun splitSpacebarsAlignWithUpperLetterRowGap() {
+        for (nl in listOf(true, false)) {
+            for (ft in listOf(true, false)) {
+                val v = KeyboardView(ctx).apply {
+                    keyboardLayout = Layouts.koreanSingle
+                    split = true
+                    numberLeft = nl
+                    fnTab = ft
+                    measure(View.MeasureSpec.makeMeasureSpec(1200, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+                    layout(0, 0, measuredWidth, measuredHeight)
+                }
+                val rects = v.keyInnerRects()
+                val leftEdgeKey = rects.first { it.first.label == "ㅅ" }.second
+                val rightEdgeKey = rects.first { it.first.label == "ㅗ" }.second
+                val spaces = rects.filter { it.first.type == com.mbt.keyboard.layout.KeyType.SPACE }.map { it.second }.sortedBy { it.left }
+                assertEquals(2, spaces.size)
+                assertEquals("nl=$nl ft=$ft 왼쪽 스페이스 오른쪽 끝이 ㅅ 오른쪽 끝과 일치", leftEdgeKey.right, spaces[0].right, 0.5f)
+                assertEquals("nl=$nl ft=$ft 오른쪽 스페이스 왼쪽 끝이 ㅗ 왼쪽 끝과 일치", rightEdgeKey.left, spaces[1].left, 0.5f)
+            }
+        }
+    }
 }

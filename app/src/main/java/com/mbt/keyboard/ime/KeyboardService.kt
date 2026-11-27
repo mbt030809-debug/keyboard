@@ -7,7 +7,11 @@ import android.content.ClipboardManager
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.PixelFormat
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.os.Build
 import android.view.WindowManager
 import android.inputmethodservice.InputMethodService
@@ -73,6 +77,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private val layout get() = Layouts.byId(layoutId)
 
     override fun onCreate() {
+        setTheme(R.style.Theme_MbtKeyboard_Ime)
         super.onCreate()
         layoutId = Prefs.koreanLayout(this)
         haptics = Haptics(this)
@@ -228,32 +233,52 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     }
 
     /**
-     * 블러(1)·리드(2)·3D(3)·무광(4) 모드에서 배경 불투명도를 0%로 내려도 뒤 앱 화면이 그대로 비치지 않고
-     * Android 12+(API 31+) 시스템 SurfaceFlinger 가우시안 블러가 실시간으로 적용되도록 윈도우 블러를 연결한다.
+     * 일반(0)을 제외한 유리효과(블러·리드·3D·무광)에서 배경 불투명도를 낮춰 뒤가 비칠 때,
+     * Android 12+(API 31+) SurfaceFlinger가 키보드 판 영역에 실시간 가우시안 블러를 렌더링하도록 연결한다.
+     * - windowIsTranslucent=true (Theme.MbtKeyboard.Ime) + alpha=1/255 라운드 코너 배경으로 DecorView가
+     *   BackgroundBlurDrawable을 생략하지 않게 보장한다.
+     * - FLAG_BLUR_BEHIND는 키보드 위쪽 앱 화면 전체까지 흐리게 하므로 사용하지 않는다.
      */
-    private fun applyWindowBlur() {
+    internal fun applyWindowBlur() {
         val win = window?.window ?: return
-        win.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        val blurActive = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ::view.isInitialized &&
+            view.bgGlassOn &&
+            view.effectiveGlassType != 0 &&
+            view.bgOpacity < 0.999f
+        val blurPx = if (blurActive) {
+            (24f * view.bgGlassStrength * resources.displayMetrics.density).toInt().coerceIn(8, 150)
+        } else {
+            0
+        }
+        val lp = win.attributes
+        lp.format = PixelFormat.TRANSLUCENT
+        win.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val blurActive = ::view.isInitialized && view.bgGlassOn && view.effectiveGlassType != 0
-            val blurPx = if (blurActive) {
-                (24f * view.bgGlassStrength * resources.displayMetrics.density).toInt().coerceIn(4, 150)
-            } else {
-                0
+            lp.blurBehindRadius = 0
+        }
+        win.attributes = lp
+        if (blurPx > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val r = (view.bgRadiusDp * resources.displayMetrics.density).coerceAtLeast(0f)
+            val plateBg = GradientDrawable().apply {
+                setColor(Color.argb(1, 0, 0, 0))
+                cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
             }
-            val lp = win.attributes
-            if (blurPx > 0) {
-                win.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-                lp.blurBehindRadius = blurPx
-                win.attributes = lp
-                win.setBackgroundBlurRadius(blurPx)
-            } else {
-                win.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-                lp.blurBehindRadius = 0
-                win.attributes = lp
+            val topInset = if (::host.isInitialized) (host.layoutParams as? FrameLayout.LayoutParams)?.topMargin ?: 0 else 0
+            val bgDrawable: Drawable = if (topInset > 0) InsetDrawable(plateBg, 0, topInset, 0, 0) else plateBg
+            win.setBackgroundDrawable(bgDrawable)
+            win.setBackgroundBlurRadius(blurPx)
+        } else {
+            win.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 win.setBackgroundBlurRadius(0)
             }
         }
+    }
+
+    override fun onWindowShown() {
+        super.onWindowShown()
+        applyWindowBlur()
     }
 
     /**
@@ -325,7 +350,7 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         view.fnTabPadDp = g.fnTabPadDp
         view.frame = KeyboardFrame(g.padLeftDp, g.padTopDp, g.padRightDp, g.padBottomDp, g.keyGapDp, g.rowGapDp, g.numHeightScale, g.numRowGapDp, g.hitShifts, g.spaceRowScale)
         refreshFnTab()
-
+        applyWindowBlur()
     }
 
     
