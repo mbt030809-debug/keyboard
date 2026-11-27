@@ -844,7 +844,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     /** 보조탭용 배경 둥글기: 키보드 본판과 비슷한 체감 곡률이 되도록 보조탭 높이(약 44dp)에 맞춰 0~22dp를 0~50%로 매핑 */
     fun tabRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || bgGlassOn || keyGlassOn): Float {
         val baseDp = if (bgRadiusDp >= 0f) bgRadiusDp else if (keyRadiusDp >= 0f) keyRadiusDp else if (frost) 7f * FROST_KEY_RADIUS_SCALE else 7f
-        val ratio = (baseDp / 6f * 0.5f).coerceIn(0f, 0.5f)
+        val ratio = (baseDp / 6f * 0.5f * 0.7f).coerceIn(0f, 0.5f)
         return min(w, h) * ratio
     }
 
