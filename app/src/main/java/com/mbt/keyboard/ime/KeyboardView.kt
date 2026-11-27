@@ -1484,7 +1484,18 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         // 테두리를 따라 빛나는 이중 림 (셰이더 설정 전 반드시 color=0xFFFFFFFF로 alpha=255 복원)
         canvas.save()
         if (fnTabDocked && fnTab && bgGlassOn) {
-            canvas.clipOutRect((frostTabLeftPx + 1.5f * density).coerceAtLeast(1.5f * density), -1f, frostTabLeftPx + fnTabWidthPx() - 1.5f * density, 2.8f * density)
+            val tw = fnTabWidthPx()
+            val th = fnTabHeightPx()
+            val ty = -frostTabOffsetYpx
+            val tr = tabRadiusFor(tw, th, true)
+            val tabClipPath = Path().apply {
+                addRoundRect(
+                    RectF(frostTabLeftPx + 0.5f * density, ty, frostTabLeftPx + tw - 0.5f * density, ty + th),
+                    floatArrayOf(tr, tr, tr, tr, tr, tr, tr, tr),
+                    Path.Direction.CW,
+                )
+            }
+            canvas.clipOutPath(tabClipPath)
         }
         glassPaint.style = Paint.Style.STROKE
         glassPaint.shader = null
