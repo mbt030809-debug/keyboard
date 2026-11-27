@@ -1792,7 +1792,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
                 key.type == KeyType.ENTER -> theme.enterKey
                 key.type == KeyType.SPACE || key.type == KeyType.BACKSPACE || key.type == KeyType.SHIFT || key.type == KeyType.EMOJI || key.type == KeyType.VOICE ||
-                    (keyboardLayout != Layouts.numberPad && cell.row == rowCount - 1 && (key.label == "," || key.label == ".")) ->
+                    (keyboardLayout != Layouts.numberPad && cell.rect.top >= spaceRowTopPx() - 1f && (key.label == "," || key.label == ".")) ->
                     if (theme.spaceKey != 0) theme.spaceKey else theme.specialKey
                 isDigitKey(key) -> if (theme.spaceKey != 0) theme.spaceKey else theme.numberKey
                 isSpecial || cell.duplicate -> theme.specialKey
