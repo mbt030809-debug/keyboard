@@ -104,7 +104,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
                 if (src.effectiveGlassType != 3 && src.effectiveGlassType != 4) {
                     canvas.save()
                     if (docked) {
-                        canvas.clipOutRect(0f, clipBottom - 0.5f * d, w, clipBottom + 2f)
+                        canvas.clipOutRect(1.5f * d, clipBottom - 1.2f * d, w - 1.5f * d, clipBottom + 2f)
                     }
                     paint.style = Paint.Style.STROKE
                     paint.color = 0xFFFFFFFF.toInt()
@@ -120,12 +120,22 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             }
             if (docked && dockLayer >= 0) {
                 // 삐져나온 부분은 위(tabAlpha) → 키보드와 만나는 아래(255)로 부드럽게 그라데이션 불투명 적용
-                val gradSpan = 14f * d
+                val gradSpan = 8.4f * d
                 val gradTop = (clipBottom - gradSpan).coerceAtLeast(0f)
+                val a0 = tabAlpha
+                val a1 = tabAlpha + ((255 - tabAlpha) * 0.20f).toInt()
+                val a2 = tabAlpha + ((255 - tabAlpha) * 0.45f).toInt()
+                val a3 = tabAlpha + ((255 - tabAlpha) * 0.72f).toInt()
                 dockMaskPaint.shader = android.graphics.LinearGradient(
                     0f, gradTop, 0f, clipBottom,
-                    (tabAlpha shl 24) or 0x00FFFFFF,
-                    0xFFFFFFFF.toInt(),
+                    intArrayOf(
+                        (a0 shl 24) or 0x00FFFFFF,
+                        (a1 shl 24) or 0x00FFFFFF,
+                        (a2 shl 24) or 0x00FFFFFF,
+                        (a3 shl 24) or 0x00FFFFFF,
+                        0xFFFFFFFF.toInt(),
+                    ),
+                    floatArrayOf(0f, 0.25f, 0.50f, 0.75f, 1f),
                     android.graphics.Shader.TileMode.CLAMP,
                 )
                 canvas.drawRect(0f, 0f, w, clipBottom, dockMaskPaint)

@@ -1274,7 +1274,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         )
         if (skipBottom) {
             canvas.save()
-            canvas.clipOutRect(r.left, r.bottom - rimW - 0.5f * density, r.right, r.bottom + 1f)
+            canvas.clipOutRect(r.left + rimW * 0.75f, r.bottom - rimW - 0.5f * density, r.right - rimW * 0.75f, r.bottom + 1f)
             canvas.drawPath(domeClipPath, glassPaint)
             canvas.restore()
         } else {
@@ -1327,7 +1327,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         }
         // 3. 하단 볼록 역반사 (동일하게 곡률이 깎이지 않고 키·배경 윤곽을 따라 동그랗게 유지)
         val botY0 = r.bottom - insetY
-        val botCurv = ((if (isPlate) minOf(radTL, radTR) * 0.90f else minOf(radBL, radBR)) * 0.8f + 0.8f * density).coerceAtLeast(2f)
+        val botCurv = ((if (isPlate) minOf(radTL, radTR) else minOf(radBL, radBR)) * 0.8f + 0.8f * density).coerceAtLeast(2f)
         val botArchRx = botCurv
         val botReach = maxOf(innerH * (if (isPlate) 0.20f else 0.28f), botArchRx + 2f * density).coerceAtMost(innerH * 0.45f)
         val botFadeRy = minOf(botReach * 0.45f, (botReach - botArchRx).coerceAtLeast(0f))
@@ -1483,7 +1483,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         // 테두리를 따라 빛나는 이중 림 (셰이더 설정 전 반드시 color=0xFFFFFFFF로 alpha=255 복원)
         canvas.save()
         if (fnTabDocked && fnTab && bgGlassOn) {
-            canvas.clipOutRect(frostTabLeftPx - 0.5f, -1f, frostTabLeftPx + kotlin.math.ceil(fnTabWidthPx()) + 1f, 3.2f * density)
+            canvas.clipOutRect((frostTabLeftPx + 1.5f * density).coerceAtLeast(1.5f * density), -1f, frostTabLeftPx + fnTabWidthPx() - 1.5f * density, 2.8f * density)
         }
         glassPaint.style = Paint.Style.STROKE
         glassPaint.shader = null

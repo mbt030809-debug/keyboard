@@ -50,8 +50,10 @@ object KeyboardHost {
         val tabLp = tab.layoutParams as FrameLayout.LayoutParams
         val baseLeft = (hostLp.leftMargin + keyboard.fnTabAnchorPx() - keyboard.fnTabPadPx()).toInt()
         val shiftX = if (keyboard.hasTopNumberRow) 0 else (fnTabXdp * density).toInt()
-        val maxLeft = if (containerWidthPx > 0) (containerWidthPx - keyboard.fnTabWidthPx().toInt()).coerceAtLeast(0) else Int.MAX_VALUE
-        val tabLeft = (baseLeft + shiftX).coerceIn(0, maxLeft)
+        val dockedNow = on && keyboardVisible && (keyboard.fnTabGapPx() - shiftY <= 0.5f * density)
+        val minLeft = if (dockedNow) hostLp.leftMargin else 0
+        val maxLeft = if (containerWidthPx > 0) (containerWidthPx - keyboard.fnTabWidthPx().toInt()).coerceAtLeast(minLeft) else Int.MAX_VALUE
+        val tabLeft = (baseLeft + shiftX).coerceIn(minLeft, maxLeft)
         val tabTop = if (on) (shiftY - baseTop).coerceAtLeast(0) else 0
         if (tabLp.leftMargin != tabLeft || tabLp.topMargin != tabTop) {
             tabLp.leftMargin = tabLeft
