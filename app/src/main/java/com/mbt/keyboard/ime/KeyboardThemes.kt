@@ -5,7 +5,7 @@ data class NamedTheme(val id: String, val name: String, val theme: KeyboardTheme
 
 /**
  * 키보드 테마 모음.
- * 기본(시스템 모드) 외에 5가지 글래스 테마를 제공한다.
+ * 기본(시스템 모드) 외에 11가지 글래스 테마를 제공한다.
  */
 object KeyboardThemes {
     /** 기본값: 휴대폰의 밝은/어두운 모드를 따라간다 */
@@ -57,6 +57,12 @@ object KeyboardThemes {
         ),
         NamedTheme("sunset", "선셋 글로우", frost(3, 0xFFB48A, 0xFF8FA3, 0xB79CFF, 0x85FFFFFF, 0x8CFFAAA0, 0x9EFFD6BE, 0xA6F79086, 0xCCFFD0C0, 0x4A1F5E, 0x7A2CBF, 0xFFFFFF)),
         NamedTheme("pinkcloud", "핑크 클라우드", frost(4, 0xFFE3EE, 0xFFD0E6, 0xE1D3FF, 0x99FFFFFF, 0x8CF0BEE1, 0x9EFFCDE4, 0x9CEBA4CF, 0xCCF5C9E0, 0x5E2547, 0xC22A6B, 0xFFFFFF)),
+        NamedTheme("violet_coral_orb", "바이올렛 · 코랄 오브", frost(18, 0x210D5C, 0x331478, 0x1A0F42, 0xD9452D8A, 0xE0311F6B, 0xE6251754, 0xEB5B3EB0, 0xFF6B4EC2, 0xF8F6FF, 0x8C6EFF, 0x130833, tint = 0x18FFFFFF)),
+        NamedTheme("midnight_magenta_orb", "미드나이트 · 마젠타 글로우", frost(19, 0x05081A, 0x0B1230, 0x130D2E, 0xD9232E5C, 0xE0182045, 0xE6111736, 0xEB2F3E7A, 0xFF3E4E96, 0xF5F8FF, 0x6B8CFF, 0x060E2B, tint = 0x16FFFFFF)),
+        NamedTheme("royal_cobalt_sunset", "로열 코발트 · 선셋 오브", frost(20, 0x070B4E, 0x12228C, 0x0C1366, 0xD925368F, 0xE01A2770, 0xE6131D59, 0xEB3349B8, 0xFF3D52B8, 0xF4F7FF, 0x708CFF, 0x06103D, tint = 0x16FFFFFF)),
+        NamedTheme("pastel_pearl_orb", "파스텔 펄 · 오브 화이트", frost(21, 0xEAEFF6, 0xF4F6FB, 0xE5EAF5, 0xF5FFFFFF, 0xEBC8D1EE, 0xEFAEB9E0, 0xF299A7D9, 0xFFDCE2F7, 0x171C36, 0x4557D6, 0xFFFFFF, tint = 0x1AFFFFFF)),
+        NamedTheme("aurora_prism_grain", "오로라 · 프리즘 블러", frost(22, 0x151136, 0x281952, 0x16224A, 0xD9422C75, 0xE0301E59, 0xE6231545, 0xEB553894, 0xFF6848B0, 0xFBF7FF, 0x9C72FF, 0x160836, tint = 0x18FFFFFF)),
+        NamedTheme("teal_peach_bloom", "틸 · 피치 블룸", frost(23, 0x3F8E9B, 0x8E8B82, 0xE89578, 0xEAFFF6EE, 0xE5F0BFA8, 0xEBDE9E82, 0xF0C97E60, 0xFFFAD8C8, 0x26120E, 0xA63E26, 0xFFFFFF, tint = 0x18FFFFFF)),
     )
 
     fun byId(id: String?): NamedTheme? = all.firstOrNull { it.id == id }

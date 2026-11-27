@@ -684,9 +684,15 @@ class KeyboardView(context: Context) : View(context) {
             15 -> listOf(Blob(0.20f, 0.28f, 0.25f, 0xFF38E2FF.toInt()), Blob(0.80f, 0.74f, 0.25f, 0xFFFF46B8.toInt()), Blob(0.52f, 0.50f, 0.14f, 0xFF9B5CFF.toInt()))
             16 -> listOf(Blob(0.22f, 0.30f, 0.26f, 0xFFFF784D.toInt()), Blob(0.78f, 0.70f, 0.24f, 0xFFFFC85E.toInt()), Blob(0.66f, 0.24f, 0.12f, 0xFFFF4D8A.toInt()))
             17 -> listOf(Blob(0.20f, 0.32f, 0.20f, 0xFF5EE8D8.toInt()), Blob(0.76f, 0.30f, 0.22f, 0xFF98B8FF.toInt()), Blob(0.72f, 0.76f, 0.18f, 0xFFC8A4FF.toInt()))
+            18 -> listOf(Blob(0.18f, 0.28f, 0.26f, 0xFFFF5E2E.toInt()), Blob(0.82f, 0.74f, 0.24f, 0xFFFF8F3D.toInt()), Blob(0.62f, 0.22f, 0.12f, 0xFFFF70A6.toInt()))
+            19 -> listOf(Blob(0.22f, 0.24f, 0.30f, 0xFF42A5FF.toInt()), Blob(0.80f, 0.76f, 0.30f, 0xFFFF4FB8.toInt()), Blob(0.42f, 0.56f, 0.16f, 0xFF6B5CFF.toInt()))
+            20 -> listOf(Blob(0.24f, 0.30f, 0.30f, 0xFF4E46FF.toInt()), Blob(0.76f, 0.74f, 0.28f, 0xFFFF8F4A.toInt()), Blob(0.18f, 0.80f, 0.12f, 0xFFFFB266.toInt()))
+            21 -> listOf(Blob(0.18f, 0.52f, 0.19f, 0xFFFF8EC4.toInt()), Blob(0.66f, 0.24f, 0.23f, 0xFF72C6FF.toInt()), Blob(0.80f, 0.74f, 0.18f, 0xFFB68EFF.toInt()))
+            22 -> listOf(Blob(0.22f, 0.42f, 0.32f, 0xFFFF6EC7.toInt()), Blob(0.56f, 0.48f, 0.28f, 0xFFFFC870.toInt()), Blob(0.84f, 0.64f, 0.26f, 0xFF5E54FF.toInt()))
+            23 -> listOf(Blob(0.48f, 0.48f, 0.32f, 0xFFFF9E54.toInt()), Blob(0.74f, 0.64f, 0.22f, 0xFFFF6E5E.toInt()), Blob(0.26f, 0.32f, 0.22f, 0xFFFFD18A.toInt()))
             else -> HOLO_BLOBS
         }
-        if (theme.frost && theme.frostStyle in 8..17) {
+        if (theme.frost && theme.frostStyle in 8..23) {
             // 참고 이미지(19195~19190)처럼 선명한 3D 발광 구체·오브를 배치해 유리가 투과·굴절할 때 또렷하게 비치게 함
             for ((fx, fy, rr, c) in blobs) {
                 val r = max(w, h) * rr
