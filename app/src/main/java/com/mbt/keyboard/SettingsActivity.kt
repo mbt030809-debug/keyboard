@@ -47,12 +47,7 @@ class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this)
-        AppUpdater.checkAndUpdate(this)
         setContentView(R.layout.activity_settings)
-        findViewById<View>(R.id.btnCheckUpdate)?.setOnClickListener {
-            Toast.makeText(this, "업데이트 확인 중...", Toast.LENGTH_SHORT).show()
-            AppUpdater.checkAndUpdate(this, manual = true)
-        }
 
         // edge-to-edge: 상태바·내비게이션 바 영역 피하기
         val root = findViewById<View>(R.id.root)
@@ -428,8 +423,6 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        AppUpdater.resumePendingInstall(this)
-        AppUpdater.checkAndUpdate(this)
         if (::resizePane.isInitialized) resizePane.refresh()
         refreshStatus()
     }
