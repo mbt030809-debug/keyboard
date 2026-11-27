@@ -42,7 +42,7 @@ object KeyboardThemes {
                 key = 0xB8FFFFFF.toInt(), specialKey = 0xB0B9C9EE.toInt(), keyPressed = 0xFFB4C2E0.toInt(),
                 text = 0xFF151A2E.toInt(), accent = 0xFF5A96FF.toInt(), onAccent = 0xFF0A1A3A.toInt(),
                 frost = true, frostStyle = 2, frostTint = 0x1AFFFFFF,
-                numberKeyGlass = 0xB8C4D2F2.toInt(), enterKeyGlass = 0xC298BEFF.toInt(),
+                numberKeyGlass = 0xA6A6B8E6.toInt(), enterKeyGlass = 0xC298BEFF.toInt(),
             ),
         ),
         NamedTheme(
@@ -52,11 +52,11 @@ object KeyboardThemes {
                 key = 0xB8FFFFFF.toInt(), specialKey = 0x99CDBFA6.toInt(), keyPressed = 0xFFC9CFDC.toInt(),
                 text = 0xFF1C1F2A.toInt(), accent = 0xFF4660C8.toInt(), onAccent = 0xFFFFFFFF.toInt(),
                 frost = true, frostStyle = 7, frostTint = 0x1AFFFFFF,
-                numberKeyGlass = 0x99D9CCB8.toInt(), enterKeyGlass = 0xB89DB2E8.toInt(),
+                numberKeyGlass = 0xA8BFB098.toInt(), enterKeyGlass = 0xB8B5A48A.toInt(),
             ),
         ),
-        NamedTheme("sunset", "선셋 글로우", frost(3, 0xFFB48A, 0xFF8FA3, 0xB79CFF, 0x85FFFFFF, 0x8CFFAAA0, 0x9EFFD6BE, 0x9EFF6E8C, 0xCCFFD0C0, 0x4A1F5E, 0x7A2CBF, 0xFFFFFF)),
-        NamedTheme("pinkcloud", "핑크 클라우드", frost(4, 0xFFE3EE, 0xFFD0E6, 0xE1D3FF, 0x99FFFFFF, 0x8CF0BEE1, 0x9EFFCDE4, 0x80F08CBB, 0xCCF5C9E0, 0x5E2547, 0xC22A6B, 0xFFFFFF)),
+        NamedTheme("sunset", "선셋 글로우", frost(3, 0xFFB48A, 0xFF8FA3, 0xB79CFF, 0x85FFFFFF, 0x8CFFAAA0, 0x9EFFD6BE, 0xA6F79086, 0xCCFFD0C0, 0x4A1F5E, 0x7A2CBF, 0xFFFFFF)),
+        NamedTheme("pinkcloud", "핑크 클라우드", frost(4, 0xFFE3EE, 0xFFD0E6, 0xE1D3FF, 0x99FFFFFF, 0x8CF0BEE1, 0x9EFFCDE4, 0x9CEBA4CF, 0xCCF5C9E0, 0x5E2547, 0xC22A6B, 0xFFFFFF)),
     )
 
     fun byId(id: String?): NamedTheme? = all.firstOrNull { it.id == id }
