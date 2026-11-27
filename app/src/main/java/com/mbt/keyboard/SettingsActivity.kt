@@ -74,6 +74,15 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.versionText).text =
             getString(R.string.version_label, info.versionName, info.versionCode)
 
+        // 업데이트 확인: 앱에 네트워크·설치 권한을 두지 않고, 브라우저로 최신 APK를 내려받아 설치한다
+        findViewById<View>(R.id.btnCheckUpdate).setOnClickListener {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(UPDATE_URL)))
+            } catch (_: android.content.ActivityNotFoundException) {
+                Toast.makeText(this, R.string.update_no_browser, Toast.LENGTH_SHORT).show()
+            }
+        }
+
         // 클립보드 기록: 켜기/끄기, 전체 삭제
         val clip = findViewById<MaterialSwitch>(R.id.switchClipboard)
         clip.isChecked = Prefs.clipboardEnabled(this)
@@ -637,6 +646,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private companion object {
+        const val UPDATE_URL = "https://github.com/mbt030809-debug/keyboard/releases/latest/download/mbt-keyboard-latest.apk"
         const val STATE_TAB = "tab"
         const val TAB_START = 0
         const val TAB_INPUT = 1

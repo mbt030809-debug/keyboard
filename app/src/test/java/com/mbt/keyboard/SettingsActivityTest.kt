@@ -27,6 +27,20 @@ class SettingsActivityTest {
         }
     }
 
+    @Test fun checkUpdateButtonOpensLatestApkDownloadInBrowser() {
+        ActivityScenario.launch(SettingsActivity::class.java).use { sc ->
+            sc.onActivity { a ->
+                a.findViewById<android.view.View>(R.id.btnCheckUpdate).performClick()
+                val next = org.robolectric.Shadows.shadowOf(a).nextStartedActivity
+                assertEquals(android.content.Intent.ACTION_VIEW, next.action)
+                assertEquals(
+                    "https://github.com/mbt030809-debug/keyboard/releases/latest/download/mbt-keyboard-latest.apk",
+                    next.data.toString(),
+                )
+            }
+        }
+    }
+
     @Test fun autoCapitalizeSwitchIsOnByDefaultAndSavesTheChoice() {
         ActivityScenario.launch(SettingsActivity::class.java).use { sc ->
             sc.onActivity { a ->

@@ -50,3 +50,13 @@ jobs:
         with:
           name: mbt-keyboard-debug-apk
           path: out/*.apk u
+
+      - name: Publish latest release (update button download)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          B=$(grep '^build=' app/version.properties | cut -d= -f2)
+          cp app/build/outputs/apk/debug/app-debug.apk out/mbt-keyboard-latest.apk
+          gh release delete latest --cleanup-tag -y || true
+          gh release create latest out/mbt-keyboard-latest.apk \
+            --target "${GITHUB_SHA}" --title "MBT Keyboard b${B}" --notes "build ${B}"

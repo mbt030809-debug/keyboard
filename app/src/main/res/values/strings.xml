@@ -167,6 +167,7 @@
     <string name="theme_section_glass">글래스 효과</string>
     <string name="theme_section_opacity">투명도</string>
     <string name="check_update">업데이트 확인</string>
+    <string name="update_no_browser">브라우저를 열 수 없습니다</string>
     <string name="backup_title">설정 백업 및 복원</string>
     <string name="backup_desc">테마, 크기, 타이밍, 진동, 상용문구 설정을 파일이나 클립보드로 저장하고 불러와요</string>
     <string name="guide_body">• 스페이스바를 좌우로 밀기 → 한/영 전환
