@@ -523,12 +523,14 @@ class SettingsActivity : AppCompatActivity() {
         val secondaryText = ContextCompat.getColor(this, R.color.text_secondary)
 
         fun secondaryButton(label: String, onClick: () -> Unit) =
-            MaterialButton(this, null, com.google.android.material.R.attr.materialButtonTonalStyle).apply {
+            MaterialButton(this).apply {
                 text = label
                 textSize = 13f
                 typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
                 setTextColor(primaryText)
                 backgroundTintList = android.content.res.ColorStateList.valueOf(surfaceRaised)
+                elevation = 0f
+                stateListAnimator = null
                 cornerRadius = (24 * d).toInt()
                 insetTop = 0
                 insetBottom = 0
