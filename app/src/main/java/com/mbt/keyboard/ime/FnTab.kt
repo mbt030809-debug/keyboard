@@ -31,6 +31,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
 
     private var pressed = -1
     private val plate = Path()
+    private val dockMaskPaint = Paint().apply { xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN) }
     private val d = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
 
@@ -73,8 +74,11 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val useGlassKey = src.glassType >= 0 && src.keyGlassOn
         val isGlassRadius = theme.frost || attached || useGlassKey
         val radius = src.keyRadiusFor(kw - 2 * src.fnTabInsetPx(), kh - top, isGlassRadius)
-        val layer = canvas.saveLayerAlpha(0f, 0f, w, h, (alphaPercent * 255 / 100).coerceIn(0, 255))
-        // 키보드 바탕: 배경과 동일한 곡률·유리효과를 따르며, 탭 불투명도 슬라이더는 유리·키 배경·글씨 전체에 함께 적용된다
+        val docked = src.fnTabDocked
+        val tabAlpha = (alphaPercent * 255 / 100).coerceIn(0, 255)
+        val clipBottom = if (docked && src.frostTabOffsetYpx > 0f) src.frostTabOffsetYpx.coerceIn(0f, h) else h
+        val layer = if (!docked) canvas.saveLayerAlpha(0f, 0f, w, h, tabAlpha) else -1
+        // 도킹 시: 키보드 위로 삐져나온 부분(0..clipBottom)만 보조탭 배경을 그리고, 키보드 안쪽(clipBottom..h)은 비워 키(1,6 등)를 덮지 않는다
         val plateLeft = 0f
         paint.color = if (theme.frost) theme.backgroundMid else theme.background
         val gx = src.fnTabInsetPx()
@@ -85,32 +89,47 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val plateRad = src.plateRadiusFor(plateW, plateH, isGlassRadius)
         val tabL = src.frostTabLeftPx
         val tabR = tabL + w
-        val docked = src.fnTabDocked
         val cornerEdge = plateRad * 0.45f
         val rlb = if (docked && tabL >= cornerEdge - 1f * d && tabL < plateW - cornerEdge) 0f else tabRadius
         val rrb = if (docked && tabR <= plateW - cornerEdge + 1f * d && tabR > cornerEdge) 0f else tabRadius
         plate.rewind()
-        plate.addRoundRect(RectF(plateLeft, 0f, w, h), floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)
-        if (attached || (src.bgGlassOn && src.glassType >= 0)) {
-            canvas.save()
-            canvas.clipPath(plate)
-            src.drawFrostTabSurface(canvas, w, h, rlb, rrb)
-            canvas.restore()
-            canvas.save()
-            if (docked) {
-                canvas.clipOutRect(0f, h - 3f * d, w, h + 1f)
+        plate.addRoundRect(RectF(plateLeft, 0f, w, clipBottom), floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)
+        if (clipBottom > 1f) {
+            val dockLayer = if (docked) canvas.saveLayer(0f, 0f, w, clipBottom, null) else -1
+            if (attached || (src.bgGlassOn && src.glassType >= 0)) {
+                canvas.save()
+                canvas.clipPath(plate)
+                src.drawFrostTabSurface(canvas, w, clipBottom, rlb, rrb)
+                canvas.restore()
+                canvas.save()
+                if (docked) {
+                    canvas.clipOutRect(0f, clipBottom - 2.5f * d, w, clipBottom + 2f)
+                }
+                paint.style = Paint.Style.STROKE
+                paint.color = 0xFFFFFFFF.toInt()
+                paint.strokeWidth = 1.6f * d
+                paint.shader = src.frostRimShader(w, clipBottom)
+                canvas.drawPath(plate, paint)
+                paint.shader = null
+                paint.style = Paint.Style.FILL
+                canvas.restore()
+            } else {
+                src.drawPlainTabSurface(canvas, w, clipBottom, plate)
             }
-            paint.style = Paint.Style.STROKE
-            paint.color = 0xFFFFFFFF.toInt()
-            paint.strokeWidth = 1.6f * d
-            paint.shader = src.frostRimShader(w, h)
-            canvas.drawPath(plate, paint)
-            paint.shader = null
-            paint.style = Paint.Style.FILL
-            canvas.restore()
-        } else {
-            src.drawPlainTabSurface(canvas, w, h, plate)
+            if (docked && dockLayer >= 0) {
+                // 삐져나온 부분은 위(tabAlpha) → 키보드와 만나는 아래(255)로 부드럽게 그라데이션 불투명 적용
+                dockMaskPaint.shader = android.graphics.LinearGradient(
+                    0f, 0f, 0f, clipBottom,
+                    (tabAlpha shl 24) or 0x00FFFFFF,
+                    0xFFFFFFFF.toInt(),
+                    android.graphics.Shader.TileMode.CLAMP,
+                )
+                canvas.drawRect(0f, 0f, w, clipBottom, dockMaskPaint)
+                dockMaskPaint.shader = null
+                canvas.restoreToCount(dockLayer)
+            }
         }
+        val keyLayer = if (docked) canvas.saveLayerAlpha(0f, 0f, w, h, tabAlpha) else -1
         list.forEachIndexed { i, k ->
             val cl = keyLeft(i)
             val l = cl + gx
@@ -147,7 +166,8 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             val y = (top + kh) / 2f - (paint.descent() + paint.ascent()) / 2f
             canvas.drawText(k.label, (l + r) / 2f, y, paint)
         }
-        canvas.restoreToCount(layer)
+        if (keyLayer >= 0) canvas.restoreToCount(keyLayer)
+        if (layer >= 0) canvas.restoreToCount(layer)
     }
 
     override fun onTouchEvent(e: MotionEvent): Boolean {
