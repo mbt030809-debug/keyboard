@@ -1482,7 +1482,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         // 테두리를 따라 빛나는 이중 림 (셰이더 설정 전 반드시 color=0xFFFFFFFF로 alpha=255 복원)
         canvas.save()
         if (fnTabDocked && fnTab && bgGlassOn) {
-            canvas.clipOutRect(frostTabLeftPx, -1f, frostTabLeftPx + fnTabWidthPx(), 5f * density)
+            canvas.clipOutRect(frostTabLeftPx, -1f, frostTabLeftPx + fnTabWidthPx(), 2.8f * density)
         }
         glassPaint.style = Paint.Style.STROKE
         glassPaint.shader = null

@@ -76,7 +76,15 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val radius = src.keyRadiusFor(kw - 2 * src.fnTabInsetPx(), kh - top, isGlassRadius)
         val docked = src.fnTabDocked
         val tabAlpha = (alphaPercent * 255 / 100).coerceIn(0, 255)
-        val clipBottom = if (docked && src.frostTabOffsetYpx > 0f) src.frostTabOffsetYpx.coerceIn(0f, h) else h
+        val plateW = src.width.toFloat().coerceAtLeast(w)
+        val plateH = src.height.toFloat().coerceAtLeast(h)
+        val plateRad = src.plateRadiusFor(plateW, plateH, isGlassRadius)
+        val tabL = src.frostTabLeftPx
+        val tabR = tabL + w
+        val cornerEdge = plateRad * 0.45f
+        val overCorner = docked && (tabL < cornerEdge - 1f * d || tabR > plateW - cornerEdge + 1f * d)
+        val baseClip = if (docked && src.frostTabOffsetYpx > 0f) src.frostTabOffsetYpx.coerceIn(0f, h) else h
+        val clipBottom = if (overCorner) (baseClip + 3f * d).coerceAtMost(h) else baseClip
         val layer = if (!docked) canvas.saveLayerAlpha(0f, 0f, w, h, tabAlpha) else -1
         // 도킹 시: 키보드 위로 삐져나온 부분(0..clipBottom)만 보조탭 배경을 그리고, 키보드 안쪽(clipBottom..h)은 비워 키(1,6 등)를 덮지 않는다
         val plateLeft = 0f
@@ -84,12 +92,6 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val gx = src.fnTabInsetPx()
         val tabRadius = src.tabRadiusFor(w, h, isGlassRadius)
         val rl = tabRadius.coerceAtMost(clipBottom); val rr = tabRadius.coerceAtMost(clipBottom)
-        val plateW = src.width.toFloat().coerceAtLeast(w)
-        val plateH = src.height.toFloat().coerceAtLeast(h)
-        val plateRad = src.plateRadiusFor(plateW, plateH, isGlassRadius)
-        val tabL = src.frostTabLeftPx
-        val tabR = tabL + w
-        val cornerEdge = plateRad * 0.45f
         val rlb = if (docked && tabL >= cornerEdge - 1f * d && tabL < plateW - cornerEdge) 0f else tabRadius
         val rrb = if (docked && tabR <= plateW - cornerEdge + 1f * d && tabR > cornerEdge) 0f else tabRadius
         plate.rewind()
