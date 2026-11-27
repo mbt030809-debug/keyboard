@@ -83,8 +83,12 @@ class KeyboardThemesTest {
 
     @Test fun panelsTakeTheChosenThemeColors() {
         Prefs.setThemeId(ctx, "pinkcloud")
-        val bg = KeyboardThemes.byId("pinkcloud")!!.theme.background
+        val theme = KeyboardThemes.byId("pinkcloud")!!.theme
         val p = EmojiPanel(ctx, object : EmojiPanel.Listener { override fun onInsert(text: String) {}; override fun onClose() {} })
-        assertEquals(bg, (p.background as android.graphics.drawable.ColorDrawable).color)
+        if (theme.hasGradient) {
+            assertTrue(p.background is android.graphics.drawable.GradientDrawable)
+        } else {
+            assertEquals(theme.background, (p.background as android.graphics.drawable.ColorDrawable).color)
+        }
     }
 }

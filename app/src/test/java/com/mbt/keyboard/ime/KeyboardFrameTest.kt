@@ -191,10 +191,9 @@ class KeyboardFrameTest {
         val expectedLang = space.height() * 0.34f * view.theme.textScale - 1 * density
         assertEquals(expectedLang, texts.first { it.text == "한" }.size, 0.01f)
         assertEquals(expectedLang, texts.first { it.text == "EN" }.size, 0.01f)
-        // 🎤 및 전복붙: 기존 크기 대비 70%로 축소
-        val voice = view.keyRects().first { it.first.type == com.mbt.keyboard.layout.KeyType.VOICE }.second
-        val expectedVoice = (minOf(voice.height(), view.theme.keyHeightDp * density) * 0.34f * view.theme.textScale + density) * 0.70f
-        assertEquals(expectedVoice, texts.first { it.text == "🎤" }.size, 0.01f)
+        // 마이크는 단색 벡터 아이콘으로 그리므로 이모지 텍스트가 그려지지 않는다
+        assertTrue(texts.none { it.text == "🎤" })
+        // 전복붙: 기존 크기 대비 70%로 축소
         view.numberLeft = true; relayout()
         val edit = view.keyRects().first { it.first.label == "전체" }.second
         val textsLeft = drawnTexts()

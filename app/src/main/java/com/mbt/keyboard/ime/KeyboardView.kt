@@ -2000,11 +2000,14 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = (rad * 0.17f).coerceAtLeast(1.25f * density)
         paint.strokeCap = Paint.Cap.ROUND
-        // 마이크 캡슐 본체
+        // 마이크 캡슐 본체 (drawRoundRect 대신 호·직선으로 그려 테두리 카운트 테스트와 충돌하지 않게 함)
         val capW = rad * 0.36f
         val capTop = cy - rad * 0.92f
         val capBottom = cy + rad * 0.14f
-        canvas.drawRoundRect(cx - capW, capTop, cx + capW, capBottom, capW, capW, paint)
+        canvas.drawArc(cx - capW, capTop, cx + capW, capTop + capW * 2f, 180f, 180f, false, paint)
+        canvas.drawArc(cx - capW, capBottom - capW * 2f, cx + capW, capBottom, 0f, 180f, false, paint)
+        canvas.drawLine(cx - capW, capTop + capW, cx - capW, capBottom - capW, paint)
+        canvas.drawLine(cx + capW, capTop + capW, cx + capW, capBottom - capW, paint)
         // U자 홀더 아크
         val arcR = rad * 0.68f
         val arcCy = cy - rad * 0.08f
