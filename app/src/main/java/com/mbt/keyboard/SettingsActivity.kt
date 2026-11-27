@@ -46,6 +46,7 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppUpdater.checkAndUpdate(this)
         setContentView(R.layout.activity_settings)
 
         // edge-to-edge: 상태바·내비게이션 바 영역 피하기
@@ -408,6 +409,7 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        AppUpdater.resumePendingInstall(this)
         if (::resizePane.isInitialized) resizePane.refresh()
         refreshStatus()
     }

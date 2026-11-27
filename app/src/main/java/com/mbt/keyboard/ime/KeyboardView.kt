@@ -1293,8 +1293,8 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         glassPaint.style = Paint.Style.FILL
         glassPaint.color = 0xFFFFFFFF.toInt()
         val topY0 = r.top + insetY
-        val topCurv = (minOf(radTL, radTR) - insetX * 0.35f + 3f * density).coerceAtLeast(2f)
-        val domeArchRx = minOf(topCurv, innerW * 0.50f)
+        val topCurv = (minOf(radTL, radTR) * 0.8f + 0.8f * density).coerceAtLeast(2f)
+        val domeArchRx = topCurv
         val topReach = maxOf(innerH * (if (isPlate) 0.28f else 0.36f), domeArchRx + 2f * density).coerceAtMost(innerH * 0.55f)
         val topFadeRy = minOf(topReach * 0.45f, (topReach - domeArchRx).coerceAtLeast(0f))
         val topRect = RectF(innerL, topY0, innerR, topY0 + topReach)
@@ -1327,8 +1327,8 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         }
         // 3. 하단 볼록 역반사 (동일하게 곡률이 깎이지 않고 키·배경 윤곽을 따라 동그랗게 유지)
         val botY0 = r.bottom - insetY
-        val botCurv = if (isPlate) (minOf(radTL, radTR) * 0.90f - insetX * 0.35f + 3f * density).coerceAtLeast(2f) else (minOf(radBL, radBR) - insetX * 0.35f + 3f * density).coerceAtLeast(2f)
-        val botArchRx = minOf(botCurv, innerW * 0.50f)
+        val botCurv = ((if (isPlate) minOf(radTL, radTR) * 0.90f else minOf(radBL, radBR)) * 0.8f + 0.8f * density).coerceAtLeast(2f)
+        val botArchRx = botCurv
         val botReach = maxOf(innerH * (if (isPlate) 0.20f else 0.28f), botArchRx + 2f * density).coerceAtMost(innerH * 0.45f)
         val botFadeRy = minOf(botReach * 0.45f, (botReach - botArchRx).coerceAtLeast(0f))
         val botRect = RectF(innerL, botY0 - botReach, innerR, botY0)
@@ -1483,7 +1483,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         // 테두리를 따라 빛나는 이중 림 (셰이더 설정 전 반드시 color=0xFFFFFFFF로 alpha=255 복원)
         canvas.save()
         if (fnTabDocked && fnTab && bgGlassOn) {
-            canvas.clipOutRect(frostTabLeftPx, -1f, frostTabLeftPx + fnTabWidthPx(), 2.8f * density)
+            canvas.clipOutRect(frostTabLeftPx - 0.5f, -1f, frostTabLeftPx + kotlin.math.ceil(fnTabWidthPx()) + 1f, 3.2f * density)
         }
         glassPaint.style = Paint.Style.STROKE
         glassPaint.shader = null

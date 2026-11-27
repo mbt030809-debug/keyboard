@@ -170,7 +170,7 @@ object Prefs {
 
     const val KEY_FN_TAB = "fn_tab"
     const val KEY_FN_TAB_ALPHA = "fn_tab_alpha_pct"
-    const val FN_TAB_ALPHA_MIN = 20
+    const val FN_TAB_ALPHA_MIN = 10
     const val FN_TAB_ALPHA_MAX = 100
 
     /** 숫자 왼쪽 자판에서 전체·복사·붙임을 키보드 위 반투명 탭으로 띄울지 (기본 켬) */

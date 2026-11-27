@@ -120,8 +120,10 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
             }
             if (docked && dockLayer >= 0) {
                 // 삐져나온 부분은 위(tabAlpha) → 키보드와 만나는 아래(255)로 부드럽게 그라데이션 불투명 적용
+                val gradSpan = 14f * d
+                val gradTop = (clipBottom - gradSpan).coerceAtLeast(0f)
                 dockMaskPaint.shader = android.graphics.LinearGradient(
-                    0f, 0f, 0f, clipBottom,
+                    0f, gradTop, 0f, clipBottom,
                     (tabAlpha shl 24) or 0x00FFFFFF,
                     0xFFFFFFFF.toInt(),
                     android.graphics.Shader.TileMode.CLAMP,
