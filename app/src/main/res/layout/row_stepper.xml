@@ -4,39 +4,36 @@
     android:layout_height="wrap_content"
     android:layout_marginTop="8dp"
     android:gravity="center_vertical"
+    android:minHeight="40dp"
     android:orientation="horizontal">
 
     <TextView
         android:id="@+id/stepLabel"
+        style="@style/Widget.Mbt.RowLabel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:textStyle="bold" />
+        android:layout_weight="1" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/stepMinus"
-        style="@style/Widget.Material3.Button.TonalButton"
-        android:layout_width="56dp"
-        android:layout_height="wrap_content"
-        android:insetLeft="0dp"
-        android:insetRight="0dp"
-        android:minWidth="0dp"
-        android:text="－" />
+        style="@style/Widget.Mbt.Button.Stepper"
+        android:layout_width="44dp"
+        android:layout_height="36dp"
+        android:text="−" />
 
     <TextView
         android:id="@+id/stepValue"
+        style="@style/Widget.Mbt.KeycapValue"
         android:layout_width="64dp"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:textStyle="bold" />
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:gravity="center" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/stepPlus"
-        style="@style/Widget.Material3.Button.TonalButton"
-        android:layout_width="56dp"
-        android:layout_height="wrap_content"
-        android:insetLeft="0dp"
-        android:insetRight="0dp"
-        android:minWidth="0dp"
-        android:text="＋" />
+        style="@style/Widget.Mbt.Button.Stepper"
+        android:layout_width="44dp"
+        android:layout_height="36dp"
+        android:text="+" />
 </LinearLayout>

@@ -1,14 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_bg">#3F51B5</color>
+    <color name="ic_bg">#254EDB</color>
     <color name="white">#FFFFFF</color>
-    <color name="brand">#3F51B5</color>
-    <color name="brand_container">#E0E4FF</color>
-    <color name="brand_on_container">#0A1A6B</color>
-    <color name="brand_night">#B8C3FF</color>
-    <color name="brand_on_night">#0A1A6B</color>
-    <color name="brand_container_night">#2A3990</color>
-    <color name="brand_on_container_night">#E0E4FF</color>
-    <color name="ok">#2E7D32</color>
-    <color name="ok_night">#81C784</color>
+
+    <!-- Graphite neutral ramp (Light) -->
+    <color name="surface_page">#F7F7F8</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="surface_raised">#EFEFF1</color>
+    <color name="hairline">#16171717</color>
+
+    <!-- Three text roles -->
+    <color name="text_primary">#171717</color>
+    <color name="text_secondary">#525252</color>
+    <color name="text_muted">#737373</color>
+
+    <!-- Single Deep Cobalt accent -->
+    <color name="brand">#254EDB</color>
+    <color name="brand_on">#FFFFFF</color>
+    <color name="brand_container">#E8EEFF</color>
+    <color name="brand_on_container">#142A7A</color>
+
+    <!-- Legacy night aliases kept for compatibility -->
+    <color name="brand_night">#7BA3FF</color>
+    <color name="brand_on_night">#0B173D</color>
+    <color name="brand_container_night">#1C2A52</color>
+    <color name="brand_on_container_night">#DCE6FF</color>
+
+    <!-- Semantic status colors -->
+    <color name="ok">#16A34A</color>
+    <color name="ok_bg">#E9F8EF</color>
+    <color name="ok_night">#4CC38A</color>
+    <color name="status_todo_bg">#E8EEFF</color>
 </resources>

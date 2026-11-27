@@ -1,10 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.MbtKeyboard" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/brand_night</item>
-        <item name="colorOnPrimary">@color/brand_on_night</item>
-        <item name="colorPrimaryContainer">@color/brand_container_night</item>
-        <item name="colorOnPrimaryContainer">@color/brand_on_container_night</item>
+        <item name="colorPrimary">@color/brand</item>
+        <item name="colorOnPrimary">@color/brand_on</item>
+        <item name="colorPrimaryContainer">@color/brand_container</item>
+        <item name="colorOnPrimaryContainer">@color/brand_on_container</item>
+        <item name="colorSecondary">@color/brand</item>
+        <item name="colorOnSecondary">@color/brand_on</item>
+        <item name="colorSecondaryContainer">@color/surface_raised</item>
+        <item name="colorOnSecondaryContainer">@color/text_primary</item>
+        <item name="android:windowBackground">@color/surface_page</item>
+        <item name="colorSurface">@color/surface_page</item>
+        <item name="colorSurfaceVariant">@color/surface_raised</item>
+        <item name="colorSurfaceContainerLowest">@color/surface_card</item>
+        <item name="colorSurfaceContainerLow">@color/surface_card</item>
+        <item name="colorSurfaceContainer">@color/surface_card</item>
+        <item name="colorSurfaceContainerHigh">@color/surface_raised</item>
+        <item name="colorSurfaceContainerHighest">@color/surface_raised</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">@color/hairline</item>
+        <item name="colorOutlineVariant">@color/hairline</item>
+        <item name="android:statusBarColor">@color/surface_page</item>
+        <item name="android:navigationBarColor">@color/surface_page</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

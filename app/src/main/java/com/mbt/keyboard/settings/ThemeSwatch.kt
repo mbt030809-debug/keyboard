@@ -62,8 +62,12 @@ class ThemeSwatch(context: Context, val theme: KeyboardTheme) : View(context) {
         drawKey(canvas, pad + shiftW + gap + spaceW + gap, bTop, w - pad, bTop + keyH, theme.enterKey, cr)
 
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = (if (chosen) 3 else 1) * d
-        paint.color = if (chosen) theme.accent else 0x33000000
+        paint.strokeWidth = (if (chosen) 2.5f else 1f) * d
+        paint.color = if (chosen) {
+            androidx.core.content.ContextCompat.getColor(context, com.mbt.keyboard.R.color.brand)
+        } else {
+            androidx.core.content.ContextCompat.getColor(context, com.mbt.keyboard.R.color.hairline)
+        }
         val inset = paint.strokeWidth / 2f
         canvas.drawRoundRect(RectF(inset, inset, w - inset, h - inset), r, r, paint)
     }

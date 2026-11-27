@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Graphite neutral ramp (Dark) -->
+    <color name="surface_page">#141415</color>
+    <color name="surface_card">#19191B</color>
+    <color name="surface_raised">#232325</color>
+    <color name="hairline">#16EDEDED</color>
+
+    <!-- Three text roles -->
+    <color name="text_primary">#EDEDED</color>
+    <color name="text_secondary">#A1A1A6</color>
+    <color name="text_muted">#85858B</color>
+
+    <!-- Single Cobalt accent (Dark) -->
+    <color name="brand">#7BA3FF</color>
+    <color name="brand_on">#0B173D</color>
+    <color name="brand_container">#1C2A52</color>
+    <color name="brand_on_container">#DCE6FF</color>
+
+    <!-- Semantic status colors -->
+    <color name="ok">#4CC38A</color>
+    <color name="ok_bg">#162C22</color>
+    <color name="status_todo_bg">#1C2A52</color>
+</resources>

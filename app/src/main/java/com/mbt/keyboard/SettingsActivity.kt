@@ -47,11 +47,11 @@ class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppUpdater.checkAndUpdate(this)
+        setContentView(R.layout.activity_settings)
         findViewById<View>(R.id.btnCheckUpdate)?.setOnClickListener {
             Toast.makeText(this, "업데이트 확인 중...", Toast.LENGTH_SHORT).show()
             AppUpdater.checkAndUpdate(this, manual = true)
         }
-        setContentView(R.layout.activity_settings)
 
         // edge-to-edge: 상태바·내비게이션 바 영역 피하기
         val root = findViewById<View>(R.id.root)
@@ -339,8 +339,10 @@ class SettingsActivity : AppCompatActivity() {
             0xFFF48FB1.toInt() to "핑크",
         )
         var chosen = Prefs.textColor(this)
-        val size = (40 * d).toInt()
-        val gap = (10 * d).toInt()
+        val size = (36 * d).toInt()
+        val gap = (12 * d).toInt()
+        val accentColor = ContextCompat.getColor(this, R.color.brand)
+        val hairlineColor = ContextCompat.getColor(this, R.color.hairline)
         val views = ArrayList<Pair<Int, View>>()
 
         fun updateSelection() {
@@ -348,8 +350,8 @@ class SettingsActivity : AppCompatActivity() {
                 val gd = v.background as android.graphics.drawable.GradientDrawable
                 val sel = (col == chosen)
                 gd.setStroke(
-                    ((if (sel) 3.2f else 1.2f) * d).toInt(),
-                    if (sel) 0xFF1A73E8.toInt() else 0x44888888,
+                    ((if (sel) 2.5f else 1f) * d).toInt(),
+                    if (sel) accentColor else hairlineColor,
                 )
             }
         }
@@ -382,31 +384,43 @@ class SettingsActivity : AppCompatActivity() {
         val items = listOf(
             Triple(KeyboardThemes.SYSTEM, getString(R.string.theme_system), KeyboardTheme.system(this)),
         ) + KeyboardThemes.all.map { Triple(it.id, it.name, it.theme) }
-        val swatches = ArrayList<Pair<String, ThemeSwatch>>()
+        val swatches = ArrayList<Triple<String, ThemeSwatch, TextView>>()
+        val primaryText = ContextCompat.getColor(this, R.color.text_primary)
+        val secondaryText = ContextCompat.getColor(this, R.color.text_secondary)
         fun refresh() {
             val cur = Prefs.themeId(this)
-            swatches.forEach { (id, v) -> v.chosen = id == cur || (cur !in items.map { it.first } && id == KeyboardThemes.SYSTEM) }
+            val valid = cur in items.map { it.first }
+            swatches.forEach { (id, v, label) ->
+                val selected = id == cur || (!valid && id == KeyboardThemes.SYSTEM)
+                v.chosen = selected
+                label.setTextColor(if (selected) primaryText else secondaryText)
+            }
         }
         list.orientation = android.widget.LinearLayout.HORIZONTAL
-        items.forEach { (id, name, theme) ->
+        items.forEachIndexed { idx, (id, name, theme) ->
             val cell = android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
-                setPadding((4 * d).toInt(), (4 * d).toInt(), (4 * d).toInt(), (4 * d).toInt())
                 setOnClickListener { Prefs.setThemeId(this@SettingsActivity, id); refresh() }
             }
             val sw = ThemeSwatch(this, theme)
-            swatches += id to sw
-            cell.addView(sw, android.widget.LinearLayout.LayoutParams((108 * d).toInt(), (74 * d).toInt()))
-            cell.addView(TextView(this).apply {
+            val label = TextView(this).apply {
                 text = name
                 textSize = 12f
                 maxLines = 1
-                setPadding((2 * d).toInt(), (4 * d).toInt(), 0, 0)
-            })
+                gravity = android.view.Gravity.CENTER_HORIZONTAL
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+                setTextColor(secondaryText)
+                setPadding(0, (8 * d).toInt(), 0, 0)
+            }
+            swatches += Triple(id, sw, label)
+            cell.addView(sw, android.widget.LinearLayout.LayoutParams((108 * d).toInt(), (72 * d).toInt()))
+            cell.addView(label, android.widget.LinearLayout.LayoutParams((108 * d).toInt(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT))
             list.addView(cell, android.widget.LinearLayout.LayoutParams(
                 android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-            ))
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                if (idx > 0) marginStart = (12 * d).toInt()
+            })
         }
         refresh()
     }
@@ -445,17 +459,27 @@ class SettingsActivity : AppCompatActivity() {
         btnEnable.isEnabled = true          // 이미 켜져 있어도 설정 화면을 다시 열 수 있게 늘 눌러볼 수 있다
 
         // 맨 위 한 줄 요약: 지금 무엇을 하면 되는지
-        findViewById<TextView>(R.id.statusBanner).text = getString(
+        val statusCard = findViewById<com.google.android.material.card.MaterialCardView>(R.id.statusCard)
+        val statusBanner = findViewById<TextView>(R.id.statusBanner)
+        statusBanner.text = getString(
             when {
                 !enabled -> R.string.status_need_enable
                 !selected -> R.string.status_need_select
                 else -> R.string.status_ready
             },
         )
+        if (selected) {
+            statusCard.setCardBackgroundColor(ContextCompat.getColor(this, R.color.ok_bg))
+            statusBanner.setTextColor(ContextCompat.getColor(this, R.color.ok))
+        } else {
+            statusCard.setCardBackgroundColor(ContextCompat.getColor(this, R.color.brand_container))
+            statusBanner.setTextColor(ContextCompat.getColor(this, R.color.brand_on_container))
+        }
 
         if (!enabled) {
             status2.text = getString(R.string.status_wait)
-            status2.setTextColor(neutral())
+            status2.setTextColor(ContextCompat.getColor(this, R.color.text_muted))
+            applyBadgeBackground(status2, ContextCompat.getColor(this, R.color.surface_raised))
             btnSelect.isEnabled = false
         } else {
             setStatus(status2, selected, getString(R.string.status_todo))
@@ -463,93 +487,135 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun setStatus(v: TextView, done: Boolean, todo: String) {
-        if (done) {
-            v.text = "✓ " + getString(R.string.status_done)
-            v.setTextColor(ContextCompat.getColor(this, if (isNight()) R.color.ok_night else R.color.ok))
-        } else {
-            v.text = todo
-            v.setTextColor(neutral())
+    private fun applyBadgeBackground(v: TextView, fillColor: Int) {
+        val d = resources.displayMetrics.density
+        v.background = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            cornerRadius = 6f * d
+            setColor(fillColor)
         }
     }
 
-    private fun neutral() = ContextCompat.getColor(this, if (isNight()) R.color.brand_night else R.color.brand)
+    private fun setStatus(v: TextView, done: Boolean, todo: String) {
+        if (done) {
+            v.text = "✓ " + getString(R.string.status_done)
+            v.setTextColor(ContextCompat.getColor(this, R.color.ok))
+            applyBadgeBackground(v, ContextCompat.getColor(this, R.color.ok_bg))
+        } else {
+            v.text = todo
+            v.setTextColor(neutral())
+            applyBadgeBackground(v, ContextCompat.getColor(this, R.color.status_todo_bg))
+        }
+    }
+
+    private fun neutral() = ContextCompat.getColor(this, R.color.brand)
 
     private fun isNight() =
         resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-    /** 설정 내보내기·불러오기 (파일 저장/열기 및 클립보드 백업/복원) 카드를 정보 탭과 시작 탭에 추가 */
+    /** 설정 내보내기·불러오기 (파일 저장/열기 및 클립보드 백업/복원) 카드를 시작 탭에 추가 */
     private fun setupBackupRestore() {
         val d = resources.displayMetrics.density
+        val surfaceCard = ContextCompat.getColor(this, R.color.surface_card)
+        val surfaceRaised = ContextCompat.getColor(this, R.color.surface_raised)
+        val hairline = ContextCompat.getColor(this, R.color.hairline)
+        val primaryText = ContextCompat.getColor(this, R.color.text_primary)
+        val secondaryText = ContextCompat.getColor(this, R.color.text_secondary)
+
+        fun secondaryButton(label: String, onClick: () -> Unit) =
+            MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                text = label
+                textSize = 13f
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+                setTextColor(primaryText)
+                backgroundTintList = android.content.res.ColorStateList.valueOf(surfaceRaised)
+                strokeColor = android.content.res.ColorStateList.valueOf(hairline)
+                strokeWidth = (1 * d).toInt()
+                cornerRadius = (10 * d).toInt()
+                insetTop = 0
+                insetBottom = 0
+                minHeight = (40 * d).toInt()
+                setOnClickListener { onClick() }
+            }
+
         listOf(R.id.sectionStart).forEach { secId ->
             val section = findViewById<android.widget.LinearLayout>(secId) ?: return@forEach
+            val card = com.google.android.material.card.MaterialCardView(this).apply {
+                setCardBackgroundColor(surfaceCard)
+                strokeColor = hairline
+                strokeWidth = (1 * d).toInt()
+                radius = 14f * d
+                cardElevation = 0f
+                layoutParams = LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply { bottomMargin = (12 * d).toInt() }
+            }
             val box = android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
                 setPadding((16 * d).toInt(), (16 * d).toInt(), (16 * d).toInt(), (16 * d).toInt())
             }
             box.addView(TextView(this).apply {
-                text = "설정 내보내기 · 불러오기"
-                textSize = 16f
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setText(R.string.backup_title)
+                textSize = 15f
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+                setTextColor(primaryText)
             })
             box.addView(TextView(this).apply {
-                text = "앱을 삭제 후 재설치할 때 모든 설정(테마·크기·위치·타이밍·진동·상용문구)을 파일이나 클립보드로 백업하고 복원합니다."
+                setText(R.string.backup_desc)
                 textSize = 13f
-                setPadding(0, (4 * d).toInt(), 0, (10 * d).toInt())
+                setTextColor(secondaryText)
+                setLineSpacing(2f * d, 1f)
+                setPadding(0, (4 * d).toInt(), 0, (12 * d).toInt())
             })
             val row1 = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
-            val btnExportFile = MaterialButton(this).apply {
-                text = "파일로 내보내기"
-                setOnClickListener {
-                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                        addCategory(Intent.CATEGORY_OPENABLE)
-                        type = "application/json"
-                        putExtra(Intent.EXTRA_TITLE, "mbt-keyboard-settings.json")
-                    }
-                    @Suppress("DEPRECATION")
-                    startActivityForResult(intent, REQ_EXPORT_FILE)
+            val btnExportFile = secondaryButton("파일로 내보내기") {
+                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "application/json"
+                    putExtra(Intent.EXTRA_TITLE, "mbt-keyboard-settings.json")
                 }
+                @Suppress("DEPRECATION")
+                startActivityForResult(intent, REQ_EXPORT_FILE)
             }
-            val btnImportFile = MaterialButton(this).apply {
-                text = "파일에서 불러오기"
-                setOnClickListener {
-                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                        addCategory(Intent.CATEGORY_OPENABLE)
-                        type = "*/*"
-                    }
-                    @Suppress("DEPRECATION")
-                    startActivityForResult(intent, REQ_IMPORT_FILE)
+            val btnImportFile = secondaryButton("파일에서 불러오기") {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "*/*"
                 }
+                @Suppress("DEPRECATION")
+                startActivityForResult(intent, REQ_IMPORT_FILE)
             }
-            row1.addView(btnExportFile, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = (6 * d).toInt() })
-            row1.addView(btnImportFile, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            row1.addView(btnExportFile, LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = (8 * d).toInt() })
+            row1.addView(btnImportFile, LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             box.addView(row1)
 
-            val row2 = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
-            val btnCopyClip = MaterialButton(this).apply {
-                text = "클립보드에 설정 복사"
-                setOnClickListener {
-                    val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                    cm.setPrimaryClip(android.content.ClipData.newPlainText("mbt_keyboard_settings", Prefs.exportJson(this@SettingsActivity)))
-                    Toast.makeText(this@SettingsActivity, "설정을 클립보드에 복사했습니다", Toast.LENGTH_SHORT).show()
+            val row2 = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply { topMargin = (8 * d).toInt() }
+            }
+            val btnCopyClip = secondaryButton("클립보드 복사") {
+                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("mbt_keyboard_settings", Prefs.exportJson(this@SettingsActivity)))
+                Toast.makeText(this@SettingsActivity, "설정을 클립보드에 복사했습니다", Toast.LENGTH_SHORT).show()
+            }
+            val btnPasteClip = secondaryButton("클립보드 복원") {
+                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val raw = cm.primaryClip?.getItemAt(0)?.coerceToText(this@SettingsActivity)?.toString() ?: ""
+                if (raw.isNotBlank() && Prefs.importJson(this@SettingsActivity, raw)) {
+                    Toast.makeText(this@SettingsActivity, "설정을 불러왔습니다", Toast.LENGTH_SHORT).show()
+                    recreate()
+                } else {
+                    Toast.makeText(this@SettingsActivity, "클립보드에 유효한 설정 데이터가 없습니다", Toast.LENGTH_SHORT).show()
                 }
             }
-            val btnPasteClip = MaterialButton(this).apply {
-                text = "클립보드에서 복원"
-                setOnClickListener {
-                    val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                    val raw = cm.primaryClip?.getItemAt(0)?.coerceToText(this@SettingsActivity)?.toString() ?: ""
-                    if (raw.isNotBlank() && Prefs.importJson(this@SettingsActivity, raw)) {
-                        Toast.makeText(this@SettingsActivity, "설정을 불러왔습니다", Toast.LENGTH_SHORT).show()
-                        recreate()
-                    } else {
-                        Toast.makeText(this@SettingsActivity, "클립보드에 유효한 설정 데이터가 없습니다", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-            row2.addView(btnCopyClip, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = (6 * d).toInt() })
-            row2.addView(btnPasteClip, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            row2.addView(btnCopyClip, LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = (8 * d).toInt() })
+            row2.addView(btnPasteClip, LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             box.addView(row2)
-            section.addView(box)
+            card.addView(box)
+            section.addView(card)
         }
     }
 

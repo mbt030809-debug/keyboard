@@ -1846,6 +1846,8 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             }
             if (key.type == KeyType.EMOJI) {
                 drawEmojiIcon(canvas, r, paint.textSize, paint.color)
+            } else if (key.type == KeyType.VOICE) {
+                drawMicIcon(canvas, r, paint.textSize, paint.color)
             } else {
                 drawCentered(canvas, label, r)
             }
@@ -1856,14 +1858,14 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             if (key.type == KeyType.CHAR && key.hints.isNotEmpty() && key.hints[0].length <= 2) {
                 paint.color = theme.text
                 paint.alpha = 110
-                paint.textSize = labelRefPx(cell) * 0.265f * fontScale
+                paint.textSize = labelRefPx(cell) * 0.24f * fontScale
                 paint.textAlign = Paint.Align.RIGHT
                 val effRad = radius.coerceAtMost(min(r.width(), r.height()) / 2f)
-                val diagInset = ((effRad - 7f * density).coerceAtLeast(0f) * 0.22f).coerceAtMost(min(r.width(), r.height()) * 0.11f)
+                val diagInset = ((effRad - 6f * density).coerceAtLeast(0f) * 0.28f).coerceAtMost(min(r.width(), r.height()) * 0.14f)
                 canvas.drawText(
                     key.hints[0],
-                    r.right - 4f * density - diagInset,
-                    r.top + paint.textSize + 2f * density + diagInset,
+                    r.right - 5f * density - diagInset,
+                    r.top + paint.textSize + 3f * density + diagInset,
                     paint,
                 )
                 paint.textAlign = Paint.Align.CENTER
@@ -1981,6 +1983,37 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         paint.style = Paint.Style.STROKE
         val mouthR = rad * 0.56f
         canvas.drawArc(cx - mouthR, cy - mouthR * 0.72f, cx + mouthR, cy + mouthR * 0.88f, 24f, 132f, false, paint)
+        paint.style = keepStyle
+        paint.strokeWidth = keepStroke
+        paint.strokeCap = keepCap
+    }
+
+    /** 이모티콘 아이콘과 동일한 단색 선형 스타일의 마이크 아이콘 */
+    private fun drawMicIcon(canvas: Canvas, r: RectF, sizePx: Float, color: Int) {
+        val rad = (sizePx * 0.52f).coerceAtLeast(4f * density)
+        val cx = r.centerX()
+        val cy = r.centerY()
+        val keepStyle = paint.style
+        val keepStroke = paint.strokeWidth
+        val keepCap = paint.strokeCap
+        paint.color = color
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = (rad * 0.17f).coerceAtLeast(1.25f * density)
+        paint.strokeCap = Paint.Cap.ROUND
+        // 마이크 캡슐 본체
+        val capW = rad * 0.36f
+        val capTop = cy - rad * 0.92f
+        val capBottom = cy + rad * 0.14f
+        canvas.drawRoundRect(cx - capW, capTop, cx + capW, capBottom, capW, capW, paint)
+        // U자 홀더 아크
+        val arcR = rad * 0.68f
+        val arcCy = cy - rad * 0.08f
+        canvas.drawArc(cx - arcR, arcCy - arcR, cx + arcR, arcCy + arcR, 12f, 156f, false, paint)
+        // 받침대 줄기 + 바닥선
+        val stemTop = arcCy + arcR
+        val stemBottom = cy + rad * 0.94f
+        canvas.drawLine(cx, stemTop, cx, stemBottom, paint)
+        canvas.drawLine(cx - rad * 0.38f, stemBottom, cx + rad * 0.38f, stemBottom, paint)
         paint.style = keepStyle
         paint.strokeWidth = keepStroke
         paint.strokeCap = keepCap

@@ -354,21 +354,31 @@ class ResizePane(
 
     private fun addFontScaleSlider() {
         val container = root.findViewById<ViewGroup>(R.id.pageControls)
+        val primaryText = androidx.core.content.ContextCompat.getColor(context, R.color.text_primary)
         val header = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-            ).also { it.topMargin = (6 * density).toInt() }
+            ).also { it.topMargin = (12 * density).toInt() }
         }
         val label = TextView(context).apply {
             setText(R.string.font_scale_label)
-            setTypeface(null, android.graphics.Typeface.BOLD)
+            textSize = 14f
+            setTextColor(primaryText)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
         val valueTv = TextView(context).apply {
             id = R.id.valueFontScale
-            setTypeface(null, android.graphics.Typeface.BOLD)
+            textSize = 12f
+            typeface = android.graphics.Typeface.MONOSPACE
+            fontFeatureSettings = "tnum"
+            setTextColor(primaryText)
+            setBackgroundResource(R.drawable.bg_keycap_badge)
+            val hp = (8 * density).toInt()
+            val vp = (2 * density).toInt()
+            setPadding(hp, vp, hp, vp)
             text = context.getString(R.string.font_scale_value, Prefs.fontScalePercent(context))
         }
         header.addView(label)

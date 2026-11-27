@@ -4,50 +4,65 @@
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/surface_page"
     android:clipToPadding="false"
     android:orientation="vertical">
 
+    <!-- Top header bar: quiet chrome, product wordmark + single secondary action -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
+        android:minHeight="52dp"
         android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingTop="6dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="2dp">
+        android:paddingStart="20dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
             android:text="@string/app_name"
-            android:textAppearance="?attr/textAppearanceTitleLarge"
-            android:textStyle="bold" />
+            android:textColor="@color/text_primary"
+            android:textSize="18sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTry"
-            style="?attr/materialButtonOutlinedStyle"
+            style="@style/Widget.Mbt.Button.Secondary"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
             android:minWidth="0dp"
-            android:minHeight="28dp"
-            android:paddingStart="10dp"
-            android:paddingTop="2dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="2dp"
+            android:minHeight="36dp"
+            android:paddingStart="12dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="4dp"
             android:text="@string/try_button"
-            android:textSize="12sp" />
+            android:textSize="13sp"
+            app:cornerRadius="8dp"
+            app:icon="@drawable/ic_keyboard"
+            app:iconGravity="textStart"
+            app:iconPadding="6dp"
+            app:iconSize="16dp"
+            app:iconTint="@color/text_secondary" />
     </LinearLayout>
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabs"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="44dp"
+        android:background="@color/surface_page"
         app:tabGravity="fill"
-        app:tabMode="fixed">
+        app:tabIndicatorColor="@color/brand"
+        app:tabIndicatorFullWidth="false"
+        app:tabIndicatorHeight="2dp"
+        app:tabMode="fixed"
+        app:tabRippleColor="@color/hairline"
+        app:tabSelectedTextColor="@color/text_primary"
+        app:tabTextColor="@color/text_muted">
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
@@ -70,6 +85,11 @@
             android:text="@string/tab_theme" />
     </com.google.android.material.tabs.TabLayout>
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/hairline" />
+
     <ScrollView
         android:id="@+id/scroll"
         android:layout_width="match_parent"
@@ -82,174 +102,188 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingStart="16dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="24dp">
 
-        <LinearLayout
-            android:id="@+id/sectionStart"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="visible">
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:id="@+id/statusCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp">
-
-            <TextView
-                android:id="@+id/statusBanner"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textStyle="bold" />
-        </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="8dp"
-            android:text="@string/sec_setup"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorPrimary"
-            android:textStyle="bold" />
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
+            <!-- TAB 1: 시작 -->
             <LinearLayout
+                android:id="@+id/sectionStart"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/step1_title"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/status1"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_status"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="4dp"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/step1_desc"
-                    android:alpha="0.7" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnEnable"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/step1_btn" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/step2_title"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/status2"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_status"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="4dp"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/step2_desc"
-                    android:alpha="0.7" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnSelect"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/step2_btn" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp"
-            android:text="@string/sec_guide"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorPrimary"
-            android:textStyle="bold" />
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:lineSpacingExtra="6dp"
-                android:padding="16dp"
-                android:text="@string/guide_body"
-                android:textAppearance="?attr/textAppearanceBodyMedium" />
-        </com.google.android.material.card.MaterialCardView>
+                android:visibility="visible">
 
                 <com.google.android.material.card.MaterialCardView
-                    style="?attr/materialCardViewFilledStyle"
+                    android:id="@+id/statusCard"
+                    style="@style/Widget.Mbt.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="@color/brand_container">
+
+                    <TextView
+                        android:id="@+id/statusBanner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:padding="16dp"
+                        android:textColor="@color/brand_on_container"
+                        android:textSize="14sp" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    style="@style/Widget.Mbt.SectionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/sec_setup" />
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                style="@style/Widget.Mbt.CardTitle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/step1_title" />
+
+                            <TextView
+                                android:id="@+id/status1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_status"
+                                android:fontFamily="sans-serif-medium"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="4dp"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/step1_desc" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnEnable"
+                            style="@style/Widget.Mbt.Button.Primary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/step1_btn" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                style="@style/Widget.Mbt.CardTitle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/step2_title" />
+
+                            <TextView
+                                android:id="@+id/status2"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_status"
+                                android:fontFamily="sans-serif-medium"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="4dp"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/step2_desc" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSelect"
+                            style="@style/Widget.Mbt.Button.Primary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/step2_btn" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    style="@style/Widget.Mbt.SectionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/sec_guide" />
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:lineSpacingExtra="6dp"
+                        android:padding="16dp"
+                        android:text="@string/guide_body"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    style="@style/Widget.Mbt.SectionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/sec_about" />
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp">
@@ -261,547 +295,570 @@
                         android:padding="16dp">
 
                         <TextView
+                            style="@style/Widget.Mbt.CardTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/about_title"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:textStyle="bold" />
+                            android:text="@string/about_title" />
 
                         <TextView
+                            style="@style/Widget.Mbt.CardDesc"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="@string/about_desc"
-                            android:alpha="0.7" />
+                            android:text="@string/about_desc" />
 
                         <TextView
                             android:id="@+id/versionText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:fontFamily="monospace"
+                            android:fontFeatureSettings="tnum"
+                            android:textColor="@color/text_muted"
+                            android:textSize="12sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnCheckUpdate"
+                            style="@style/Widget.Mbt.Button.Secondary"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
-                            android:layout_marginBottom="0dp"
-                            android:gravity="start"
-                            android:textSize="14sp"
-                            android:alpha="0.8" />
+                            android:text="@string/check_update" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- TAB 2: 입력 -->
+            <LinearLayout
+                android:id="@+id/sectionInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    style="@style/Widget.Mbt.SectionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/sec_layout" />
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/layout_title" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/layout_desc" />
+
+                        <RadioGroup
+                            android:id="@+id/radioLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:orientation="vertical">
+
+                            <RadioButton
+                                android:id="@+id/radioSingle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/layout_single"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp" />
+
+                            <RadioButton
+                                android:id="@+id/radioDubeolsik"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/layout_dubeolsik"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp" />
+
+                            <RadioButton
+                                android:id="@+id/radioMoaki"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/layout_moaki"
+                                android:textColor="@color/text_primary"
+                                android:textSize="14sp" />
+                        </RadioGroup>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@color/hairline" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchSwipeDouble"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/swipe_double_switch"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/swipe_double_desc"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnCheckUpdate"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="업데이트 확인" />
-        </LinearLayout>
-        <LinearLayout
-            android:id="@+id/sectionInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
+                    android:layout_marginBottom="12dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="8dp"
-            android:text="@string/sec_layout"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorPrimary"
-            android:textStyle="bold" />
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/layout_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/layout_desc"
-                    android:alpha="0.7" />
-
-                <RadioGroup
-                    android:id="@+id/radioLayout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="vertical">
-
-                    <RadioButton
-                        android:id="@+id/radioSingle"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/layout_single" />
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                    <RadioButton
-                        android:id="@+id/radioDubeolsik"
+                        <TextView
+                            style="@style/Widget.Mbt.CardTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/english_title" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/autocaps_desc" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchAutoCaps"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/autocaps_switch"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    style="@style/Widget.Mbt.SectionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/sec_feel" />
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/layout_dubeolsik" />
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                    <RadioButton
-                        android:id="@+id/radioMoaki"
+                        <TextView
+                            style="@style/Widget.Mbt.CardTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/timing_title" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                style="@style/Widget.Mbt.RowLabel"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/timing_pause_label" />
+
+                            <TextView
+                                android:id="@+id/valuePause"
+                                style="@style/Widget.Mbt.KeycapValue"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" />
+                        </LinearLayout>
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sliderPause"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:stepSize="1"
+                            android:valueFrom="2"
+                            android:valueTo="20" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/timing_pause_desc"
+                            android:visibility="gone" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                style="@style/Widget.Mbt.RowLabel"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/timing_long_label" />
+
+                            <TextView
+                                android:id="@+id/valueLong"
+                                style="@style/Widget.Mbt.KeycapValue"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" />
+                        </LinearLayout>
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sliderLong"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:stepSize="1"
+                            android:valueFrom="4"
+                            android:valueTo="16" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/timing_long_desc"
+                            android:visibility="gone" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                style="@style/Widget.Mbt.RowLabel"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/timing_repeat_label" />
+
+                            <TextView
+                                android:id="@+id/valueRepeat"
+                                style="@style/Widget.Mbt.KeycapValue"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" />
+                        </LinearLayout>
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sliderRepeat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:stepSize="1"
+                            android:valueFrom="5"
+                            android:valueTo="200" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/timing_repeat_desc"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/layout_moaki" />
-                </RadioGroup>
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchSwipeDouble"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/swipe_double_switch" />
+                        <TextView
+                            style="@style/Widget.Mbt.CardTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/haptic_title" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchHaptic"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/haptic_switch"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/haptic_strength" />
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sliderHaptic"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:stepSize="1"
+                            android:valueFrom="1"
+                            android:valueTo="10" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/haptic_weak"
+                                android:textColor="@color/text_muted"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/haptic_strong"
+                                android:textColor="@color/text_muted"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="16dp"
+                            android:layout_marginBottom="12dp"
+                            android:background="@color/hairline" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.RowLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="@string/haptic_style_title" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/haptic_style_desc" />
+
+                        <RadioGroup
+                            android:id="@+id/radioHapticStyle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <TextView
+                    style="@style/Widget.Mbt.SectionLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/swipe_double_desc"
-                    android:visibility="gone"
-                    android:textSize="12sp"
-                    android:alpha="0.7" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/english_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/autocaps_desc"
-                    android:alpha="0.7" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchAutoCaps"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/autocaps_switch" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp"
-            android:text="@string/sec_feel"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorPrimary"
-            android:textStyle="bold" />
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/timing_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textStyle="bold" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
                     android:layout_marginTop="12dp"
-                    android:orientation="horizontal">
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/sec_extras" />
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/timing_pause_label"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/valuePause"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textStyle="bold"
-                        android:textColor="?attr/colorPrimary" />
-                </LinearLayout>
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/sliderPause"
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:valueFrom="2"
-                    android:valueTo="20"
-                    android:stepSize="1" />
+                    android:layout_marginBottom="12dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/timing_pause_desc"
-                    android:visibility="gone"
-                    android:textSize="12sp"
-                    android:alpha="0.7" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/timing_long_label"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/valueLong"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textStyle="bold"
-                        android:textColor="?attr/colorPrimary" />
-                </LinearLayout>
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/sliderLong"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:valueFrom="4"
-                    android:valueTo="16"
-                    android:stepSize="1" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/timing_long_desc"
-                    android:visibility="gone"
-                    android:textSize="12sp"
-                    android:alpha="0.7" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/timing_repeat_label"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/valueRepeat"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textStyle="bold"
-                        android:textColor="?attr/colorPrimary" />
-                </LinearLayout>
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/sliderRepeat"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:valueFrom="5"
-                    android:valueTo="200"
-                    android:stepSize="1" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/timing_repeat_desc"
-                    android:visibility="gone"
-                    android:textSize="12sp"
-                    android:alpha="0.7" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/haptic_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textStyle="bold" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchHaptic"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/haptic_switch" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/haptic_strength"
-                    android:alpha="0.7" />
-
-                <com.google.android.material.slider.Slider
-                    android:id="@+id/sliderHaptic"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:valueFrom="1"
-                    android:valueTo="10"
-                    android:stepSize="1" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/haptic_weak"
-                        android:textSize="12sp"
-                        android:alpha="0.6" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/haptic_strong"
-                        android:textSize="12sp"
-                        android:alpha="0.6" />
-                </LinearLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/haptic_style_title"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/haptic_style_desc"
-                    android:textSize="12sp"
-                    android:alpha="0.7" />
-
-                <RadioGroup
-                    android:id="@+id/radioHapticStyle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp"
-            android:text="@string/sec_extras"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorPrimary"
-            android:textStyle="bold" />
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/clip_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/clip_desc"
-                    android:visibility="gone"
-                    android:alpha="0.7" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchClipboard"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/clip_switch" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnClearClipboard"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/clip_clear" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/phrase_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/phrase_desc"
-                    android:visibility="gone"
-                    android:alpha="0.7" />
-
-                <com.google.android.material.textfield.TextInputLayout
-                    style="?attr/textInputOutlinedStyle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="@string/phrase_hint">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/editPhrases"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="top"
-                        android:inputType="textMultiLine"
-                        android:minLines="4" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/clip_title" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/clip_desc"
+                            android:visibility="gone" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchClipboard"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/clip_switch"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnClearClipboard"
+                            style="@style/Widget.Mbt.Button.Secondary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/clip_clear" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/phrase_title" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/phrase_desc"
+                            android:visibility="gone" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="?attr/textInputOutlinedStyle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:hint="@string/phrase_hint"
+                            app:boxCornerRadiusBottomEnd="10dp"
+                            app:boxCornerRadiusBottomStart="10dp"
+                            app:boxCornerRadiusTopEnd="10dp"
+                            app:boxCornerRadiusTopStart="10dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/editPhrases"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="top"
+                                android:inputType="textMultiLine"
+                                android:minLines="4"
+                                android:textSize="14sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    style="@style/Widget.Mbt.SectionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/sec_split" />
+
+                <com.google.android.material.card.MaterialCardView
+                    style="@style/Widget.Mbt.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/split_title" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/split_desc"
+                            android:visibility="gone" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchSplit"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/split_switch"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchSplitDup"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="@string/split_dup_switch"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            style="@style/Widget.Mbt.CardDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/split_dup_desc"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp"
-            android:text="@string/sec_split"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorPrimary"
-            android:textStyle="bold" />
-
-        <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp">
-
+            <!-- TAB 4: 테마 -->
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/split_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/split_desc"
-                    android:visibility="gone"
-                    android:alpha="0.7" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchSplit"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/split_switch" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/switchSplitDup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/split_dup_switch" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/split_dup_desc"
-                    android:visibility="gone"
-                    android:alpha="0.7" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        </LinearLayout>
-        <LinearLayout
                 android:id="@+id/sectionTheme"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -809,7 +866,7 @@
                 android:visibility="gone">
 
                 <com.google.android.material.card.MaterialCardView
-                    style="?attr/materialCardViewFilledStyle"
+                    style="@style/Widget.Mbt.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp">
@@ -821,12 +878,11 @@
                         android:padding="16dp">
 
                         <TextView
+                            style="@style/Widget.Mbt.CardTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            android:text="1. 키보드 테마"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:textStyle="bold" />
+                            android:text="@string/theme_section_preset" />
 
                         <HorizontalScrollView
                             android:layout_width="match_parent"
@@ -843,7 +899,7 @@
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
-                    style="?attr/materialCardViewFilledStyle"
+                    style="@style/Widget.Mbt.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp">
@@ -855,12 +911,11 @@
                         android:padding="16dp">
 
                         <TextView
+                            style="@style/Widget.Mbt.CardTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="10dp"
-                            android:text="2. 키보드 글자색"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:textStyle="bold" />
+                            android:layout_marginBottom="12dp"
+                            android:text="@string/theme_section_text_color" />
 
                         <HorizontalScrollView
                             android:layout_width="match_parent"
@@ -878,7 +933,7 @@
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
-                    style="?attr/materialCardViewFilledStyle"
+                    style="@style/Widget.Mbt.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp">
@@ -890,109 +945,110 @@
                         android:padding="16dp">
 
                         <TextView
+                            style="@style/Widget.Mbt.CardTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="3. 글래스 효과"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:textStyle="bold" />
+                            android:text="@string/theme_section_glass" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
+                            android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <TextView
+                                style="@style/Widget.Mbt.RowLabel"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="키 글래스"
-                                android:textStyle="bold" />
+                                android:text="키 글래스" />
 
                             <TextView
                                 android:id="@+id/valueKeyGlass"
+                                style="@style/Widget.Mbt.KeycapValue"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="?attr/colorPrimary"
-                                android:textStyle="bold" />
+                                android:layout_height="wrap_content" />
                         </LinearLayout>
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/sliderKeyGlass"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:stepSize="5"
                             android:valueFrom="0"
-                            android:valueTo="100"
-                            android:stepSize="5" />
+                            android:valueTo="100" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
+                            android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <TextView
+                                style="@style/Widget.Mbt.RowLabel"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="배경 글래스"
-                                android:textStyle="bold" />
+                                android:text="배경 글래스" />
 
                             <TextView
                                 android:id="@+id/valueBgGlass"
+                                style="@style/Widget.Mbt.KeycapValue"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="?attr/colorPrimary"
-                                android:textStyle="bold" />
+                                android:layout_height="wrap_content" />
                         </LinearLayout>
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/sliderBgGlass"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:stepSize="5"
                             android:valueFrom="0"
-                            android:valueTo="100"
-                            android:stepSize="5" />
+                            android:valueTo="100" />
 
                         <com.google.android.material.chip.ChipGroup
                             android:id="@+id/glassTypeChips"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            app:singleSelection="true"
-                            app:selectionRequired="true">
+                            app:chipSpacingHorizontal="8dp"
+                            app:chipSpacingVertical="4dp"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
 
                             <com.google.android.material.chip.Chip
                                 android:id="@+id/chipGlassNormal"
-                                style="@style/Widget.Material3.Chip.Filter"
+                                style="@style/Widget.Mbt.Chip"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="일반" />
 
                             <com.google.android.material.chip.Chip
                                 android:id="@+id/chipGlassBlur"
-                                style="@style/Widget.Material3.Chip.Filter"
+                                style="@style/Widget.Mbt.Chip"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="블러" />
 
                             <com.google.android.material.chip.Chip
                                 android:id="@+id/chipGlassReed"
-                                style="@style/Widget.Material3.Chip.Filter"
+                                style="@style/Widget.Mbt.Chip"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="리드글래스" />
 
                             <com.google.android.material.chip.Chip
                                 android:id="@+id/chipGlass3d"
-                                style="@style/Widget.Material3.Chip.Filter"
+                                style="@style/Widget.Mbt.Chip"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="3D" />
 
                             <com.google.android.material.chip.Chip
                                 android:id="@+id/chipGlassMatte"
-                                style="@style/Widget.Material3.Chip.Filter"
+                                style="@style/Widget.Mbt.Chip"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="무광" />
@@ -1001,7 +1057,7 @@
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.card.MaterialCardView
-                    style="?attr/materialCardViewFilledStyle"
+                    style="@style/Widget.Mbt.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp">
@@ -1013,104 +1069,104 @@
                         android:padding="16dp">
 
                         <TextView
+                            style="@style/Widget.Mbt.CardTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="4. 투명도"
-                            android:textAppearance="?attr/textAppearanceTitleMedium"
-                            android:textStyle="bold" />
+                            android:text="@string/theme_section_opacity" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
+                            android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <TextView
+                                style="@style/Widget.Mbt.RowLabel"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="키 불투명도"
-                                android:textStyle="bold" />
+                                android:text="키 불투명도" />
 
                             <TextView
                                 android:id="@+id/valueKeyOpacity"
+                                style="@style/Widget.Mbt.KeycapValue"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="?attr/colorPrimary"
-                                android:textStyle="bold" />
+                                android:layout_height="wrap_content" />
                         </LinearLayout>
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/sliderKeyOpacity"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:stepSize="5"
                             android:valueFrom="20"
-                            android:valueTo="100"
-                            android:stepSize="5" />
+                            android:valueTo="100" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
+                            android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <TextView
+                                style="@style/Widget.Mbt.RowLabel"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="배경 불투명도"
-                                android:textStyle="bold" />
+                                android:text="배경 불투명도" />
 
                             <TextView
                                 android:id="@+id/valueBgOpacity"
+                                style="@style/Widget.Mbt.KeycapValue"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="?attr/colorPrimary"
-                                android:textStyle="bold" />
+                                android:layout_height="wrap_content" />
                         </LinearLayout>
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/sliderBgOpacity"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:stepSize="5"
                             android:valueFrom="0"
-                            android:valueTo="100"
-                            android:stepSize="5" />
+                            android:valueTo="100" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
+                            android:gravity="center_vertical"
                             android:orientation="horizontal">
 
                             <TextView
+                                style="@style/Widget.Mbt.RowLabel"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="@string/fn_tab_alpha_label"
-                                android:textStyle="bold" />
+                                android:text="@string/fn_tab_alpha_label" />
 
                             <TextView
                                 android:id="@+id/valueFnTabAlpha"
+                                style="@style/Widget.Mbt.KeycapValue"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textColor="?attr/colorPrimary"
-                                android:textStyle="bold" />
+                                android:layout_height="wrap_content" />
                         </LinearLayout>
 
                         <com.google.android.material.slider.Slider
                             android:id="@+id/sliderFnTabAlpha"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:stepSize="5"
                             android:valueFrom="10"
-                            android:valueTo="100"
-                            android:stepSize="5" />
+                            android:valueTo="100" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
 
+    <!-- TAB 3: 화면 (크기/간격/보조키/인식/둥글기 + 실시간 키보드 미리보기) -->
     <LinearLayout
         android:id="@+id/sectionScreen"
         android:layout_width="match_parent"

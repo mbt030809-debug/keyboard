@@ -55,13 +55,13 @@
     <string name="resize_move">위치 이동</string>
     <string name="resize_move_hint_x">◀ ▶로 %2$ddp씩 옮겨요 · 바닥에서 %1$ddp 위</string>
     <string name="resize_move_hint_full">가로가 꽉 차 있어서, ◀ ▶를 누르면 가로가 한 단계 줄어들며 움직여요 · 바닥에서 %1$ddp 위</string>
-    <string name="resize_page_size">① 크기</string>
-    <string name="resize_page_pad">② 여백</string>
-    <string name="resize_page_gap">② 간격</string>
-    <string name="resize_page_numrow">④ 숫자·스페이스줄</string>
-    <string name="resize_page_numgap">⑤ 숫자 여백</string>
-    <string name="resize_page_tab">③ 보조키</string>
-    <string name="resize_page_hit">④ 인식</string>
+    <string name="resize_page_size">크기</string>
+    <string name="resize_page_pad">여백</string>
+    <string name="resize_page_gap">간격</string>
+    <string name="resize_page_numrow">숫자·스페이스줄</string>
+    <string name="resize_page_numgap">숫자 여백</string>
+    <string name="resize_page_tab">보조키</string>
+    <string name="resize_page_hit">인식</string>
     <string name="resize_title_size">① 전체 크기</string>
     <string name="resize_title_pad">② 상하좌우 여백</string>
     <string name="resize_title_gap">② 키 사이 간격</string>
@@ -83,7 +83,7 @@
     <string name="resize_desc_numgap">숫자 줄(띠)과 글자 키 사이의 빈칸이에요 (주황색 부분). 왼쪽 띠면 가로, 위 줄이면 세로 간격이에요</string>
     <string name="resize_desc_tab">숫자 탭 분리(좌측/상단)와 보조탭 표시 여부를 정하고, 현재 켜진 구성에 맞는 숫자줄·보조탭 크기와 위치를 조절해요</string>
     <string name="resize_desc_hit">화면에는 안 보이지만 손가락이 닿았을 때 어느 줄로 볼지 정하는 경계예요. + 면 아래로 넓히고 − 면 위로 좁혀요</string>
-    <string name="resize_page_radius">⑤ 둥글기</string>
+    <string name="resize_page_radius">둥글기</string>
     <string name="resize_title_radius">⑤ 모서리 둥글기</string>
     <string name="resize_badge_radius">0~22dp</string>
     <string name="resize_desc_radius">키캡과 키보드 배경판·보조탭의 모서리 둥글기를 크기 비례(%)로 각각 조절합니다</string>
@@ -138,13 +138,13 @@
     <string name="phrase_hint">예: 지금 통화 가능하세요?</string>
     <string name="test_title">입력해 보기</string>
     <string name="try_close">닫기</string>
-    <string name="try_button">⌨ 입력해 보기</string>
+    <string name="try_button">입력해 보기</string>
     <string name="test_hint">여기를 눌러 입력해 보세요</string>
     <string name="status_done">완료</string>
     <string name="status_todo">필요</string>
-    <string name="status_wait">먼저 1단계</string>
-    <string name="sec_setup">① 키보드를 켜고 선택해요</string>
-    <string name="sec_guide">② 사용법</string>
+    <string name="status_wait">1단계 필요</string>
+    <string name="sec_setup">키보드 설정</string>
+    <string name="sec_guide">사용법</string>
     <string name="sec_layout">자판</string>
     <string name="sec_feel">입력 느낌</string>
     <string name="sec_extras">편의 기능</string>
@@ -159,9 +159,16 @@
     <string name="tab_theme">테마</string>
     <string name="about_title">MBT 키보드</string>
     <string name="about_desc">갤럭시(폴드 포함)용 개인 키보드 · 한글 단모음 / 두벌식 / 영어</string>
-    <string name="status_ready">✅ 준비 완료! 이제 아무 입력칸에서나 쓸 수 있어요</string>
-    <string name="status_need_enable">① 먼저 키보드를 켜 주세요</string>
-    <string name="status_need_select">② 입력 방법을 MBT 키보드로 바꿔 주세요</string>
+    <string name="status_ready">준비 완료 · 아무 입력칸에서나 사용할 수 있어요</string>
+    <string name="status_need_enable">먼저 키보드를 켜 주세요</string>
+    <string name="status_need_select">입력 방법을 MBT 키보드로 바꿔 주세요</string>
+    <string name="theme_section_preset">키보드 테마</string>
+    <string name="theme_section_text_color">키보드 글자색</string>
+    <string name="theme_section_glass">글래스 효과</string>
+    <string name="theme_section_opacity">투명도</string>
+    <string name="check_update">업데이트 확인</string>
+    <string name="backup_title">설정 백업 및 복원</string>
+    <string name="backup_desc">테마, 크기, 타이밍, 진동, 상용문구 설정을 파일이나 클립보드로 저장하고 불러와요</string>
     <string name="guide_body">• 스페이스바를 좌우로 밀기 → 한/영 전환
 • 글자 키를 꾹 누르기 → 기호·괄호 (밀어서 고르기)
 • 글자 키를 좌우로 밀기 → 커서 이동

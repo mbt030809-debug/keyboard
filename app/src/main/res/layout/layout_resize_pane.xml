@@ -3,9 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/surface_page"
     android:orientation="vertical">
 
-    <!-- 항목 탭 ①~⑥: 상단 분류 바로 아래 밀착 -->
+    <!-- 항목 칩 바: 4dp 그리드 정렬 -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -15,37 +16,36 @@
             android:id="@+id/pageChips"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingStart="12dp"
-            android:paddingTop="2dp"
-            android:paddingEnd="12dp"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="4dp"
+            app:chipSpacingHorizontal="8dp"
             app:selectionRequired="true"
             app:singleLine="true"
             app:singleSelection="true" />
     </HorizontalScrollView>
 
-    <!-- 선택한 항목의 조절 컨트롤 카드 (불필요한 설명·도식 숨김, 배치로 직관적 표현) -->
+    <!-- 선택한 항목의 조절 컨트롤 카드 -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
         <com.google.android.material.card.MaterialCardView
-            style="?attr/materialCardViewFilledStyle"
+            style="@style/Widget.Mbt.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="2dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="4dp">
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingStart="14dp"
-                android:paddingTop="10dp"
-                android:paddingEnd="14dp"
-                android:paddingBottom="10dp">
+                android:padding="16dp">
 
                 <TextView
                     android:id="@+id/pageTitle"
@@ -91,5 +91,5 @@
         android:id="@+id/previewContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp" />
+        android:layout_marginTop="4dp" />
 </LinearLayout>
