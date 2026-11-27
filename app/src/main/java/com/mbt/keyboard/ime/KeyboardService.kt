@@ -20,6 +20,8 @@ import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedTextRequest
+import android.view.inputmethod.InputConnection
 import com.mbt.keyboard.hangul.HangulComposer
 import com.mbt.keyboard.hangul.Jamo
 import com.mbt.keyboard.layout.Key
@@ -502,10 +504,27 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
         } else {
             flushComposing()
             ic.commitText(text, 1)
-            // 괄호·따옴표 쌍: 커서를 두 글자 사이로
-            if (text in Layouts.PAIRS) sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT)
+            // 괄호·따옴표 쌍: 상용구처럼 두 글자를 먼저 입력한 뒤 커서를 왼쪽 1칸 이동
+            if (text in Layouts.PAIRS) moveCursorLeftAfterPair(ic)
         }
         consumeShift()
+    }
+
+    /**
+     * 쌍 특수문자(`()`, `[]` 등) 입력 직후 커서를 왼쪽 1칸 옮긴다.
+     * 1차로 `getExtractedText` + `setSelection`으로 직접 커서를 이동해 웹뷰·브라우저·일반 에디터에서
+     * 확실히 동작하게 하고, 이를 지원하지 않는 입력창(터미널 등)에서만 다음 루프에 `DPAD_LEFT`로 폴백한다.
+     */
+    internal fun moveCursorLeftAfterPair(ic: InputConnection) {
+        val extracted = ic.getExtractedText(ExtractedTextRequest(), 0)
+        if (extracted != null && extracted.selectionEnd > 0) {
+            val pos = extracted.startOffset.coerceAtLeast(0) + extracted.selectionEnd
+            if (pos > 0 && ic.setSelection(pos - 1, pos - 1)) return
+        }
+        mainHandler.post {
+            sendKey(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, 0)
+            sendKey(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT, 0)
+        }
     }
 
     /** 마이크 키: 듣는 중이면 마무리, 아니면 시작 (권한 없으면 요청 화면) */
