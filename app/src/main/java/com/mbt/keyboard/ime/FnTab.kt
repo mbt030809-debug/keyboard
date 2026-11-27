@@ -82,9 +82,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val tabL = src.frostTabLeftPx
         val tabR = tabL + w
         val cornerEdge = plateRad * 0.45f
-        val overCorner = docked && (tabL < cornerEdge - 1f * d || tabR > plateW - cornerEdge + 1f * d)
-        val baseClip = if (docked && src.frostTabOffsetYpx > 0f) src.frostTabOffsetYpx.coerceIn(0f, h) else h
-        val clipBottom = if (overCorner) (baseClip + 3f * d).coerceAtMost(h) else baseClip
+        val clipBottom = if (docked && src.frostTabOffsetYpx > 0f) src.frostTabOffsetYpx.coerceIn(0f, h) else h
         val layer = if (!docked) canvas.saveLayerAlpha(0f, 0f, w, h, tabAlpha) else -1
         // 도킹 시: 키보드 위로 삐져나온 부분(0..clipBottom)만 보조탭 배경을 그리고, 키보드 안쪽(clipBottom..h)은 비워 키(1,6 등)를 덮지 않는다
         val plateLeft = 0f
@@ -103,18 +101,20 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
                 canvas.clipPath(plate)
                 src.drawFrostTabSurface(canvas, w, clipBottom, rlb, rrb)
                 canvas.restore()
-                canvas.save()
-                if (docked) {
-                    canvas.clipOutRect(0f, clipBottom - 0.5f * d, w, clipBottom + 2f)
+                if (src.effectiveGlassType != 3 && src.effectiveGlassType != 4) {
+                    canvas.save()
+                    if (docked) {
+                        canvas.clipOutRect(0f, clipBottom - 0.5f * d, w, clipBottom + 2f)
+                    }
+                    paint.style = Paint.Style.STROKE
+                    paint.color = 0xFFFFFFFF.toInt()
+                    paint.strokeWidth = 2.0f * d
+                    paint.shader = src.frostRimShader(w, clipBottom)
+                    canvas.drawPath(plate, paint)
+                    paint.shader = null
+                    paint.style = Paint.Style.FILL
+                    canvas.restore()
                 }
-                paint.style = Paint.Style.STROKE
-                paint.color = 0xFFFFFFFF.toInt()
-                paint.strokeWidth = 1.6f * d
-                paint.shader = src.frostRimShader(w, clipBottom)
-                canvas.drawPath(plate, paint)
-                paint.shader = null
-                paint.style = Paint.Style.FILL
-                canvas.restore()
             } else {
                 src.drawPlainTabSurface(canvas, w, clipBottom, plate)
             }

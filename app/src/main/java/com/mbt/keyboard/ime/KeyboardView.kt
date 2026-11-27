@@ -1171,34 +1171,35 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 draw3dDomeOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, bgG, isPlate = true, skipBottom = fnTabDocked)
             } else if (effGlass == 4) {
                 drawMattePillowOptics(canvas, RectF(0f, 0f, tabW, tabH), r, r, rrb, rlb, bgG, isPlate = true)
-            }
-            val ins = 1.6f * density
-            glassPaint.style = Paint.Style.STROKE
-            glassPaint.color = 0xFFFFFFFF.toInt()
-            glassPaint.strokeWidth = 1.5f * density
-            glassPaint.shader = frostInnerRimShader(tabW, tabH, bgG)
-            val ir = (r - ins).coerceAtLeast(0f)
-            val irbL = if (rlb <= 0.5f) 0f else (rlb - ins).coerceAtLeast(0f)
-            val irbR = if (rrb <= 0.5f) 0f else (rrb - ins).coerceAtLeast(0f)
-            if (kotlin.math.abs(irbL - ir) < 0.5f && kotlin.math.abs(irbR - ir) < 0.5f) {
-                canvas.drawRoundRect(ins, ins, tabW - ins, tabH - ins, ir, ir, glassPaint)
             } else {
-                canvas.save()
-                if (fnTabDocked) {
-                    canvas.clipOutRect(0f, tabH - 0.5f * density, tabW, tabH + 1f)
+                val ins = 1.6f * density
+                glassPaint.style = Paint.Style.STROKE
+                glassPaint.color = 0xFFFFFFFF.toInt()
+                glassPaint.strokeWidth = 1.4f * density
+                glassPaint.shader = frostInnerRimShader(tabW, tabH, bgG)
+                val ir = (r - ins).coerceAtLeast(0f)
+                val irbL = if (rlb <= 0.5f) 0f else (rlb - ins).coerceAtLeast(0f)
+                val irbR = if (rrb <= 0.5f) 0f else (rrb - ins).coerceAtLeast(0f)
+                if (kotlin.math.abs(irbL - ir) < 0.5f && kotlin.math.abs(irbR - ir) < 0.5f) {
+                    canvas.drawRoundRect(ins, ins, tabW - ins, tabH - ins, ir, ir, glassPaint)
+                } else {
+                    canvas.save()
+                    if (fnTabDocked) {
+                        canvas.clipOutRect(0f, tabH - 0.5f * density, tabW, tabH + 1f)
+                    }
+                    val innerPath = Path().apply {
+                        addRoundRect(
+                            RectF(ins, ins, tabW - ins, tabH - ins),
+                            floatArrayOf(ir, ir, ir, ir, irbR, irbR, irbL, irbL),
+                            Path.Direction.CW,
+                        )
+                    }
+                    canvas.drawPath(innerPath, glassPaint)
+                    canvas.restore()
                 }
-                val innerPath = Path().apply {
-                    addRoundRect(
-                        RectF(ins, ins, tabW - ins, tabH - ins),
-                        floatArrayOf(ir, ir, ir, ir, irbR, irbR, irbL, irbL),
-                        Path.Direction.CW,
-                    )
-                }
-                canvas.drawPath(innerPath, glassPaint)
-                canvas.restore()
+                glassPaint.shader = null
+                glassPaint.style = Paint.Style.FILL
             }
-            glassPaint.shader = null
-            glassPaint.style = Paint.Style.FILL
         }
     }
 
@@ -1255,7 +1256,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         // 1. 바깥 0dp 흰색 테두리 림: 양옆(좌·우 변)은 밝게(0xEA), 위·아래는 조금 덜 밝게(0x9A~0xA6)해 입체 균형 형성
         glassPaint.style = Paint.Style.STROKE
         glassPaint.color = 0xFFFFFFFF.toInt()
-        val rimW = (if (isPlate) 2.6f else 1.4f) * density
+        val rimW = (if (isPlate) (if (dh < 90f * density) 2.0f else 2.6f) else 1.4f) * density
         glassPaint.strokeWidth = rimW
         val rimTopA = if (isPlate) 0x58 else 0x4A
         val rimSideA = if (isPlate) 0xEA else 0xEA
@@ -1307,7 +1308,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         glassPaint.shader = LinearGradient(
             0f, topY0, 0f, topY0 + topReach,
             intArrayOf(
-                scaleAlpha(((if (isPlate) 0x9C else 0xA2) shl 24) or 0xFFFFFF, s),
+                scaleAlpha(((if (isPlate) (if (dh < 90f * density) 0x6A else 0x9C) else 0xA2) shl 24) or 0xFFFFFF, s),
                 scaleAlpha(((if (isPlate) 0x68 else 0x6A) shl 24) or 0xFFFFFF, s),
                 scaleAlpha(((if (isPlate) 0x28 else 0x34) shl 24) or 0xFFFFFF, s),
                 scaleAlpha(((if (isPlate) 0x0C else 0x12) shl 24) or 0xFFFFFF, s),
