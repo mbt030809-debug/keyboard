@@ -28,10 +28,10 @@ class KeyboardThemesTest {
     }
 
     @Test fun fiveThemesWithUniqueIdsAndNames() {
-        assertEquals(11, KeyboardThemes.all.size)
-        assertEquals(11, KeyboardThemes.all.map { it.id }.toSet().size)
-        assertEquals(11, KeyboardThemes.all.map { it.name }.toSet().size)
-        assertEquals(11, KeyboardThemes.all.map { it.theme.background }.toSet().size)
+        assertEquals(17, KeyboardThemes.all.size)
+        assertEquals(17, KeyboardThemes.all.map { it.id }.toSet().size)
+        assertEquals(17, KeyboardThemes.all.map { it.name }.toSet().size)
+        assertEquals(17, KeyboardThemes.all.map { it.theme.background }.toSet().size)
     }
 
     /** 반투명 [fg]를 불투명 [bg] 위에 올린 색 */
@@ -59,7 +59,11 @@ class KeyboardThemesTest {
     }
 
     @Test fun glassThemesHaveGradientsOrTranslucentKeys() {
-        val glass = listOf("iosglass_holo", "iosglass_navy", "iosglass_taupe_refract", "sunset", "pinkcloud", "violet_coral_orb", "midnight_magenta_orb", "royal_cobalt_sunset", "pastel_pearl_orb", "aurora_prism_grain", "teal_peach_bloom")
+        val glass = listOf(
+            "iosglass_holo", "iosglass_navy", "iosglass_taupe_refract", "sunset", "pinkcloud",
+            "violet_coral_orb", "midnight_magenta_orb", "royal_cobalt_sunset", "pastel_pearl_orb", "aurora_prism_grain", "teal_peach_bloom",
+            "obsidian_mist", "espresso_cream", "indigo_cloud", "forest_jade", "burgundy_rose", "amethyst_lilac",
+        )
         glass.forEach { assertTrue(it, KeyboardThemes.byId(it) != null) }
         assertTrue(KeyboardThemes.byId("sunset")!!.theme.hasGradient)
         assertEquals(3, KeyboardThemes.byId("sunset")!!.theme.backgroundStops.size)
