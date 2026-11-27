@@ -38,7 +38,7 @@ object AppUpdater {
                 val props = fetchText("$VERSION_URL?t=${System.currentTimeMillis()}") ?: return@Thread
                 val remoteBuild = Regex("""build\s*=\s*(\d+)""").find(props)?.groupValues?.get(1)?.toIntOrNull() ?: return@Thread
                 if (remoteBuild <= currentBuild || remoteBuild == lastPromptedBuild) return@Thread
-                val apkUrl = "https://raw.githubusercontent.com/mbt030809-debug/keyboard/$BRANCH/dist/mbt-keyboard-b$remoteBuild-20261124.apk"
+                val apkUrl = "https://github.com/mbt030809-debug/keyboard/raw/refs/heads/$BRANCH/dist/mbt-keyboard-b$remoteBuild-20261124.apk"
                 val dir = File(activity.cacheDir, "updates").apply { mkdirs() }
                 val outFile = File(dir, "mbt-keyboard-b$remoteBuild.apk")
                 if (!outFile.exists() || outFile.length() < 100_000L) {
@@ -47,7 +47,15 @@ object AppUpdater {
                             Toast.makeText(activity, "새 버전(b$remoteBuild) 다운로드 중...", Toast.LENGTH_SHORT).show()
                         }
                     }
-                    if (!download(apkUrl, outFile)) return@Thread
+                    val ok = download(apkUrl, outFile)
+                    if (!ok) {
+                        activity.runOnUiThread {
+                            if (!activity.isFinishing) {
+                                Toast.makeText(activity, "b$remoteBuild APK 아직 준비 중이거나 다운로드 실패", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        return@Thread
+                    }
                 }
                 lastPromptedBuild = remoteBuild
                 activity.runOnUiThread {
@@ -55,7 +63,12 @@ object AppUpdater {
                         launchInstall(activity, outFile)
                     }
                 }
-            } catch (_: Throwable) {
+            } catch (t: Throwable) {
+                activity.runOnUiThread {
+                    if (!activity.isFinishing) {
+                        Toast.makeText(activity, "업데이트 확인 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
             } finally {
                 checking = false
             }
@@ -84,12 +97,16 @@ object AppUpdater {
                 .show()
             return
         }
-        val uri = FileProvider.getUriForFile(activity, "${activity.packageName}.fileprovider", apkFile)
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            val uri = FileProvider.getUriForFile(activity, "${activity.packageName}.fileprovider", apkFile)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            activity.startActivity(intent)
+        } catch (t: Throwable) {
+            Toast.makeText(activity, "설치 화면 실행 실패: ${t.message}", Toast.LENGTH_LONG).show()
         }
-        activity.startActivity(intent)
     }
 
     private fun fetchText(urlStr: String): String? {
@@ -127,6 +144,7 @@ object AppUpdater {
                     tmp.outputStream().use { output -> input.copyTo(output) }
                 }
                 if (tmp.length() < 100_000L) { tmp.delete(); return false }
+                if (dest.exists()) dest.delete()
                 return tmp.renameTo(dest)
             } finally {
                 conn.disconnect()
