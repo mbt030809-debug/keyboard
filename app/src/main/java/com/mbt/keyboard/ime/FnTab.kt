@@ -103,7 +103,7 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
                 canvas.restore()
                 canvas.save()
                 if (docked) {
-                    canvas.clipOutRect(0f, clipBottom - 2.5f * d, w, clipBottom + 2f)
+                    canvas.clipOutRect(0f, clipBottom - 0.5f * d, w, clipBottom + 2f)
                 }
                 paint.style = Paint.Style.STROKE
                 paint.color = 0xFFFFFFFF.toInt()

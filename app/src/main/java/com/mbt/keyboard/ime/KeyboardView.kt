@@ -844,7 +844,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     /** 보조탭용 배경 둥글기: 키보드 본판과 비슷한 체감 곡률이 되도록 보조탭 높이(약 44dp)에 맞춰 0~22dp를 0~50%로 매핑 */
     fun tabRadiusFor(w: Float, h: Float, frost: Boolean = theme.frost || bgGlassOn || keyGlassOn): Float {
         val baseDp = if (bgRadiusDp >= 0f) bgRadiusDp else if (keyRadiusDp >= 0f) keyRadiusDp else if (frost) 7f * FROST_KEY_RADIUS_SCALE else 7f
-        val ratio = (baseDp / 14f * 0.5f).coerceIn(0f, 0.5f)
+        val ratio = (baseDp / 8f * 0.5f).coerceIn(0f, 0.5f)
         return min(w, h) * ratio
     }
 
@@ -1185,7 +1185,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             } else {
                 canvas.save()
                 if (fnTabDocked) {
-                    canvas.clipOutRect(0f, tabH - 3f * density, tabW, tabH + 1f)
+                    canvas.clipOutRect(0f, tabH - 0.5f * density, tabW, tabH + 1f)
                 }
                 val innerPath = Path().apply {
                     addRoundRect(
@@ -1310,14 +1310,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             floatArrayOf(0f, 0.25f, 0.52f, 0.78f, 0.94f, 1f),
             Shader.TileMode.CLAMP,
         )
-        if (isPlate && fnTabDocked && fnTab && r.top == 0f && r.width() > fnTabWidthPx() + 4f * density) {
-            canvas.save()
-            canvas.clipOutRect(frostTabLeftPx + 1.5f * density, 0f, frostTabLeftPx + fnTabWidthPx() - 1.5f * density, topY0 + topReach)
-            canvas.drawPath(topPath, glassPaint)
-            canvas.restore()
-        } else {
-            canvas.drawPath(topPath, glassPaint)
-        }
+        canvas.drawPath(topPath, glassPaint)
 
         if (skipBottom) {
             canvas.restore()
@@ -1482,7 +1475,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         // 테두리를 따라 빛나는 이중 림 (셰이더 설정 전 반드시 color=0xFFFFFFFF로 alpha=255 복원)
         canvas.save()
         if (fnTabDocked && fnTab && bgGlassOn) {
-            canvas.clipOutRect(frostTabLeftPx + 1.5f * density, -1f, frostTabLeftPx + fnTabWidthPx() - 1.5f * density, 5f * density)
+            canvas.clipOutRect(frostTabLeftPx + 0.5f * density, -1f, frostTabLeftPx + fnTabWidthPx() - 0.5f * density, 5f * density)
         }
         glassPaint.style = Paint.Style.STROKE
         glassPaint.shader = null
