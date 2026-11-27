@@ -1293,9 +1293,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         glassPaint.style = Paint.Style.FILL
         glassPaint.color = 0xFFFFFFFF.toInt()
         val topY0 = r.top + insetY
-        val topCurv = (minOf(radTL, radTR) * 0.8f + 0.8f * density).coerceAtLeast(2f)
+        val topCurv = if (isPlate) (minOf(radTL, radTR) - insetX * 0.35f + 0.8f * density).coerceAtLeast(2f) else (minOf(radTL, radTR) * 0.8f + 0.8f * density).coerceAtLeast(2f)
         val domeArchRx = topCurv
-        val topReach = maxOf(innerH * (if (isPlate) 0.28f else 0.36f), domeArchRx + 2f * density).coerceAtMost(innerH * 0.55f)
+        val maxTopReach = if (isPlate && dh < 90f * density) innerH * 0.85f else innerH * 0.55f
+        val topReach = maxOf(innerH * (if (isPlate) 0.28f else 0.36f), domeArchRx + 2f * density).coerceAtMost(maxTopReach)
         val topFadeRy = minOf(topReach * 0.45f, (topReach - domeArchRx).coerceAtLeast(0f))
         val topRect = RectF(innerL, topY0, innerR, topY0 + topReach)
         val topPath = Path().apply {
@@ -1327,7 +1328,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         }
         // 3. 하단 볼록 역반사 (동일하게 곡률이 깎이지 않고 키·배경 윤곽을 따라 동그랗게 유지)
         val botY0 = r.bottom - insetY
-        val botCurv = ((if (isPlate) minOf(radTL, radTR) else minOf(radBL, radBR)) * 0.8f + 0.8f * density).coerceAtLeast(2f)
+        val botCurv = if (isPlate) (minOf(radTL, radTR) - insetX * 0.35f + 0.8f * density).coerceAtLeast(2f) else (minOf(radBL, radBR) * 0.8f + 0.8f * density).coerceAtLeast(2f)
         val botArchRx = botCurv
         val botReach = maxOf(innerH * (if (isPlate) 0.20f else 0.28f), botArchRx + 2f * density).coerceAtMost(innerH * 0.45f)
         val botFadeRy = minOf(botReach * 0.45f, (botReach - botArchRx).coerceAtLeast(0f))
