@@ -76,48 +76,44 @@ class FnTab(context: Context, private val src: KeyboardView) : View(context) {
         val radius = src.keyRadiusFor(kw - 2 * src.fnTabInsetPx(), kh - top, isGlassRadius)
         val docked = src.fnTabDocked
         val tabAlpha = (alphaPercent * 255 / 100).coerceIn(0, 255)
-        val plateW = src.width.toFloat().coerceAtLeast(w)
-        val plateH = src.height.toFloat().coerceAtLeast(h)
-        val plateRad = src.plateRadiusFor(plateW, plateH, isGlassRadius)
-        val tabL = src.frostTabLeftPx
-        val tabR = tabL + w
-        val cornerEdge = plateRad * 0.45f
         val clipBottom = if (docked && src.frostTabOffsetYpx > 0f) src.frostTabOffsetYpx.coerceIn(0f, h) else h
         val layer = if (!docked) canvas.saveLayerAlpha(0f, 0f, w, h, tabAlpha) else -1
-        // 도킹 시: 키보드 위로 삐져나온 부분(0..clipBottom)만 보조탭 배경을 그리고, 키보드 안쪽(clipBottom..h)은 비워 키(1,6 등)를 덮지 않는다
+        // 탭 자체 모양은 항상 4모서리 둥근 알약 그대로 유지하고, 도킹 시에는 키보드 안쪽(clipBottom..h)만 가려 키를 덮지 않으며 유리 테두리만 합친다
         val plateLeft = 0f
         paint.color = if (theme.frost) theme.backgroundMid else theme.background
         val gx = src.fnTabInsetPx()
         val tabRadius = src.tabRadiusFor(w, h, isGlassRadius)
-        val rl = tabRadius.coerceAtMost(clipBottom); val rr = tabRadius.coerceAtMost(clipBottom)
-        val rlb = if (docked && tabL >= cornerEdge - 1f * d && tabL < plateW - cornerEdge) 0f else tabRadius
-        val rrb = if (docked && tabR <= plateW - cornerEdge + 1f * d && tabR > cornerEdge) 0f else tabRadius
+        val rl = tabRadius; val rr = tabRadius
+        val rlb = tabRadius; val rrb = tabRadius
         plate.rewind()
-        plate.addRoundRect(RectF(plateLeft, 0f, w, clipBottom), floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)
+        plate.addRoundRect(RectF(plateLeft, 0f, w, h), floatArrayOf(rl, rl, rr, rr, rrb, rrb, rlb, rlb), Path.Direction.CW)
         if (clipBottom > 1f) {
             val dockLayer = if (docked) canvas.saveLayer(0f, 0f, w, clipBottom, null) else -1
+            canvas.save()
+            if (docked) canvas.clipRect(0f, 0f, w, clipBottom)
             if (attached || (src.bgGlassOn && src.glassType >= 0)) {
                 canvas.save()
                 canvas.clipPath(plate)
-                src.drawFrostTabSurface(canvas, w, clipBottom, rlb, rrb)
+                src.drawFrostTabSurface(canvas, w, h, rlb, rrb)
                 canvas.restore()
                 if (src.effectiveGlassType != 3 && src.effectiveGlassType != 4) {
                     canvas.save()
                     if (docked) {
-                        canvas.clipOutRect(1.5f * d, clipBottom - 1.2f * d, w - 1.5f * d, clipBottom + 2f)
+                        canvas.clipOutRect(1.5f * d, clipBottom - 1.2f * d, w - 1.5f * d, h + 2f)
                     }
                     paint.style = Paint.Style.STROKE
                     paint.color = 0xFFFFFFFF.toInt()
                     paint.strokeWidth = 2.0f * d
-                    paint.shader = src.frostRimShader(w, clipBottom)
+                    paint.shader = src.frostRimShader(w, h)
                     canvas.drawPath(plate, paint)
                     paint.shader = null
                     paint.style = Paint.Style.FILL
                     canvas.restore()
                 }
             } else {
-                src.drawPlainTabSurface(canvas, w, clipBottom, plate)
+                src.drawPlainTabSurface(canvas, w, h, plate)
             }
+            canvas.restore()
             if (docked && dockLayer >= 0) {
                 // 삐져나온 부분은 위(tabAlpha) → 키보드와 만나는 아래(255)로 부드럽게 그라데이션 불투명 적용
                 val gradSpan = 8.4f * d
