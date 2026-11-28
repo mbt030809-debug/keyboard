@@ -131,7 +131,7 @@
     <string name="number_left_switch">숫자 키를 왼쪽에 두기 (모아키처럼)</string>
     <string name="number_left_desc">단모음·두벌식·영어에서 맨 위 숫자 줄을 없애고 숫자를 왼쪽 세로 띠(2열)로 옮겨 글자 키를 키워요. 전체·복사·붙임·🎤·😊는 맨 아래 줄로 내려가요. 이때 "숫자 줄 크기"는 띠의 가로 길이가 돼요</string>
     <string name="swipe_double_switch">단모음 개선판: 쌍자음·ㅑㅕㅛㅠ는 밀어서 입력</string>
-    <string name="swipe_double_desc">켜면 ㄱ·ㄷ·ㅂ·ㅅ·ㅈ·ㅏ·ㅓ·ㅗ·ㅜ·ㅐ·ㅔ 키를 위·아래·왼쪽·오른쪽 어느 쪽으로든 밀면 ㄲ·ㄸ·ㅃ·ㅆ·ㅉ·ㅑ·ㅕ·ㅛ·ㅠ·ㅒ·ㅖ가 입력돼요. 연타로 바꾸는 기능은 꺼져서 "연타 기준" 시간은 필요 없어요</string>
+    <string name="swipe_double_desc">켜면 ㄱ·ㄷ·ㅂ·ㅅ·ㅈ·ㅏ·ㅓ·ㅗ·ㅜ·ㅐ·ㅔ 키를 위·아래로 밀면 ㄲ·ㄸ·ㅃ·ㅆ·ㅉ·ㅑ·ㅕ·ㅛ·ㅠ·ㅒ·ㅖ가 입력돼요. 연타로 바꾸는 기능은 꺼져서 "연타 기준" 시간은 필요 없어요. 좌우로 밀면 커서가 움직여요</string>
     <string name="layout_moaki">모아키 (자음을 누른 채 밀어서 모음 입력)</string>
     <string name="phrase_title">상용문구</string>
     <string name="phrase_desc">엔터를 꾹 누르면 나오는 패널의 "상용문구" 탭이에요. 네모난 칸(3열)으로 나오고, 한 줄에 하나씩 최대 100개까지 추가할 수 있어요</string>

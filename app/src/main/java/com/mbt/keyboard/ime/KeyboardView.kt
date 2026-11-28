@@ -579,14 +579,17 @@ class KeyboardView(context: Context) : View(context) {
             var halves = if (doSplit) Split.halves(row, layout.splitAt.getOrNull(r))
             else Split.Halves(row.map { Split.Part(it, it.weight) }, emptyList())
             val dups = HashSet<Split.Part>()
+            var dupLeft: Split.Part? = null
+            var dupRight: Split.Part? = null
             if (doSplit && splitDuplicate && !layout.hangul) {
                 val l = halves.left.lastOrNull()
                 val rt = halves.right.firstOrNull()
                 if (l != null && rt != null && l.key.type == KeyType.CHAR && rt.key.type == KeyType.CHAR) {
+                    // 복제 키는 가운데 틈 안에 얹는다: 원래 키들의 크기는 그대로 (복제 때문에 작아지지 않는다)
                     val dl = Split.Part(rt.key, DUPLICATE_WEIGHT)
                     val dr = Split.Part(l.key, DUPLICATE_WEIGHT)
                     dups += dl; dups += dr
-                    halves = Split.Halves(halves.left + dl, listOf(dr) + halves.right)
+                    dupLeft = dl; dupRight = dr
                 }
             }
             // 왼쪽 세로 띠(숫자)가 있으면 맨 아래 줄을 뺀 줄들은 그 오른쪽에서 시작한다
@@ -633,7 +636,20 @@ class KeyboardView(context: Context) : View(context) {
                 }
             }
             if (doSplit) halves = Split.equalizeSpace(halves)   // 규칙: 갈라진 스페이스바는 좌·우 반반
-            val placements = Split.place(halves, rowStartX, rowUsableW, rowGapW)
+            val basePlacements = Split.place(halves, rowStartX, rowUsableW, rowGapW)
+            val placements = ArrayList(basePlacements)
+            val dl0 = dupLeft; val dr0 = dupRight
+            if (dl0 != null && dr0 != null && halves.left.isNotEmpty() && halves.right.isNotEmpty()) {
+                val leftLast = basePlacements[halves.left.size - 1]
+                val rightFirst = basePlacements[halves.left.size]
+                val total = (halves.left + halves.right).sumOf { it.weight.toDouble() }.toFloat()
+                val unit = if (total > 0f) (rowUsableW - rowGapW) / total else 0f
+                val dw = min(DUPLICATE_WEIGHT * unit, (rightFirst.left - leftLast.right).coerceAtLeast(0f) / 2f)
+                if (dw > 0f) {
+                    placements += Split.Placement(dl0, leftLast.right, leftLast.right + dw)
+                    placements += Split.Placement(dr0, rightFirst.left - dw, rightFirst.left)
+                }
+            }
             if (doSplit && r == letterRowIdx && halves.left.isNotEmpty() && halves.right.isNotEmpty()) {
                 val leftCount = halves.left.size
                 if (placements.size > leftCount) {
@@ -2269,18 +2285,23 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 return
             }
         }
-        // 단모음 개선판: 쌍자음·ㅑㅕㅛㅠ 가 되는 키는 밀면(어느 쪽이든) 바뀐 글자가 입력된다 (커서 이동보다 먼저)
+        // 단모음 개선판: 쌍자음·ㅑㅕㅛㅠ 가 되는 키는 위·아래로 밀면 바뀐 글자가 입력된다 (커서 이동보다 먼저)
+        // 위·아래로만 민다 (좌우 밀기는 커서 이동용으로 남겨 둔다)
         if (swipeDoubleTarget(p.cell?.key) != null) {
-            if (!p.swipeDoubleDone) {
-                val dist = kotlin.math.hypot(x - p.downX, y - p.downY)
+            if (p.swipeDoubleDone) return
+            val dx = x - p.downX
+            val dy = y - p.downY
+            if (abs(dy) >= abs(dx)) {
+                val dist = kotlin.math.hypot(dx, dy)
                 if (dist >= max(p.cell!!.rect.width() * 0.30f, 12 * density)) {
                     p.swipeDoubleDone = true
                     p.cancelTimers()                 // 꾹 누르기(기호 말풍선)는 취소
                     haptics?.tick()
                     invalidate()
                 }
+                return
             }
-            return
+            // 가로 우세: 아래 커서 이동으로 넘어간다
         }
         // 글자 키 위에서 좌우로 밀면 커서 이동
         if (p.cursorDrag || startsCursorDrag(p, x, y)) {

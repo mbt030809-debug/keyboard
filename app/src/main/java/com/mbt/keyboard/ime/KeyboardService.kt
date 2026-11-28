@@ -602,7 +602,48 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     /** 전체선택·복사·붙여넣기 */
     private fun editAction(id: Int) {
         flushComposing()
-        currentInputConnection?.performContextMenuAction(id)
+        val ic = currentInputConnection ?: return
+        // 일부 앱(웹뷰·커스텀 편집기·터미널 등)은 컨텍스트 메뉴 동작을 지원하지 않아 false를 돌려준다 → 직접 처리로 대체
+        if (ic.performContextMenuAction(id)) return
+        when (id) {
+            android.R.id.selectAll -> selectAllFallback(ic)
+            android.R.id.copy -> copyFallback(ic)
+            android.R.id.paste -> pasteFallback(ic)
+        }
+    }
+
+    private fun selectAllFallback(ic: android.view.inputmethod.InputConnection) {
+        val before = ic.getTextBeforeCursor(100_000, 0)?.length ?: 0
+        val after = ic.getTextAfterCursor(100_000, 0)?.length ?: 0
+        if (before + after > 0 && ic.setSelection(0, before + after)) return
+        sendCtrlKey(android.view.KeyEvent.KEYCODE_A, ic)
+    }
+
+    private fun copyFallback(ic: android.view.inputmethod.InputConnection) {
+        val sel = ic.getSelectedText(0)
+        val cm = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
+        if (!sel.isNullOrEmpty() && cm != null) {
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("text", sel))
+            return
+        }
+        sendCtrlKey(android.view.KeyEvent.KEYCODE_C, ic)
+    }
+
+    private fun pasteFallback(ic: android.view.inputmethod.InputConnection) {
+        val cm = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
+        val text = cm?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)
+        if (!text.isNullOrEmpty()) {
+            ic.commitText(text, 1)       // 상용문구 입력과 같은 방식 (거의 모든 앱에서 동작)
+            return
+        }
+        sendCtrlKey(android.view.KeyEvent.KEYCODE_V, ic)
+    }
+
+    private fun sendCtrlKey(code: Int, ic: android.view.inputmethod.InputConnection) {
+        val t = SystemClock.uptimeMillis()
+        val meta = android.view.KeyEvent.META_CTRL_ON or android.view.KeyEvent.META_CTRL_LEFT_ON
+        ic.sendKeyEvent(android.view.KeyEvent(t, t, android.view.KeyEvent.ACTION_DOWN, code, 0, meta))
+        ic.sendKeyEvent(android.view.KeyEvent(t, t, android.view.KeyEvent.ACTION_UP, code, 0, meta))
     }
 
     /** 마지막으로 직접 고른 언어의 글자 자판 (영어 또는 설정한 한글 자판) */
