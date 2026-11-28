@@ -622,14 +622,17 @@ class KeyboardView(context: Context) : View(context) {
                         val leftSpaceW = upperGapLeft - (rowStartX + leftOtherW)
                         val rightSpaceW = (rowStartX + rowUsableW - rightOtherW) - upperGapRight
                         if (leftSpaceW >= unit * 0.4f && rightSpaceW >= unit * 0.4f) {
-                            val newLeft = halves.left.mapIndexed { idx, p -> if (idx == leftSpaceIdx) p.copy(weight = leftSpaceW / unit) else p }
-                            val newRight = halves.right.mapIndexed { idx, p -> if (idx == rightSpaceIdx) p.copy(weight = rightSpaceW / unit) else p }
+                            // 스페이스바는 좌·우 반반 (같은 크기)
+                            val halfSpaceWeight = (leftSpaceW + rightSpaceW) / 2f / unit
+                            val newLeft = halves.left.mapIndexed { idx, p -> if (idx == leftSpaceIdx) p.copy(weight = halfSpaceWeight) else p }
+                            val newRight = halves.right.mapIndexed { idx, p -> if (idx == rightSpaceIdx) p.copy(weight = halfSpaceWeight) else p }
                             halves = Split.Halves(newLeft, newRight)
                             rowGapW = effectiveGapW
                         }
                     }
                 }
             }
+            if (doSplit) halves = Split.equalizeSpace(halves)   // 규칙: 갈라진 스페이스바는 좌·우 반반
             val placements = Split.place(halves, rowStartX, rowUsableW, rowGapW)
             if (doSplit && r == letterRowIdx && halves.left.isNotEmpty() && halves.right.isNotEmpty()) {
                 val leftCount = halves.left.size

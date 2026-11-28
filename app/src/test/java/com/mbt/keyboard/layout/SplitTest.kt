@@ -24,6 +24,15 @@ class SplitTest {
         }
     }
 
+    @Test fun equalizedSpaceBarHalvesAreSameWeight() {
+        Layouts.all.forEach { l ->
+            val h = Split.equalizeSpace(halves(l, l.rows.lastIndex))
+            val lw = h.left.first { it.key.type == KeyType.SPACE }.weight
+            val rw = h.right.first { it.key.type == KeyType.SPACE }.weight
+            assertEquals(l.id, lw, rw, 0.001f)
+        }
+    }
+
     @Test fun spaceBarIsSplitIntoTwoHalvesInBottomRow() {
         Layouts.all.forEach { l ->
             val h = halves(l, l.rows.lastIndex)

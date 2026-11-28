@@ -75,4 +75,19 @@ object Split {
         }
         return Halves(left, right)
     }
+
+    /**
+     * 규칙: 나눠 쓸 때 스페이스바는 항상 좌·우 **같은 크기(반반)**. 두 조각 비중의 합을 절반씩 나눈다.
+     * 어느 한쪽에 스페이스가 없으면 그대로 둔다.
+     */
+    fun equalizeSpace(h: Halves): Halves {
+        val li = h.left.indexOfFirst { it.key.type == KeyType.SPACE }
+        val ri = h.right.indexOfFirst { it.key.type == KeyType.SPACE }
+        if (li < 0 || ri < 0) return h
+        val half = (h.left[li].weight + h.right[ri].weight) / 2f
+        return Halves(
+            h.left.mapIndexed { i, p -> if (i == li) p.copy(weight = half) else p },
+            h.right.mapIndexed { i, p -> if (i == ri) p.copy(weight = half) else p },
+        )
+    }
 }
