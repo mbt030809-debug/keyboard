@@ -15,13 +15,25 @@ import java.io.File
 
 /**
  * 업데이트: APK를 내려받아 바로 설치 화면을 연다 (브라우저에 파일만 받아 두지 않는다).
- * 내려받기는 시스템 다운로드 관리자가 하므로 앱에 INTERNET 권한은 필요 없다.
+ * 내려받기는 시스템 다운로드 관리자(DownloadManager)가 하지만, 이를 쓰려면 앱에 INTERNET 권한이 있어야 한다.
  */
 object UpdateInstaller {
     const val APK_NAME = "mbt-keyboard-latest.apk"
 
     /** @return 내려받기를 시작했으면 true. "출처를 알 수 없는 앱 설치" 허용이 없으면 설정 화면을 열고 false */
-    fun start(context: Context, url: String): Boolean {
+    fun start(context: Context, url: String): Boolean = try {
+        startInternal(context, url)
+    } catch (e: Exception) {
+        // 어떤 이유로든 내려받기를 못 시작하면 앱이 꺼지지 않게 브라우저 내려받기로 대신한다
+        val app = context.applicationContext
+        Toast.makeText(app, R.string.update_failed, Toast.LENGTH_LONG).show()
+        try {
+            app.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (_: Exception) { }
+        false
+    }
+
+    private fun startInternal(context: Context, url: String): Boolean {
         val app = context.applicationContext
         if (Build.VERSION.SDK_INT >= 26 && !app.packageManager.canRequestPackageInstalls()) {
             Toast.makeText(app, R.string.update_allow_install, Toast.LENGTH_LONG).show()

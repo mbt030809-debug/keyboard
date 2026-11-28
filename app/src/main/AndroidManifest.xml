@@ -3,7 +3,9 @@
 
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- 업데이트: 내려받은 APK의 설치 화면 열기 (내려받기는 시스템 다운로드 관리자라 INTERNET 불필요) -->
+    <!-- 업데이트: 시스템 다운로드 관리자(DownloadManager)로 새 APK를 받으려면 INTERNET 권한이 필요하다 (없으면 enqueue가 SecurityException으로 앱이 꺼진다) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 업데이트: 내려받은 APK의 설치 화면 열기 -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- 음성인식 서비스(구글 등) 조회용 -->
