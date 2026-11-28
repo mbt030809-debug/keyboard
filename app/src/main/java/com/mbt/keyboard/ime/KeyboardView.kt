@@ -1858,7 +1858,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 key.type == KeyType.VOICE && voiceListening -> theme.accent
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
                 key.type == KeyType.ENTER -> theme.enterKey
+                // 규칙: 전체·복사·붙임 키는 쉬프트 등과 같은 기능키 색 (테마마다 다르게 보이지 않게)
                 key.type == KeyType.SPACE || key.type == KeyType.BACKSPACE || key.type == KeyType.SHIFT || key.type == KeyType.EMOJI || key.type == KeyType.VOICE ||
+                    key.type in FN_TYPES ||
                     (keyboardLayout != Layouts.numberPad && cell.rect.top >= spaceRowTopPx() - 1f && (key.label == "," || key.label == ".")) ->
                     if (theme.spaceKey != 0) theme.spaceKey else theme.specialKey
                 isDigitKey(key) -> if (theme.spaceKey != 0) theme.spaceKey else theme.numberKey

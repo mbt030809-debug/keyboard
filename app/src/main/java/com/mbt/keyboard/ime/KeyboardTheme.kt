@@ -139,19 +139,23 @@ data class KeyboardTheme(
             }
             return android.graphics.Color.HSVToColor((c ushr 24) and 0xFF, hsv)
         }
-        fun make(k: Float) = deepen(shade(specialKey, specialToWhite, f0 * k), k)
+        fun make(base: Int, k: Float) = deepen(shade(base, specialToWhite, f0 * k), k)
         var k = 1f
-        var special = make(k)
-        while (k > 0.05f && textContrast(special) < 4.6 && textContrast(specialKey) >= 4.6) {
+        var special = make(specialKey, k)
+        // 스페이스·쉬프트 등이 쓰는 spaceKey도 같은 방식으로 보정 (기능키 색이 한 벌로 움직이게)
+        var space = if (spaceKey != 0) make(spaceKey, k) else 0
+        fun ok() = textContrast(special) >= 4.6 && (space == 0 || textContrast(space) >= 4.6)
+        while (k > 0.05f && !ok() && textContrast(specialKey) >= 4.6) {
             k -= 0.2f
-            special = make(k.coerceAtLeast(0f))
+            special = make(specialKey, k.coerceAtLeast(0f))
+            if (spaceKey != 0) space = make(spaceKey, k.coerceAtLeast(0f))
         }
-        if (frost) return copy(specialKey = special)
+        if (frost) return copy(specialKey = special, spaceKey = space)
         // 일반 테마: 키가 배경보다 밝으면 배경을 어둡게, 어두우면 배경을 밝게 (글자 키 색은 그대로라 글자 대비 유지)
         val bgToWhite = keyL < bgL
         fun bgShade(c: Int) = if (c == 0) 0 else shade(c, bgToWhite, KEY_CONTRAST * 0.8f)
         return copy(
-            specialKey = special,
+            specialKey = special, spaceKey = space,
             background = bgShade(background), backgroundMid = bgShade(backgroundMid), backgroundEnd = bgShade(backgroundEnd),
         )
     }
