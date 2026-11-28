@@ -11,7 +11,12 @@ import android.os.Environment
 import android.provider.Settings
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import android.os.Handler
+import android.os.Looper
+import androidx.core.content.pm.PackageInfoCompat
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 
 /**
  * 업데이트: APK를 내려받아 바로 설치 화면을 연다 (브라우저에 파일만 받아 두지 않는다).
@@ -19,6 +24,43 @@ import java.io.File
  */
 object UpdateInstaller {
     const val APK_NAME = "mbt-keyboard-latest.apk"
+
+    /** 최신 릴리스 정보 (CI가 릴리스 설명에 `build N`을 적어 둔다) */
+    const val LATEST_API = "https://api.github.com/repos/mbt030809-debug/keyboard/releases/tags/latest"
+
+    /** 최신 빌드 번호를 가져온다 (실패하면 null). 테스트에서 바꿔 끼울 수 있다 */
+    var fetchLatestBuild: () -> Int? = {
+        try {
+            val c = URL(LATEST_API).openConnection() as HttpURLConnection
+            c.connectTimeout = 8000; c.readTimeout = 8000
+            c.setRequestProperty("Accept", "application/vnd.github+json")
+            val body = c.inputStream.bufferedReader().use { it.readText() }
+            Regex("\"body\"\\s*:\\s*\"build\\s*(\\d+)").find(body)?.groupValues?.get(1)?.toInt()
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * 업데이트 확인 후 새 빌드가 있을 때만 내려받는다. 이미 최신이면 알려 주고 아무것도 받지 않는다.
+     * 네트워크는 백그라운드 스레드에서, 화면 동작은 메인 스레드에서 한다.
+     */
+    fun checkAndStart(context: Context, url: String) {
+        val app = context.applicationContext
+        val installed = try {
+            PackageInfoCompat.getLongVersionCode(app.packageManager.getPackageInfo(app.packageName, 0)).toInt()
+        } catch (_: Exception) { 0 }
+        Toast.makeText(app, R.string.update_checking, Toast.LENGTH_SHORT).show()
+        val main = Handler(Looper.getMainLooper())
+        Thread {
+            val latest = fetchLatestBuild()
+            main.post {
+                when {
+                    latest == null -> Toast.makeText(app, R.string.update_check_failed, Toast.LENGTH_LONG).show()
+                    latest <= installed -> Toast.makeText(app, app.getString(R.string.update_latest, installed), Toast.LENGTH_LONG).show()
+                    else -> start(app, url)
+                }
+            }
+        }.start()
+    }
 
     /** @return 내려받기를 시작했으면 true. "출처를 알 수 없는 앱 설치" 허용이 없으면 설정 화면을 열고 false */
     fun start(context: Context, url: String): Boolean = try {

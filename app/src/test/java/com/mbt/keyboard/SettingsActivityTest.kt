@@ -28,6 +28,7 @@ class SettingsActivityTest {
     }
 
     @Test fun checkUpdateButtonDownloadsInAppInsteadOfOpeningTheBrowser() {
+        com.mbt.keyboard.UpdateInstaller.fetchLatestBuild = { null }       // 테스트에서는 네트워크를 쓰지 않는다
         ActivityScenario.launch(SettingsActivity::class.java).use { sc ->
             sc.onActivity { a ->
                 a.findViewById<android.view.View>(R.id.btnCheckUpdate).performClick()

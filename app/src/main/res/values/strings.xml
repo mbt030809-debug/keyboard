@@ -170,6 +170,9 @@
     <string name="update_no_browser">브라우저를 열 수 없습니다</string>
     <string name="update_allow_install">"이 앱의 설치 허용"을 켠 뒤 다시 눌러 주세요</string>
     <string name="update_downloading">최신 버전을 내려받는 중… 끝나면 설치 화면이 열려요</string>
+    <string name="update_checking">업데이트 확인 중…</string>
+    <string name="update_latest">이미 최신 버전이에요 (빌드 %1$d)</string>
+    <string name="update_check_failed">업데이트 정보를 가져오지 못했어요. 네트워크를 확인해 주세요</string>
     <string name="update_failed">내려받기에 실패했어요. 잠시 뒤 다시 시도해 주세요</string>
     <string name="backup_title">설정 백업 및 복원</string>
     <string name="backup_desc">테마, 크기, 타이밍, 진동, 상용문구 설정을 파일이나 클립보드로 저장하고 불러와요</string>
