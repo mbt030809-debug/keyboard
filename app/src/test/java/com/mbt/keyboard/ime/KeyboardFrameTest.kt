@@ -612,7 +612,7 @@ class SpaceRowScaleTest {
         assertEquals(1.3f, g.copy(spaceRowPct = 130).spaceRowScale, 0.001f)
     }
 
-    @Test fun splitSpacebarsAlignWithUpperLetterRowGap() {
+    @Test fun splitSpacebarsAreEqualHalves() {
         for (nl in listOf(true, false)) {
             for (ft in listOf(true, false)) {
                 val v = KeyboardView(ctx).apply {
@@ -624,12 +624,9 @@ class SpaceRowScaleTest {
                     layout(0, 0, measuredWidth, measuredHeight)
                 }
                 val rects = v.keyInnerRects()
-                val leftEdgeKey = rects.first { it.first.label == "ㅅ" }.second
-                val rightEdgeKey = rects.first { it.first.label == "ㅗ" }.second
                 val spaces = rects.filter { it.first.type == com.mbt.keyboard.layout.KeyType.SPACE }.map { it.second }.sortedBy { it.left }
                 assertEquals(2, spaces.size)
-                assertEquals("nl=$nl ft=$ft 왼쪽 스페이스 오른쪽 끝이 ㅅ 오른쪽 끝과 일치", leftEdgeKey.right, spaces[0].right, 0.5f)
-                assertEquals("nl=$nl ft=$ft 오른쪽 스페이스 왼쪽 끝이 ㅗ 왼쪽 끝과 일치", rightEdgeKey.left, spaces[1].left, 0.5f)
+                assertEquals("nl=$nl ft=$ft 스페이스바 좌·우 반반", spaces[0].width(), spaces[1].width(), 0.5f)
             }
         }
     }

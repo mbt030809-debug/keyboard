@@ -229,8 +229,8 @@ object Layouts {
             bottom(),
         ),
         rowHeights,
-        // 마지막 글자 줄: ⇧zxcvb | nm⌫  (b는 왼손 키)
-        splitAt = listOf(null, null, null, 6, null),
+        // 마지막 글자 줄: ⇧zxcv | bnm⌫  (b는 오른쪽으로)
+        splitAt = listOf(null, null, null, 5, null),
     )
 
     /** 모아키 자판 (한글 자판 선택지) */

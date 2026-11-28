@@ -50,9 +50,9 @@ class SplitTest {
         assertEquals("yuiop", halves(en, 1).rightLabels().joinToString(""))
         assertEquals("asdfg", halves(en, 2).leftLabels().filter { it.isNotEmpty() }.joinToString(""))
         assertEquals("hjkl", halves(en, 2).rightLabels().filter { it.isNotEmpty() }.joinToString(""))
-        // b는 왼손, n은 오른손
-        assertEquals(listOf("⇧", "z", "x", "c", "v", "b"), halves(en, 3).leftLabels())
-        assertEquals(listOf("n", "m", "⌫"), halves(en, 3).rightLabels())
+        // b는 오른쪽(규칙)
+        assertEquals(listOf("⇧", "z", "x", "c", "v"), halves(en, 3).leftLabels())
+        assertEquals(listOf("b", "n", "m", "⌫"), halves(en, 3).rightLabels())
     }
 
     @Test fun dubeolsikSplitsConsonantsLeftAndVowelsRight() {
