@@ -248,9 +248,9 @@ class SplitDuplicateTest {
 
     @Test fun onShowsTheOtherHandsFirstKeyAtEachInnerEdge() {
         view.splitDuplicate = true; relayout()
-        // 왼쪽 안쪽: y h n / 오른쪽 안쪽: t g b
-        "ythgnb".forEach { assertEquals("$it", 2, count(it.toString())) }
-        "qwerasdfzxcvuiopjklm".forEach { assertEquals("$it", 1, count(it.toString())) }
+        // 왼쪽 안쪽: y h b / 오른쪽 안쪽: t g v (b는 오른쪽 묶음 첫 키)
+        "ythgvb".forEach { assertEquals("$it", 2, count(it.toString())) }
+        "qwerasdfzxcuiopjklmn".forEach { assertEquals("$it", 1, count(it.toString())) }
         val mid = widthPx / 2f
         val y = view.keyRects().filter { it.first.label == "y" }.map { it.second.centerX() }
         assertTrue(y.min() < mid && y.max() > mid)                 // 하나는 왼쪽 묶음, 하나는 오른쪽 묶음
