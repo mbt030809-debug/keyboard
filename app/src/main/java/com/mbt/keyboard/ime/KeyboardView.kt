@@ -13,6 +13,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.text.TextPaint
 import android.text.TextUtils
 import android.util.SparseArray
@@ -268,7 +269,10 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     /** [rect]는 터치 판정 영역, [inner]는 그려지는 영역(키 사이 틈 제외, 미리 계산해 그릴 때 객체를 만들지 않음) */
-    private class Cell(val key: Key, val rect: RectF, val inner: RectF, val duplicate: Boolean = false)
+    private class Cell(val key: Key, val rect: RectF, val inner: RectF, val duplicate: Boolean = false) {
+        /** 눌림 진행도 0(안 눌림)~1(완전히 눌림): 눌림·뗌 전환을 부드럽게 그리기 위한 값 */
+        var press = 0f
+    }
 
     /** 꾹 누르기 팝업(후보 가로 나열). [rects]는 항목별 영역 */
     private class Popup(
@@ -845,6 +849,15 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     
 
     private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val backdropSaturation = android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix().apply { setSaturation(BACKDROP_SATURATION) })
+    private var lastPressFrameMs = 0L
+
+    private fun easeOut(t: Float): Float = 1f - (1f - t) * (1f - t)
+
+    private fun lerpColor(a: Int, b: Int, t: Float): Int {
+        fun ch(sh: Int) = ((((a ushr sh) and 0xFF) * (1f - t)) + (((b ushr sh) and 0xFF) * t) + 0.5f).toInt().coerceIn(0, 255)
+        return (ch(24) shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+    }
     private val glassPath = Path()
     private val rimBaseColors = intArrayOf(
         0xFFFFFFFF.toInt(),
@@ -1599,7 +1612,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
      * 모든 셰이더 호출 전 glassPaint.color = 0xFFFFFFFF.toInt() (alpha=255)를 보장해
      * 키 투명도(keyOpacity)가 낮거나 반투명 기능키여도 유리 질감이 100% 선명하게 표현된다.
      */
-    internal fun drawFrostKey(canvas: Canvas, r: RectF, radius: Float, tint: Int, pressed: Boolean, tabShiftX: Float = 0f, tabShiftY: Float = 0f) {
+    internal fun drawFrostKey(canvas: Canvas, r: RectF, radius: Float, tint: Int, pressed: Boolean, tabShiftX: Float = 0f, tabShiftY: Float = 0f, pressT: Float = if (pressed) 1f else 0f) {
         val keyG = if (glassType >= 0) keyGlassStrength.coerceIn(0f, 1f) else 1f
         val gType = effGlass
         keyPath.rewind()
@@ -1639,7 +1652,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 if (src.width() > 0 && src.height() > 0) {
                     glassPaint.color = 0xFFFFFFFF.toInt()
                     glassPaint.alpha = (keyG * 175f).toInt().coerceIn(0, 205)
+                    glassPaint.colorFilter = backdropSaturation      // 뒷배경 색을 키가 머금도록 채도를 올린다 (Liquid Glass tint)
                     canvas.drawBitmap(kb, src, r, glassPaint)
+                    glassPaint.colorFilter = null
                 }
             }
             val base = if (pressed) withKeyOpacity(theme.keyPressed) else tint
@@ -1753,6 +1768,12 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
             canvas.drawRoundRect(r, radius, radius, glassPaint)
             drawMattePillowOptics(canvas, r, radius, radius, radius, radius, keyG, isPlate = false)
         }
+        // 인터랙티브 글래스: 누르는 동안 유리가 은은하게 밝아진다 (번쩍이는 효과 없이 자연스럽게)
+        if (pressT > 0.001f) {
+            glassPaint.shader = null
+            glassPaint.color = ((0x2E * pressT * keyG.coerceAtLeast(0.4f)).toInt().coerceIn(0, 255) shl 24) or 0xFFFFFF
+            canvas.drawRoundRect(r, radius, radius, glassPaint)
+        }
         glassPaint.shader = null
         canvas.restore()
 
@@ -1850,11 +1871,22 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         drawBackground(canvas)
         val gap = 3 * density
         if (showHitZones) drawHitZones(canvas)
+        // 눌림 애니메이션: 누를 때 빠르게(≈70ms), 뗄 때 조금 느리게(≈130ms) 움직여 어색하지 않게 한다
+        val nowMs = SystemClock.uptimeMillis()
+        val dtMs = (nowMs - lastPressFrameMs).coerceIn(1L, 32L).toFloat()
+        lastPressFrameMs = nowMs
+        var pressAnimating = false
         for (cell in cells) {
             val key = cell.key
+            val target = if (isPressed(cell)) 1f else 0f
+            if (cell.press != target) {
+                cell.press = if (target > cell.press) (cell.press + dtMs / PRESS_IN_MS).coerceAtMost(1f)
+                else (cell.press - dtMs / PRESS_OUT_MS).coerceAtLeast(0f)
+                if (cell.press != target) pressAnimating = true
+            }
+            val pressT = cell.press
             val isSpecial = key.type !in NORMAL_STYLE_TYPES || key.type == KeyType.VOICE      // 음성인식 키도 쉬프트·이모티콘 키와 같은 배경색
-            paint.color = when {
-                isPressed(cell) -> theme.keyPressed
+            val idleColor = when {
                 key.type == KeyType.VOICE && voiceListening -> theme.accent
                 key.type == KeyType.SHIFT && shiftState != ShiftState.OFF -> theme.keyPressed
                 key.type == KeyType.ENTER -> theme.enterKey
@@ -1867,15 +1899,16 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 isSpecial || cell.duplicate -> theme.specialKey
                 else -> theme.key
             }
-            paint.color = withKeyOpacity(paint.color)
+            paint.color = withKeyOpacity(if (pressT > 0f) lerpColor(idleColor, theme.keyPressed, easeOut(pressT)) else idleColor)
             // 눌림 피드백(ui-ux-pro-max: active scale 0.95~0.97): 누르는 순간 키가 살짝 작아져 즉각 반응이 보인다
-            val r = if (isPressed(cell)) RectF(cell.inner).apply {
-                inset(cell.inner.width() * PRESS_SCALE_INSET, cell.inner.height() * PRESS_SCALE_INSET)
+            val r = if (pressT > 0.001f) RectF(cell.inner).apply {
+                val k = PRESS_SCALE_INSET * easeOut(pressT)
+                inset(cell.inner.width() * k, cell.inner.height() * k)
             } else cell.inner
             val useFrostKey = keyGlassOn
             val radius = keyRadiusFor(r, useFrostKey)
             if (useFrostKey) {
-                drawFrostKey(canvas, r, radius, paint.color, isPressed(cell))
+                drawFrostKey(canvas, r, radius, paint.color, false, pressT = easeOut(pressT))
             } else if (theme.keyShadow) {
                 val keep = paint.color
                 paint.color = 0x26000000
@@ -1953,6 +1986,7 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         }
         message?.let { drawMessage(canvas, it) }
         if (undoMark) drawUndoMark(canvas)
+        if (pressAnimating) postInvalidateOnAnimation()      // 눌림 애니메이션이 끝날 때까지 다음 프레임 예약
     }
 
     /**
@@ -2634,6 +2668,13 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
 
         /** 눌렸을 때 키 한 변의 줄어드는 비율(양쪽 합쳐 약 4% → scale 0.96) */
         const val PRESS_SCALE_INSET = 0.02f
+
+        /** 눌림 애니메이션 길이(ms): 누를 때는 즉각적으로, 뗄 때는 조금 더 부드럽게 */
+        const val PRESS_IN_MS = 70f
+        const val PRESS_OUT_MS = 130f
+
+        /** 글래스 키가 비추는 뒷배경의 채도 배율 (1 = 그대로) */
+        const val BACKDROP_SATURATION = 1.45f
         /** 옛 고정 간격(키 높이에서 빼던 값) */
         const val LEGACY_GAP_DP = 6f
         const val REPEAT_DELAY_MS = 400L
