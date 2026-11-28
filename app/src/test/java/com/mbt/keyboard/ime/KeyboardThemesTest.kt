@@ -45,8 +45,8 @@ class KeyboardThemesTest {
         KeyboardThemes.all.forEach { n ->
             val t = n.theme
             val bg = t.backgroundStops.first()
-            val d = kotlin.math.abs(lum(over(t.key, bg)) - lum(over(t.specialKey, bg)))
-            assertTrue("${n.id} 글자키↔기능키 명도차 $d", d > 0.02)
+            val d = contrast(over(t.key, bg), over(t.specialKey, bg))
+            assertTrue("${n.id} 글자키↔기능키 대비 $d", d >= 1.25)
         }
         val sys = KeyboardTheme.system(ctx)
         assertTrue(contrast(sys.key, sys.background) >= 1.3)

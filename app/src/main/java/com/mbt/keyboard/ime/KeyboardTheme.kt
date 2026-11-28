@@ -102,7 +102,27 @@ data class KeyboardTheme(
         val bgL = backgroundStops.map { lum(solid(it)) }.average().toFloat()
         val keyL = lum(solid(key))
         // 기능키: 글자 키가 더 밝으면 더 어둡게, 더 어두우면 더 밝게
-        val special = shade(specialKey, toWhite = lum(solid(specialKey)) >= keyL, f = KEY_CONTRAST)
+        // 어두운 키는 같은 비율로 밀어도 명도차가 작아 더 세게 민다. 글자 대비(4.6)가 깨지면 보정 폭을 줄인다
+        val specialToWhite = lum(solid(specialKey)) >= keyL
+        fun relLum(c: Int): Double {
+            fun ch(v: Int): Double { val x = v / 255.0; return if (x <= 0.03928) x / 12.92 else Math.pow((x + 0.055) / 1.055, 2.4) }
+            return 0.2126 * ch((c shr 16) and 0xFF) + 0.7152 * ch((c shr 8) and 0xFF) + 0.0722 * ch(c and 0xFF)
+        }
+        fun overStop(fg: Int, bg: Int): Int {
+            val a = ((fg ushr 24) and 0xFF) / 255f
+            fun ch(sh: Int) = ((((fg shr sh) and 0xFF) * a) + ((bg shr sh) and 0xFF) * (1 - a)).toInt()
+            return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+        }
+        fun textContrast(c: Int) = backgroundStops.minOf { stop ->
+            val a = relLum(text); val b = relLum(overStop(c, stop))
+            (maxOf(a, b) + 0.05) / (minOf(a, b) + 0.05)
+        }
+        var f = if (keyL < 0.3f) KEY_CONTRAST_DARK else KEY_CONTRAST
+        var special = shade(specialKey, specialToWhite, f)
+        while (f > 0.01f && textContrast(special) < 4.6 && textContrast(specialKey) >= 4.6) {
+            f -= 0.02f
+            special = shade(specialKey, specialToWhite, f.coerceAtLeast(0f))
+        }
         if (frost) return copy(specialKey = special)
         // 일반 테마: 키가 배경보다 밝으면 배경을 어둡게, 어두우면 배경을 밝게 (글자 키 색은 그대로라 글자 대비 유지)
         val bgToWhite = keyL < bgL
@@ -116,6 +136,9 @@ data class KeyboardTheme(
     companion object {
         /** [boosted]: 명도를 얼마나 밀지 (0~1) */
         const val KEY_CONTRAST = 0.16f
+
+        /** 어두운 키(명도 낮음)용 */
+        const val KEY_CONTRAST_DARK = 0.32f
 
         /** 숫자 키를 글자 키보다 얼마나 어둡게 할지 (0~1) */
         const val NUMBER_KEY_DARKEN = 0.20f
