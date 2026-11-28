@@ -393,10 +393,9 @@ class KeyboardServiceGeometryTest {
         assertEquals(QuickPanel.TAB_PHRASES, panel.tab)
         panel.clipsTab.performClick()                                         // 최근기록 탭
         val shown = (panel.getChildAt(1) as android.widget.ScrollView).getChildAt(0) as android.widget.LinearLayout
-        val texts = (0 until shown.childCount).flatMap { i ->
-            val c = shown.getChildAt(i)
-            if (c is android.view.ViewGroup) (0 until c.childCount).map { c.getChildAt(it) } else listOf(c)
-        }.filterIsInstance<android.widget.TextView>().map { it.text.toString() }
+        fun leaves(v: View): List<View> =
+            if (v is android.view.ViewGroup) (0 until v.childCount).flatMap { leaves(v.getChildAt(it)) } else listOf(v)
+        val texts = leaves(shown).filterIsInstance<android.widget.TextView>().map { it.text.toString() }
         assertTrue(texts.toString(), "복사해 둔 글자" in texts)
     }
 
