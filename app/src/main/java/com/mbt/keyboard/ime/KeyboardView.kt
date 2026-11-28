@@ -1868,7 +1868,10 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
                 else -> theme.key
             }
             paint.color = withKeyOpacity(paint.color)
-            val r = cell.inner
+            // 눌림 피드백(ui-ux-pro-max: active scale 0.95~0.97): 누르는 순간 키가 살짝 작아져 즉각 반응이 보인다
+            val r = if (isPressed(cell)) RectF(cell.inner).apply {
+                inset(cell.inner.width() * PRESS_SCALE_INSET, cell.inner.height() * PRESS_SCALE_INSET)
+            } else cell.inner
             val useFrostKey = keyGlassOn
             val radius = keyRadiusFor(r, useFrostKey)
             if (useFrostKey) {
@@ -2628,6 +2631,9 @@ return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
         const val UNDO_MARK_DP = 52f
         const val UNDO_MARK_MS = 900L
         const val DUPLICATE_WEIGHT = 0.85f
+
+        /** 눌렸을 때 키 한 변의 줄어드는 비율(양쪽 합쳐 약 4% → scale 0.96) */
+        const val PRESS_SCALE_INSET = 0.02f
         /** 옛 고정 간격(키 높이에서 빼던 값) */
         const val LEGACY_GAP_DP = 6f
         const val REPEAT_DELAY_MS = 400L

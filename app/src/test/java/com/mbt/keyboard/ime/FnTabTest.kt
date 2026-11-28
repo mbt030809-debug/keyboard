@@ -395,6 +395,7 @@ class FrostThemeTest {
             ids + listOf(
                 "iosglass_taupe_refract", "sunset", "pinkcloud",
                 "violet_coral_orb", "midnight_magenta_orb", "royal_cobalt_sunset", "pastel_pearl_orb", "aurora_prism_grain", "teal_peach_bloom",
+                "messenger_blue_glass", "messenger_night_glass",
                 "obsidian_mist", "espresso_cream", "indigo_cloud", "forest_jade", "burgundy_rose", "amethyst_lilac",
             ),
             all.filter { it.theme.frost }.map { it.id },

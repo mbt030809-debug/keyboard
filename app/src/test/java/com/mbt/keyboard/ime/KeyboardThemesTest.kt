@@ -28,10 +28,10 @@ class KeyboardThemesTest {
     }
 
     @Test fun fiveThemesWithUniqueIdsAndNames() {
-        assertEquals(17, KeyboardThemes.all.size)
-        assertEquals(17, KeyboardThemes.all.map { it.id }.toSet().size)
-        assertEquals(17, KeyboardThemes.all.map { it.name }.toSet().size)
-        assertEquals(17, KeyboardThemes.all.map { it.theme.background }.toSet().size)
+        assertEquals(19, KeyboardThemes.all.size)
+        assertEquals(19, KeyboardThemes.all.map { it.id }.toSet().size)
+        assertEquals(19, KeyboardThemes.all.map { it.name }.toSet().size)
+        assertEquals(19, KeyboardThemes.all.map { it.theme.background }.toSet().size)
     }
 
     /** 반투명 [fg]를 불투명 [bg] 위에 올린 색 */
