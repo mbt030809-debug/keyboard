@@ -44,7 +44,14 @@ data class KeyboardTheme(
         get() {
             if (numberKeyGlass != 0) return numberKeyGlass
             fun ch(sh: Int) = (((key ushr sh) and 0xFF) * (1f - NUMBER_KEY_DARKEN) + 0.5f).toInt().coerceIn(0, 255)
-            return (key and 0xFF000000.toInt()) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+            val darker = (key and 0xFF000000.toInt()) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+            // 숫자 키도 글자 키와 색이 구분되도록 강조색 쪽으로 살짝 물들인다
+            val hsv = FloatArray(3)
+            android.graphics.Color.colorToHSV(darker, hsv)
+            val ah = FloatArray(3)
+            android.graphics.Color.colorToHSV(accent, ah)
+            if (hsv[1] < 0.12f) { hsv[0] = ah[0]; hsv[1] = 0.14f } else hsv[1] = (hsv[1] * 1.3f + 0.04f).coerceAtMost(1f)
+            return android.graphics.Color.HSVToColor((darker ushr 24) and 0xFF, hsv)
         }
 
     /**
@@ -117,11 +124,27 @@ data class KeyboardTheme(
             val a = relLum(text); val b = relLum(overStop(c, stop))
             (maxOf(a, b) + 0.05) / (minOf(a, b) + 0.05)
         }
-        var f = if (keyL < 0.3f) KEY_CONTRAST_DARK else KEY_CONTRAST
-        var special = shade(specialKey, specialToWhite, f)
-        while (f > 0.01f && textContrast(special) < 4.6 && textContrast(specialKey) >= 4.6) {
-            f -= 0.02f
-            special = shade(specialKey, specialToWhite, f.coerceAtLeast(0f))
+        val f0 = if (keyL < 0.3f) KEY_CONTRAST_DARK else KEY_CONTRAST
+        // 명도뿐 아니라 색도 더 진하게: 채도를 올리고, 거의 무채색이면 강조색 계열로 물들인다
+        fun deepen(c: Int, k: Float): Int {
+            val hsv = FloatArray(3)
+            android.graphics.Color.colorToHSV(c, hsv)
+            if (hsv[1] < 0.10f) {
+                val ah = FloatArray(3)
+                android.graphics.Color.colorToHSV(accent, ah)
+                hsv[0] = ah[0]
+                hsv[1] = 0.10f + (KEY_SATURATION_TINT - 0.10f) * k
+            } else {
+                hsv[1] = (hsv[1] * (1f + 0.5f * k) + 0.08f * k).coerceAtMost(1f)
+            }
+            return android.graphics.Color.HSVToColor((c ushr 24) and 0xFF, hsv)
+        }
+        fun make(k: Float) = deepen(shade(specialKey, specialToWhite, f0 * k), k)
+        var k = 1f
+        var special = make(k)
+        while (k > 0.05f && textContrast(special) < 4.6 && textContrast(specialKey) >= 4.6) {
+            k -= 0.2f
+            special = make(k.coerceAtLeast(0f))
         }
         if (frost) return copy(specialKey = special)
         // 일반 테마: 키가 배경보다 밝으면 배경을 어둡게, 어두우면 배경을 밝게 (글자 키 색은 그대로라 글자 대비 유지)
@@ -136,6 +159,9 @@ data class KeyboardTheme(
     companion object {
         /** [boosted]: 명도를 얼마나 밀지 (0~1) */
         const val KEY_CONTRAST = 0.16f
+
+        /** 거의 무채색인 기능키를 강조색 계열로 물들일 때의 채도 (0~1) */
+        const val KEY_SATURATION_TINT = 0.32f
 
         /** 어두운 키(명도 낮음)용 */
         const val KEY_CONTRAST_DARK = 0.32f
