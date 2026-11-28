@@ -118,14 +118,19 @@ class QuickPanel(
             container.addView(guide("저장된 상용구가 없어요\n앱 설정 화면에서 추가해 주세요"))
             return
         }
-        phrases.chunked(COLUMNS).forEach { rowItems ->
+        addGrid(phrases) { phraseCell(it) }
+    }
+
+    /** 상용문구·최근기록 공통: 한 행에 [COLUMNS]칸씩 네모난 칸으로 배치 (행은 개수만큼 늘어난다) */
+    private fun addGrid(items: List<String>, makeCell: (String) -> View) {
+        items.chunked(COLUMNS).forEach { rowItems ->
             val row = LinearLayout(context).apply {
                 orientation = HORIZONTAL
                 isBaselineAligned = false
             }
             repeat(COLUMNS) { i ->
                 val text = rowItems.getOrNull(i)
-                val cell: View = if (text != null) phraseCell(text) else View(context)
+                val cell: View = if (text != null) makeCell(text) else View(context)
                 // 가로는 3등분(열 정렬), 세로는 MATCH_PARENT: 같은 줄 칸들은 가장 큰 칸 높이로 통일(행 정렬)
                 row.addView(cell, LayoutParams(0, LayoutParams.MATCH_PARENT, 1f).apply { setMargins(dp(3), dp(3), dp(3), dp(3)) })
             }
@@ -151,7 +156,7 @@ class QuickPanel(
             },
             LayoutParams(LayoutParams.MATCH_PARENT, dp(32)),
         )
-        clips.forEach { container.addView(clipRow(it)) }
+        addGrid(clips) { clipCell(it) }
     }
 
     private fun guide(message: String) = TextView(context).apply {
@@ -177,41 +182,25 @@ class QuickPanel(
         setOnClickListener { listener.onInsert(text) }
     }
 
-    private fun clipRow(text: String): View {
-        val row = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            background = box()
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, dp(3), 0, dp(3))
-            }
-        }
-        row.addView(
-            TextView(context).apply {
-                this.text = text
-                textSize = 14f
-                setTextColor(theme.text)
-                maxLines = 2
-                ellipsize = TextUtils.TruncateAt.END
-                minHeight = dp(44)
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(12), dp(8), dp(8), dp(8))
-                setOnClickListener { listener.onInsert(text) }
-            },
-            LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f),
+    /** 최근기록 칸: 상용문구 칸과 같은 모양, 오른쪽 위 작은 ✕로 개별 삭제 */
+    private fun clipCell(text: String): View {
+        val frame = android.widget.FrameLayout(context)
+        frame.addView(
+            phraseCell(text).apply { setPadding(dp(6), dp(6), dp(18), dp(6)) },
+            android.widget.FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT),
         )
-        row.addView(
+        frame.addView(
             TextView(context).apply {
                 this.text = "✕"
-                textSize = 14f
+                textSize = 11f
                 gravity = Gravity.CENTER
                 setTextColor(theme.text)
                 alpha = 0.6f
                 setOnClickListener { listener.onDeleteClip(text) }
             },
-            LayoutParams(dp(44), dp(44)),
+            android.widget.FrameLayout.LayoutParams(dp(24), dp(24), Gravity.TOP or Gravity.END),
         )
-        return row
+        return frame
     }
 
     /** 불투명 칸 배경 */

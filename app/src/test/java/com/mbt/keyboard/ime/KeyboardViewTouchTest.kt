@@ -194,9 +194,9 @@ class KeyboardViewTouchTest {
         send(ev(MotionEvent.ACTION_UP, Triple(0, x + dxDp * density, y + dyDp * density)))
     }
 
-    @Test fun swipingAKeyInAnyDirectionMakesTheDoubleLetterWhenTheOptionIsOn() {
+    @Test fun swipingAKeyUpOrDownMakesTheDoubleLetterWhenTheOptionIsOn() {
         view.swipeDouble = true
-        val dirs = listOf(60f to 0f, -60f to 0f, 0f to -60f, 0f to 60f)           // 오른쪽·왼쪽·위·아래
+        val dirs = listOf(0f to -60f, 0f to 60f)           // 위·아래만 (좌우는 커서 이동용)
         val pairs = mapOf("ㄱ" to "ㄲ", "ㄷ" to "ㄸ", "ㅂ" to "ㅃ", "ㅈ" to "ㅉ", "ㅅ" to "ㅆ",
             "ㅏ" to "ㅑ", "ㅓ" to "ㅕ", "ㅗ" to "ㅛ", "ㅜ" to "ㅠ", "ㅐ" to "ㅒ", "ㅔ" to "ㅖ")
         for ((from, to) in pairs) for ((dx, dy) in dirs) {
@@ -205,6 +205,16 @@ class KeyboardViewTouchTest {
             assertEquals("$from ($dx,$dy)", listOf(to), rec.texts)
             assertTrue("$from: 원래 글자는 따로 입력되면 안 된다 ${rec.keys}", rec.keys.isEmpty())
             assertEquals("$from: 커서 이동 없음", 0, rec.cursorSteps)
+        }
+    }
+
+    @Test fun swipingADoubleableKeySidewaysMovesTheCursorInsteadOfTypingTheDoubleLetter() {
+        view.swipeDouble = true
+        for (dx in listOf(90f, -90f)) {
+            rec.cursorSteps = 0; rec.texts.clear(); rec.keys.clear()
+            swipeKey("ㄱ", dx, 0f)
+            assertTrue("ㄱ ($dx)", rec.cursorSteps != 0)
+            assertTrue(rec.texts.isEmpty() && rec.keys.isEmpty())
         }
     }
 
