@@ -27,15 +27,16 @@ class SettingsActivityTest {
         }
     }
 
-    @Test fun checkUpdateButtonOpensLatestApkDownloadInBrowser() {
+    @Test fun checkUpdateButtonDownloadsInAppInsteadOfOpeningTheBrowser() {
         ActivityScenario.launch(SettingsActivity::class.java).use { sc ->
             sc.onActivity { a ->
                 a.findViewById<android.view.View>(R.id.btnCheckUpdate).performClick()
                 val next = org.robolectric.Shadows.shadowOf(a).nextStartedActivity
-                assertEquals(android.content.Intent.ACTION_VIEW, next.action)
+                // 브라우저(ACTION_VIEW)로 보내지 않는다: 설치 허용 설정 화면이거나 아무 화면도 없음(다운로드 시작)
+                assertTrue(next == null || next.action != android.content.Intent.ACTION_VIEW)
                 assertEquals(
                     "https://github.com/mbt030809-debug/keyboard/releases/latest/download/mbt-keyboard-latest.apk",
-                    next.data.toString(),
+                    SettingsActivity.UPDATE_URL,
                 )
             }
         }

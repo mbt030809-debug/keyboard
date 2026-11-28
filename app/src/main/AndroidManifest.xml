@@ -3,6 +3,8 @@
 
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- 업데이트: 내려받은 APK의 설치 화면 열기 (내려받기는 시스템 다운로드 관리자라 INTERNET 불필요) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- 음성인식 서비스(구글 등) 조회용 -->
     <queries>

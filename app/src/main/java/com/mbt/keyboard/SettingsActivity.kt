@@ -74,14 +74,8 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.versionText).text =
             getString(R.string.version_label, info.versionName, info.versionCode)
 
-        // 업데이트 확인: 앱에 네트워크·설치 권한을 두지 않고, 브라우저로 최신 APK를 내려받아 설치한다
-        findViewById<View>(R.id.btnCheckUpdate).setOnClickListener {
-            try {
-                startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(UPDATE_URL)))
-            } catch (_: android.content.ActivityNotFoundException) {
-                Toast.makeText(this, R.string.update_no_browser, Toast.LENGTH_SHORT).show()
-            }
-        }
+        // 업데이트 확인: 최신 APK를 내려받아 바로 설치 화면을 연다 (내려받기는 시스템 다운로드 관리자가 처리)
+        findViewById<View>(R.id.btnCheckUpdate).setOnClickListener { UpdateInstaller.start(this, UPDATE_URL) }
 
         // 클립보드 기록: 켜기/끄기, 전체 삭제
         val clip = findViewById<MaterialSwitch>(R.id.switchClipboard)
