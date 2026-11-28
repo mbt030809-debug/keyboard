@@ -256,6 +256,22 @@ class SplitDuplicateTest {
         assertTrue(y.min() < mid && y.max() > mid)                 // 하나는 왼쪽 묶음, 하나는 오른쪽 묶음
     }
 
+    @Test fun duplicatingInnerKeysDoesNotShrinkTheOtherKeys() {
+        fun width(label: String) = view.keyRects().first { it.first.label == label }.second.width()
+        val before = listOf("q", "t", "p", "z").map { width(it) }
+        view.splitDuplicate = true; relayout()
+        val after = listOf("q", "t", "p", "z").map { width(it) }
+        before.zip(after).forEach { (b, a) -> assertEquals(b, a, 0.5f) }
+        // 복제 키는 원래 키와 겹치지 않는다
+        val rects = view.keyRects().map { it.second }
+        for (i in rects.indices) for (j in i + 1 until rects.size) {
+            val a = rects[i]; val b = rects[j]
+            if (kotlin.math.abs(a.centerY() - b.centerY()) < 1f) {
+                assertTrue("겹침 $a $b", a.right <= b.left + 0.5f || b.right <= a.left + 0.5f)
+            }
+        }
+    }
+
     @Test fun duplicatedKeyTypesTheSameLetter() {
         view.splitDuplicate = true; relayout()
         val fired = ArrayList<String>()
