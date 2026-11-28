@@ -173,6 +173,8 @@
     <string name="update_checking">업데이트 확인 중…</string>
     <string name="update_latest">이미 최신 버전이에요 (빌드 %1$d)</string>
     <string name="update_check_failed">업데이트 정보를 가져오지 못했어요. 네트워크를 확인해 주세요</string>
+    <string name="edit_unsupported_terminal">이 앱(터미널)은 키보드로 복사·전체선택을 할 수 없어요. 앱의 선택 메뉴를 써 주세요</string>
+    <string name="paste_empty">붙여넣을 내용이 없어요</string>
     <string name="update_failed">내려받기에 실패했어요. 잠시 뒤 다시 시도해 주세요</string>
     <string name="backup_title">설정 백업 및 복원</string>
     <string name="backup_desc">테마, 크기, 타이밍, 진동, 상용문구 설정을 파일이나 클립보드로 저장하고 불러와요</string>

@@ -603,40 +603,57 @@ class KeyboardService : InputMethodService(), KeyboardView.Listener {
     private fun editAction(id: Int) {
         flushComposing()
         val ic = currentInputConnection ?: return
-        // 일부 앱(웹뷰·커스텀 편집기·터미널 등)은 컨텍스트 메뉴 동작을 지원하지 않아 false를 돌려준다 → 직접 처리로 대체
+        val terminal = isTerminalLike()
+        // 터미널(Termux 등)의 입력 연결은 컨텍스트 메뉴 동작을 지원하지 않고(false) 선택 영역·텍스트도 알려 주지 않는다.
+        // 붙여넣기는 상용문구와 같은 commitText 방식이 확실하므로 바로 그 방식으로 처리한다.
+        if (terminal && id == android.R.id.paste) { pasteFallback(ic, allowCtrlKey = false); return }
+        // 일부 앱(웹뷰·커스텀 편집기 등)은 컨텍스트 메뉴 동작을 지원하지 않아 false를 돌려준다 → 직접 처리로 대체
         if (ic.performContextMenuAction(id)) return
         when (id) {
-            android.R.id.selectAll -> selectAllFallback(ic)
-            android.R.id.copy -> copyFallback(ic)
-            android.R.id.paste -> pasteFallback(ic)
+            android.R.id.selectAll -> selectAllFallback(ic, terminal)
+            android.R.id.copy -> copyFallback(ic, terminal)
+            android.R.id.paste -> pasteFallback(ic, allowCtrlKey = !terminal)
         }
     }
 
-    private fun selectAllFallback(ic: android.view.inputmethod.InputConnection) {
+    /**
+     * 터미널 에뮬레이터 입력창인가: 입력 종류가 TYPE_NULL이거나 앱이 Termux·터미널 계열.
+     * 이런 곳에서 Ctrl+C·Ctrl+A를 보내면 복사·전체선택이 아니라 실행 중인 명령 중단(^C)·줄 맨 앞 이동(^A)이 된다.
+     */
+    private fun isTerminalLike(): Boolean {
+        val info = currentInputEditorInfo ?: return false
+        if (info.inputType == InputType.TYPE_NULL) return true
+        val pkg = info.packageName?.lowercase() ?: return false
+        return pkg.startsWith("com.termux") || pkg.contains("terminal")
+    }
+
+    private fun selectAllFallback(ic: android.view.inputmethod.InputConnection, terminal: Boolean) {
         val before = ic.getTextBeforeCursor(100_000, 0)?.length ?: 0
         val after = ic.getTextAfterCursor(100_000, 0)?.length ?: 0
         if (before + after > 0 && ic.setSelection(0, before + after)) return
+        if (terminal) { say(getString(R.string.edit_unsupported_terminal)); return }
         sendCtrlKey(android.view.KeyEvent.KEYCODE_A, ic)
     }
 
-    private fun copyFallback(ic: android.view.inputmethod.InputConnection) {
+    private fun copyFallback(ic: android.view.inputmethod.InputConnection, terminal: Boolean) {
         val sel = ic.getSelectedText(0)
         val cm = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
         if (!sel.isNullOrEmpty() && cm != null) {
             cm.setPrimaryClip(android.content.ClipData.newPlainText("text", sel))
             return
         }
+        if (terminal) { say(getString(R.string.edit_unsupported_terminal)); return }
         sendCtrlKey(android.view.KeyEvent.KEYCODE_C, ic)
     }
 
-    private fun pasteFallback(ic: android.view.inputmethod.InputConnection) {
+    private fun pasteFallback(ic: android.view.inputmethod.InputConnection, allowCtrlKey: Boolean) {
         val cm = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
         val text = cm?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)
         if (!text.isNullOrEmpty()) {
             ic.commitText(text, 1)       // 상용문구 입력과 같은 방식 (거의 모든 앱에서 동작)
             return
         }
-        sendCtrlKey(android.view.KeyEvent.KEYCODE_V, ic)
+        if (allowCtrlKey) sendCtrlKey(android.view.KeyEvent.KEYCODE_V, ic) else say(getString(R.string.paste_empty))
     }
 
     private fun sendCtrlKey(code: Int, ic: android.view.inputmethod.InputConnection) {
