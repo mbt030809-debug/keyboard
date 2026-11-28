@@ -88,9 +88,37 @@ data class KeyboardTheme(
         return (0xFF shl 24) or (mix((c shr 16) and 0xFF, bg[0]) shl 16) or (mix((c shr 8) and 0xFF, bg[1]) shl 8) or mix(c and 0xFF, bg[2])
     }
 
+    /**
+     * 키 사이·키와 배경 사이 색 차이를 더 크게: 기능키는 글자 키에서 멀어지게, 일반(비글래스) 테마는 키와 배경도 멀어지게 한다.
+     * 알파는 그대로 두고 명도만 [KEY_CONTRAST] 만큼 민다.
+     */
+    fun boosted(): KeyboardTheme {
+        fun lum(c: Int) = (0.2126f * ((c shr 16) and 0xFF) + 0.7152f * ((c shr 8) and 0xFF) + 0.0722f * (c and 0xFF)) / 255f
+        fun shade(c: Int, toWhite: Boolean, f: Float): Int {
+            val t = if (toWhite) 255 else 0
+            fun ch(sh: Int) = ((((c shr sh) and 0xFF) * (1f - f)) + t * f + 0.5f).toInt().coerceIn(0, 255)
+            return (c and 0xFF000000.toInt()) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+        }
+        val bgL = backgroundStops.map { lum(solid(it)) }.average().toFloat()
+        val keyL = lum(solid(key))
+        // 기능키: 글자 키가 더 밝으면 더 어둡게, 더 어두우면 더 밝게
+        val special = shade(specialKey, toWhite = lum(solid(specialKey)) >= keyL, f = KEY_CONTRAST)
+        if (frost) return copy(specialKey = special)
+        // 일반 테마: 키가 배경보다 밝으면 배경을 어둡게, 어두우면 배경을 밝게 (글자 키 색은 그대로라 글자 대비 유지)
+        val bgToWhite = keyL < bgL
+        fun bgShade(c: Int) = if (c == 0) 0 else shade(c, bgToWhite, KEY_CONTRAST * 0.8f)
+        return copy(
+            specialKey = special,
+            background = bgShade(background), backgroundMid = bgShade(backgroundMid), backgroundEnd = bgShade(backgroundEnd),
+        )
+    }
+
     companion object {
+        /** [boosted]: 명도를 얼마나 밀지 (0~1) */
+        const val KEY_CONTRAST = 0.16f
+
         /** 숫자 키를 글자 키보다 얼마나 어둡게 할지 (0~1) */
-        const val NUMBER_KEY_DARKEN = 0.14f
+        const val NUMBER_KEY_DARKEN = 0.20f
 
         /** 엔터 키를 기능키(또는 강조색)에서 글자 키 쪽으로 얼마나 옅게 할지 (0~1) */
         const val ENTER_KEY_SOFTEN = 0.5f
@@ -99,12 +127,12 @@ data class KeyboardTheme(
             background = 0xFFD9DCE1.toInt(), key = 0xFFFFFFFF.toInt(), specialKey = 0xFFB9BEC7.toInt(),
             keyPressed = 0xFF9AA3B5.toInt(), text = 0xFF1B1B1F.toInt(),
             accent = 0xFF3F51B5.toInt(), onAccent = 0xFFFFFFFF.toInt(),
-        )
+        ).boosted()
         val DARK = KeyboardTheme(
             background = 0xFF1E1F24.toInt(), key = 0xFF3A3C44.toInt(), specialKey = 0xFF2A2C33.toInt(),
             keyPressed = 0xFF5A5E6B.toInt(), text = 0xFFF2F2F5.toInt(),
             accent = 0xFF8C9EFF.toInt(), onAccent = 0xFF0A1A6B.toInt(),
-        )
+        ).boosted()
 
         /** 설정에서 고른 테마. 고르지 않았으면(또는 모르는 값이면) 시스템 모드를 따른다 */
         fun current(context: Context): KeyboardTheme {

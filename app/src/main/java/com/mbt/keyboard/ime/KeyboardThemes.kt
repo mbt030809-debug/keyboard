@@ -24,7 +24,8 @@ object KeyboardThemes {
         spaceKey = space.toInt(),
     )
 
-    val all: List<NamedTheme> = listOf(
+    /** 손으로 맞춘 원본 색. 실제로 쓰는 [all]은 여기에 키 색 대비 보정([KeyboardTheme.boosted])을 한 번 더 적용한다 */
+    private val base: List<NamedTheme> = listOf(
         NamedTheme(
             "iosglass_holo", "홀로그램",
             KeyboardTheme(
@@ -71,6 +72,8 @@ object KeyboardThemes {
         NamedTheme("burgundy_rose", "버건디 · 로즈 펄", frost(28, 0xF5DCE4, 0xFCECF1, 0xEDD0DC, 0xE83D1A2B, 0xEC301321, 0xEE260E1A, 0xF21F0A14, 0xFF59283F, 0xFFF4F8, 0xFF9EC0, 0x290B17, tint = 0x1AFFF0F5)),
         NamedTheme("amethyst_lilac", "아메시스트 · 라일락 글로우", frost(29, 0xE6DCF8, 0xF2ECFC, 0xDCD0F5, 0xE82B1C4A, 0xEC22153D, 0xEE1B1033, 0xF2150B2B, 0xFF422D6E, 0xF7F3FF, 0xC4A3FF, 0x190D33, tint = 0x1AF5EEFF)),
     )
+
+    val all: List<NamedTheme> = base.map { it.copy(theme = it.theme.boosted()) }
 
     fun byId(id: String?): NamedTheme? = all.firstOrNull { it.id == id }
 

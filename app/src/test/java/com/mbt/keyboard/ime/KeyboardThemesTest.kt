@@ -41,6 +41,17 @@ class KeyboardThemesTest {
         return (0xFF shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
     }
 
+    @Test fun functionKeysAreClearlyDifferentFromLetterKeys() {
+        KeyboardThemes.all.forEach { n ->
+            val t = n.theme
+            val bg = t.backgroundStops.first()
+            val d = kotlin.math.abs(lum(over(t.key, bg)) - lum(over(t.specialKey, bg)))
+            assertTrue("${n.id} 글자키↔기능키 명도차 $d", d > 0.02)
+        }
+        val sys = KeyboardTheme.system(ctx)
+        assertTrue(contrast(sys.key, sys.background) >= 1.3)
+    }
+
     @Test fun everyThemeIsReadable() {
         KeyboardThemes.all.forEach { n ->
             val t = n.theme
